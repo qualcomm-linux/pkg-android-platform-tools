@@ -1,0 +1,9 @@
+/.debhelper/
+/.mh/
+/*.log
+/*.substvars
+/build/
+/android-platform-tools/
+/debhelper-build-stamp
+/files
+/tmp/
