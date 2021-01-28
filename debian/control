@@ -1,0 +1,10 @@
+Source: android-platform-tools
+Section: devel
+Priority: optional
+Maintainers: Android Tools Maintainers <android-tools-devel@lists.alioth.debian.org>
+Uploaders: Chirayu Desai <chirayudesai1@gmail.com>
+Build-Depends: debhelper-compat (= 12)
+Standards-Version: 4.5.0
+Rules-Requires-Root: no
+Vcs-Git: https://salsa.debian.org/android-tools-team/android-platform-tools.git
+Vcs-Browser: https://salsa.debian.org/android-tools-team/android-platform-tools
