@@ -1,0 +1,12 @@
+#!/usr/bin/make -f
+
+# For get-orig-source
+include /usr/share/dpkg/pkg-info.mk
+export DEB_SOURCE
+export DEB_VERSION_UPSTREAM
+
+%:
+	dh $@
+
+get-orig-source:
+	debian/scripts/get-orig-source

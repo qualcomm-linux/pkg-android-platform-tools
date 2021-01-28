@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+# Must be invoked by `debian/rules` for the use of `DEB_*` variables
+
+set -e
+
+mkdir --parents debian/tmp/get-orig-source/manifest
+(
+  cd debian/tmp/get-orig-source/manifest
+  ln --physical --force ../../../manifest.xml default.xml
+  git init
+  git add default.xml
+  git commit --no-gpg-sign --message=Changes
+)
+mkdir --parents debian/tmp/get-orig-source/archive
+(
+  cd debian/tmp/get-orig-source/archive
+  repo init --manifest-url=file://"$(readlink --canonicalize-existing ../manifest/.git)" --depth=1
+  repo sync
+  tar --create --xz --file ../../../../../${DEB_SOURCE}_${DEB_VERSION_UPSTREAM}.orig.tar.xz --exclude-from=../../../orig.excludes --mtime=2000-01-01 --sort=name *
+)
