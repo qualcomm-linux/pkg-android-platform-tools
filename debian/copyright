@@ -2,7 +2,8 @@ Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0
 Upstream-Contact: https://source.android.com/compatibility/contact-us.html
 
 Files: *
-Copyright: 2021, Chirayu Desai
+Copyright: 2019, Kai-Chung Yan (殷啟聰)
+           2021, Chirayu Desai
 License: Apache-2.0
 
 License: Apache-2.0
