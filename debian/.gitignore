@@ -7,3 +7,7 @@
 /debhelper-build-stamp
 /files
 /tmp/
+/out/
+android-libboringssl-dev
+android-libboringssl/
+cmake-obj/
