@@ -1,4 +1,4 @@
-include sources.mk
+include external/boringssl/sources.mk
 
 NAME = libcrypto
 SOURCES = $(crypto_sources)
@@ -23,12 +23,11 @@ CFLAGS+= \
   -fvisibility=hidden \
   -Wa,--noexecstack # Fixes `shlib-with-executable-stack`, see `src/util/BUILD.toplevel`
 
-CPPFLAGS += -Isrc/include -Isrc/crypto
+CPPFLAGS += -Iexternal/boringssl/src/include -Iexternal/boringssl/src/crypto
 
 LDFLAGS += -shared -Wl,-soname,$(NAME).so.0 -lpthread
 
-build: $(SOURCES)
-	echo $(SOURCES)
-	mkdir --parents debian/out
-	$(CC) $^ -o debian/out/$(NAME).so.0 $(CFLAGS) $(CPPFLAGS) $(LDFLAGS)
-	ln -s $(NAME).so.0 debian/out/$(NAME).so
+debian/out/external/boringssl/$(NAME).so.0: $(SOURCES)
+	mkdir --parents debian/out/external/boringssl
+	$(CC) $^ -o debian/out/external/boringssl/$(NAME).so.0 $(CFLAGS) $(CPPFLAGS) $(LDFLAGS)
+	ln -s $(NAME).so.0 debian/out/external/boringssl/$(NAME).so

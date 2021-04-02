@@ -47,14 +47,13 @@ CXXFLAGS += \
   -DOPENSSL_SMALL \
   -fvisibility=hidden \
 
-CPPFLAGS += -Isrc/include
+CPPFLAGS += -Iexternal/boringssl/src/include
 
 LDFLAGS += -shared -Wl,-soname,$(NAME).so.0 \
            -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
-           -lpthread -Ldebian/out -lcrypto
+           -lpthread -Ldebian/out/external/boringssl/ -lcrypto
 
-build: $(SOURCES)
-	echo $(SOURCES)
-	mkdir --parents debian/out
-	$(CXX) $^ -o debian/out/$(NAME).so.0 $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
-	ln -s $(NAME).so.0 debian/out/$(NAME).so
+debian/out/external/boringssl/$(NAME).so.0: $(SOURCES)
+	mkdir --parents debian/out/external/boringssl
+	$(CXX) $^ -o debian/out/external/boringssl/$(NAME).so.0 $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
+	ln -s $(NAME).so.0 debian/out/external/boringssl/$(NAME).so

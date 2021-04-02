@@ -18,5 +18,5 @@ get-orig-source:
 	debian/scripts/get-orig-source
 
 override_dh_auto_build:
-	dh_auto_build --buildsystem=makefile -- -f debian/libcrypto.mk
-	dh_auto_build --buildsystem=makefile -- -f debian/libssl.mk
+	dh_auto_build --buildsystem=makefile -- -f debian/external/boringssl/libcrypto.mk
+	dh_auto_build --buildsystem=makefile -- -f debian/external/boringssl/libssl.mk

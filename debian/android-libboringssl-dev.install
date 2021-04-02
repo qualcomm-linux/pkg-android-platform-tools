@@ -1,4 +1,4 @@
 #!/usr/bin/dh-exec
 
-debian/out/*.so   usr/lib/${DEB_HOST_MULTIARCH}/android
-include/openssl   usr/include/android
+debian/out/external/boringssl/*.so   usr/lib/${DEB_HOST_MULTIARCH}/android
+external/boringssl/include/openssl   usr/include/android
