@@ -3,8 +3,8 @@ Author: Umang Parmar <umangjparmar@gmail.com>
 Forwarded: no
 Last-Update: 2018-06-13
 
---- a/libsepol/src/private.h
-+++ b/libsepol/src/private.h
+--- a/external/selinux/libsepol/src/private.h
++++ b/external/selinux/libsepol/src/private.h
 @@ -14,7 +14,7 @@
  #endif
  
@@ -14,8 +14,8 @@ Last-Update: 2018-06-13
  
  #ifdef __APPLE__
  #define __BYTE_ORDER  BYTE_ORDER
---- a/libsepol/src/util.c
-+++ b/libsepol/src/util.c
+--- a/external/selinux/libsepol/src/util.c
++++ b/external/selinux/libsepol/src/util.c
 @@ -27,7 +27,7 @@
  #include <sepol/policydb/flask_types.h>
  #include <sepol/policydb/policydb.h>

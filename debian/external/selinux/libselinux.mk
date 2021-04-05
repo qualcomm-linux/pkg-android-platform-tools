@@ -57,7 +57,7 @@ cc_extra = \
 	src/canonicalize_context.c \
 
 SOURCES = $(cc_defaults_srcs) $(cc_library_srcs) $(cc_library_target_linux_srcs) $(cc_extra)
-SOURCES := $(foreach source, $(SOURCES), libselinux/$(source))
+SOURCES := $(foreach source, $(SOURCES), external/selinux/libselinux/$(source))
 CFLAGS += \
     -DNO_PERSISTENTLY_STORED_PATTERNS \
     -DDISABLE_SETRANS \
@@ -66,12 +66,12 @@ CFLAGS += \
     -DNO_MEDIA_BACKEND \
     -DNO_X_BACKEND \
     -DNO_DB_BACKEND
-CPPFLAGS += -Ilibselinux/include -Ilibsepol/include -DHOST
+CPPFLAGS += -Iexternal/selinux/libselinux/include -Iexternal/selinux/libsepol/include -DHOST
 LDFLAGS += -shared -Wl,-soname,$(NAME).so.0 \
 	         -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android -lpcre \
-	         -Ldebian/out -lsepol
+	         -Ldebian/out/external/selinux -lsepol
 
-build: $(SOURCES)
-	mkdir --parents debian/out
-	$(CC) $^ -o debian/out/$(NAME).so.0 $(CFLAGS) $(CPPFLAGS) $(LDFLAGS)
-	ln -s $(NAME).so.0 debian/out/$(NAME).so
+debian/out/external/selinux/$(NAME).so.0: $(SOURCES)
+	mkdir --parents debian/out/external/selinux
+	$(CC) $^ -o debian/out/external/selinux/$(NAME).so.0 $(CFLAGS) $(CPPFLAGS) $(LDFLAGS)
+	ln -s $(NAME).so.0 debian/out/external/selinux/$(NAME).so

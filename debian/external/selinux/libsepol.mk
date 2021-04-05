@@ -36,7 +36,7 @@ srcs := \
         src/port_record.c \
         src/ports.c \
         src/roles.c \
-        src/services.c \
+		src/services.c \
         src/sidtab.c \
         src/symtab.c \
         src/user_record.c \
@@ -45,18 +45,18 @@ srcs := \
         src/write.c \
 
 SOURCES = $(srcs)
-SOURCES := $(foreach source, $(SOURCES), libsepol/$(source))
+SOURCES := $(foreach source, $(SOURCES), external/selinux/libsepol/$(source))
 CFLAGS += \
     -D_GNU_SOURCE \
     -Wundef \
     -Wshadow \
     -Wmissing-noreturn \
     -Wmissing-format-attribute
-CPPFLAGS += -Ilibsepol/include
+CPPFLAGS += -Iexternal/selinux/libsepol/include
 LDFLAGS += -shared -Wl,-soname,$(NAME).so.0 \
 	   -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android
 
-build: $(SOURCES)
-	mkdir --parents debian/out
-	$(CC) $^ -o debian/out/$(NAME).so.0 $(CFLAGS) $(CPPFLAGS) $(LDFLAGS)
-	ln -s $(NAME).so.0 debian/out/$(NAME).so
+debian/out/external/selinux/$(NAME).so.0: $(SOURCES)
+	mkdir --parents debian/out/external/selinux
+	$(CC) $^ -o debian/out/external/selinux/$(NAME).so.0 $(CFLAGS) $(CPPFLAGS) $(LDFLAGS)
+	ln -s $(NAME).so.0 debian/out/external/selinux/$(NAME).so
