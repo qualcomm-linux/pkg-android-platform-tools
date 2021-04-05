@@ -5,6 +5,7 @@ Maintainer: Android Tools Maintainers <android-tools-devel@lists.alioth.debian.o
 Uploaders: Chirayu Desai <chirayudesai1@gmail.com>
 Build-Depends: debhelper-compat (= 12),
                dh-exec,
+               libpcre3-dev
 Standards-Version: 4.5.0
 Rules-Requires-Root: no
 Vcs-Git: https://salsa.debian.org/android-tools-team/android-platform-tools.git
@@ -54,3 +55,43 @@ Description: Google's internal fork of OpenSSL for the Android SDK - devel
  for each project that uses it.
  .
  This package contains the development files.
+
+Package: android-libselinux
+Architecture: linux-any
+Depends: ${misc:Depends},
+         ${shlibs:Depends}
+Description: Security-Enhanced Linux for Android
+ This library provides an API for SELinux applications to get and set process
+ and file security contexts and to obtain security policy decisions.
+ .
+ This library is an AOSP fork of libselinux, adding features specifically for
+ Android and is intended for Android libraries only.
+
+Package: android-libselinux-dev
+Section: libdevel
+Architecture: linux-any
+Depends: android-libselinux (= ${binary:Version}), ${misc:Depends}
+Description: Security-Enhanced Linux for Android - Development files
+ This library provides an API for SELinux applications to get and set process
+ and file security contexts and to obtain security policy decisions.
+ .
+ This library is an AOSP fork of libselinux, adding features specifically for
+ Android and is intended for Android libraries only.
+ .
+ This package provides the development files.
+
+Package: android-libsepol
+Architecture: linux-any
+Depends: ${misc:Depends},
+         ${shlibs:Depends}
+Description: Security-Policy Linux for Android
+ This library provides an API for setting, checking sepolicy.
+
+Package: android-libsepol-dev
+Section: libdevel
+Architecture: linux-any
+Depends: android-libsepol (= ${binary:Version}), ${misc:Depends}
+Description: Security-Policy Linux for Android - Development files
+ This library provides an API for setting, checking sepolicy.
+ .
+ This package provides the development files.

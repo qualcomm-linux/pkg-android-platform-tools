@@ -1,0 +1,1 @@
+Test-Command: ls -l /usr/include/android/selinux/*.h /usr/lib/*/android/libselinux.so

@@ -8,6 +8,10 @@
 /files
 /tmp/
 /out/
-android-libboringssl-dev
+android-libboringssl-dev/
 android-libboringssl/
+android-libselinux-dev/
+android-libselinux/
+android-libsepol-dev/
+android-libsepol/
 cmake-obj/

@@ -1,0 +1,5 @@
+#!/usr/bin/dh-exec
+
+debian/out/libsepol.so      usr/lib/${DEB_HOST_MULTIARCH}/android
+libsepol/include/sepol/*.h	usr/include/android/sepol
+README.android              usr/share/doc/android-libsepol

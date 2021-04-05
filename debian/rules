@@ -11,6 +11,10 @@ include /usr/share/dpkg/architecture.mk
 export DEB_LDFLAGS_MAINT_APPEND = -fPIC
 export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 
+# external/libselinux
+export DEB_CFLAGS_MAINT_APPEND = -fPIC
+export DEB_CPPFLAGS_MAINT_APPEND = -DNDEBUG
+
 %:
 	dh $@
 
@@ -20,3 +24,11 @@ get-orig-source:
 override_dh_auto_build:
 	dh_auto_build --buildsystem=makefile -- -f debian/external/boringssl/libcrypto.mk
 	dh_auto_build --buildsystem=makefile -- -f debian/external/boringssl/libssl.mk
+	dh_auto_build --buildsystem=makefile -- -f debian/external/selinux/libsepol.mk
+	dh_auto_build --buildsystem=makefile -- -f debian/external/selinux/libselinux.mk
+
+override_dh_auto_test:
+	echo ignore tests using upstream build system
+
+override_dh_auto_install:
+	echo ignore upstream build system install procedure

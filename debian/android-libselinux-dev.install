@@ -1,0 +1,5 @@
+#!/usr/bin/dh-exec
+
+debian/out/libselinux.so      usr/lib/${DEB_HOST_MULTIARCH}/android
+libselinux/include/selinux/*.h usr/include/android/selinux
+README.android                 usr/share/doc/android-libselinux
