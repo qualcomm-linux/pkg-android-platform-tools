@@ -15,3 +15,5 @@ android-libselinux/
 android-libsepol-dev/
 android-libsepol/
 cmake-obj/
+/android-libunwind-dev/
+/android-libunwind/

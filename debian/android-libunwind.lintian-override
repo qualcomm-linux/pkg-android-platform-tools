@@ -1,0 +1,2 @@
+# hack needed to support how the Android SDK is put together
+android-libunwind: breakout-link usr/lib/x86_64-linux-gnu/android/lib7z.so -> usr/lib/p7zip/7z.so

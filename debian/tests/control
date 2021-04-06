@@ -1,1 +1,2 @@
 Test-Command: ls -l /usr/include/android/selinux/*.h /usr/lib/*/android/libselinux.so
+Test-Command: ls -l /usr/include/android/unwind/*.h /usr/lib/*/android/libunwind.so
