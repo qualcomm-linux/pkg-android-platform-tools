@@ -10,9 +10,9 @@ Description: Replace the legacy __sync built-in functions with __atomic ones
  [1]: https://gcc.gnu.org/onlinedocs/gcc/_005f_005fsync-Builtins.html
 Author: Kai-Chung Yan ()
 Last-Update: 2016-10-04
---- a/include/libunwind_i.h
-+++ b/include/libunwind_i.h
-@@ -155,8 +155,8 @@
+--- a/external/libunwind/include/libunwind_i.h
++++ b/external/libunwind/include/libunwind_i.h
+@@ -155,8 +155,8 @@ cmpxchg_ptr (void *addr, void *old, void
    u.vp = addr;
    return __sync_bool_compare_and_swap(u.vlp, (long) old, (long) new);
  }

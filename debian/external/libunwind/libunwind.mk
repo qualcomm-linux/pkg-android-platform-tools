@@ -1,4 +1,4 @@
-include debian/detect_arch.mk
+include debian/external/libunwind/detect_arch.mk
 
 ARCH_SOURCES = is_fpreg.c \
                regname.c \
@@ -54,12 +54,12 @@ x86_64_SOURCES = $(foreach source, $(ARCH_SOURCES), src/x86_64/$(source)) \
                  src/x86_64/Los-linux.c \
                  src/x86_64/setcontext.S \
                  src/elf64.c
-arm_INCLUDES = -Iinclude/tdep-arm
-arm64_INCLUDES = -Iinclude/tdep-aarch64
-mips_INCLUDES = -Iinclude/tdep-mips
+arm_INCLUDES = -Iexternal/libunwind/include/tdep-arm
+arm64_INCLUDES = -Iexternal/libunwind/include/tdep-aarch64
+mips_INCLUDES = -Iexternal/libunwind/include/tdep-mips
 mips64_INCLUDES = $(mips_INCLUDES)
-x86_INCLUDES = -Iinclude/tdep-x86
-x86_64_INCLUDES = -Iinclude/tdep-x86_64
+x86_INCLUDES = -Iexternal/libunwind/include/tdep-x86
+x86_64_INCLUDES = -Iexternal/libunwind/include/tdep-x86_64
 
 NAME = libunwind
 SOURCES = src/mi/init.c \
@@ -127,14 +127,15 @@ SOURCES = src/mi/init.c \
           src/ptrace/_UPT_reg_offset.c \
           src/ptrace/_UPT_resume.c
 SOURCES += $($(CPU)_SOURCES)
+SOURCES := $(foreach source, $(SOURCES), external/libunwind/$(source))
 CFLAGS += -DHAVE_CONFIG_H -DNDEBUG -D_GNU_SOURCE -Werror -Wno-unused-parameter -fcommon
-CPPFLAGS += -Iinclude -Isrc $($(CPU)_INCLUDES) -Idebian/include
+CPPFLAGS += -Iexternal/libunwind/include -Iexternal/libunwind/src $($(CPU)_INCLUDES) -Idebian/include/external/libunwind/
 LDFLAGS += -shared -Wl,-soname,$(NAME).so.0 \
            -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
-           -lpthread -nostdlib -lc -lgcc -Ldebian/out -l7z
+           -lpthread -nostdlib -lc -lgcc -Ldebian/out/external/libunwind/ -l7z
 
-build: $(SOURCES)
-	mkdir --parents debian/out
-	ln -s /usr/lib/p7zip/7z.so debian/out/lib7z.so
-	$(CC) $^ -o debian/out/$(NAME).so.0 $(CFLAGS) $(CPPFLAGS) $(LDFLAGS)
-	ln -s $(NAME).so.0 debian/out/$(NAME).so
+debian/out/external/libunwind/$(NAME).so.0: $(SOURCES)
+	mkdir --parents debian/out/external/libunwind/
+	ln -s /usr/lib/p7zip/7z.so debian/out/external/libunwind/lib7z.so
+	$(CC) $^ -o debian/out/external/libunwind/$(NAME).so.0 $(CFLAGS) $(CPPFLAGS) $(LDFLAGS)
+	ln -s $(NAME).so.0 debian/out/external/libunwind/$(NAME).so

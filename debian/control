@@ -5,7 +5,8 @@ Maintainer: Android Tools Maintainers <android-tools-devel@lists.alioth.debian.o
 Uploaders: Chirayu Desai <chirayudesai1@gmail.com>
 Build-Depends: debhelper-compat (= 12),
                dh-exec,
-               libpcre3-dev
+               libpcre3-dev,
+               p7zip-full
 Standards-Version: 4.5.0
 Rules-Requires-Root: no
 Vcs-Git: https://salsa.debian.org/android-tools-team/android-platform-tools.git
@@ -93,5 +94,30 @@ Architecture: linux-any
 Depends: android-libsepol (= ${binary:Version}), ${misc:Depends}
 Description: Security-Policy Linux for Android - Development files
  This library provides an API for setting, checking sepolicy.
+
+Package: android-libunwind
+Architecture: amd64 i386 arm64 armel armhf mips mipsel mips64el
+Depends: p7zip-full, ${shlibs:Depends}, ${misc:Depends}
+Description: libunwind for Android
+ This library is the AOSP fork of libunwind. It is used by libbacktrace.
+ .
+ This package is only available on x86, ARM and MIPS because the AOSP
+ modifications only apply on these platforms.
+ .
+ This library is only used by Android SDK currently.
+
+Package: android-libunwind-dev
+Section: libdevel
+Architecture: amd64 i386 arm64 armel armhf mips mipsel mips64el
+Depends: android-libunwind (= ${binary:Version}),
+         libbsd-dev,
+         ${misc:Depends}
+Description: libunwind for Android - Development files
+ This library is the AOSP fork of libunwind. It is used by libbacktrace.
+ .
+ This package is only available on x86, ARM and MIPS because the AOSP
+ modifications only apply on these platforms.
+ .
+ This library is only used by Android SDK currently.
  .
  This package provides the development files.
