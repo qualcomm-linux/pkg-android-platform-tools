@@ -128,7 +128,7 @@ SOURCES = src/mi/init.c \
           src/ptrace/_UPT_resume.c
 SOURCES += $($(CPU)_SOURCES)
 SOURCES := $(foreach source, $(SOURCES), external/libunwind/$(source))
-CFLAGS += -DHAVE_CONFIG_H -DNDEBUG -D_GNU_SOURCE -Werror -Wno-unused-parameter -fcommon
+CFLAGS += -DHAVE_CONFIG_H -DNDEBUG -D_GNU_SOURCE -Werror -Wno-unused-parameter -fcommon -Wno-header-guard -Wno-absolute-value -Wno-inline-asm
 CPPFLAGS += -Iexternal/libunwind/include -Iexternal/libunwind/src $($(CPU)_INCLUDES) -Idebian/include/external/libunwind/
 LDFLAGS += -shared -Wl,-soname,$(NAME).so.0 \
            -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
