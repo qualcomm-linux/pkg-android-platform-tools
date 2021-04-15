@@ -1,0 +1,12 @@
+Description: Added missing headers causing compile errors
+Forwarded: not-needed
+--- a/JNIHelp.cpp
++++ b/JNIHelp.cpp
+@@ -21,6 +21,7 @@
+ #include "ALog-priv.h"
+ 
+ #include <string>
++#include <cstring>
+ 
+ #include "JniConstants.h"
+ #include "nativehelper/ScopedLocalRef.h"

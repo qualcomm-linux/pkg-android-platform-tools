@@ -3,10 +3,15 @@ Section: devel
 Priority: optional
 Maintainer: Android Tools Maintainers <android-tools-devel@lists.alioth.debian.org>
 Uploaders: Chirayu Desai <chirayudesai1@gmail.com>
-Build-Depends: debhelper-compat (= 12),
-               dh-exec,
-               libpcre3-dev,
-               p7zip-full
+Build-Depends:
+ android-libbase-dev (>= 1:10.0.0+r36-1~),
+ android-libcutils-dev (>= 1:10.0.0+r36-1~),
+ android-liblog-dev (>= 1:10.0.0+r36-1~),
+ clang,
+ debhelper-compat (= 12),
+ dh-exec,
+ libpcre3-dev,
+ p7zip-full,
 Standards-Version: 4.5.0
 Rules-Requires-Root: no
 Vcs-Git: https://salsa.debian.org/android-tools-team/android-platform-tools.git
@@ -121,3 +126,19 @@ Description: libunwind for Android - Development files
  This library is only used by Android SDK currently.
  .
  This package provides the development files.
+
+Package: android-libnativehelper
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Support functions for Android's class libraries
+ This library is only used by Android SDK currently.
+
+Package: android-libnativehelper-dev
+Architecture: any
+Depends: android-libnativehelper (= ${binary:Version}), ${misc:Depends}
+Breaks: android-libnativehelper (<< 10.0.0+r36-1~)
+Replaces: android-libnativehelper (<< 10.0.0+r36-1~)
+Description: Support functions for Android's class libraries - Development files
+ This library is only used by Android SDK currently.
+ .
+ This package contains the development files.
