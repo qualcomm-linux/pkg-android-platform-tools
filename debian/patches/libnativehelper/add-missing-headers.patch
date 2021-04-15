@@ -1,7 +1,7 @@
 Description: Added missing headers causing compile errors
 Forwarded: not-needed
---- a/JNIHelp.cpp
-+++ b/JNIHelp.cpp
+--- a/libnativehelper/JNIHelp.cpp
++++ b/libnativehelper/JNIHelp.cpp
 @@ -21,6 +21,7 @@
  #include "ALog-priv.h"
  

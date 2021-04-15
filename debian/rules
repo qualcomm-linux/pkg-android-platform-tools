@@ -13,8 +13,10 @@ export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 
 # external/libselinux
 # external/libunwind
+# libnativehelper
 export DEB_CFLAGS_MAINT_APPEND = -fPIC
 export DEB_CPPFLAGS_MAINT_APPEND = -DNDEBUG
+export DEB_CXXFLAGS_MAINT_APPEND = -fPIC
 
 %:
 	dh $@
@@ -28,6 +30,7 @@ override_dh_auto_build:
 	dh_auto_build --buildsystem=makefile -- -f debian/external/selinux/libsepol.mk
 	dh_auto_build --buildsystem=makefile -- -f debian/external/selinux/libselinux.mk
 	dh_auto_build --buildsystem=makefile -- -f debian/external/libunwind/libunwind.mk
+	dh_auto_build --buildsystem=makefile -- -f debian/libnativehelper/libnativehelper.mk
 
 override_dh_auto_test:
 	echo ignore tests using upstream build system
