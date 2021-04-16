@@ -1,0 +1,6 @@
+When we were packaging Doclava, we found that JSilver had been removed from Sid
+and Stretch at the time. The original maintainers of JSilver did that because
+this package did not have any reverse-dependencies and the upstream seemed dead.
+Hence, we are bringing it back.
+
+ -- Kai-Chung Yan <seamlikok@gmail.com>  Tue, 07 Jun 2016 21:38:02 +0800

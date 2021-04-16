@@ -3,3 +3,4 @@ external/libunwind/user_pt_regs.patch
 external/libunwind/legacy_built-in_sync_functions.patch
 external/libunwind/20150704-CVE-2015-3239_dwarf_i.h.patch
 libnativehelper/add-missing-headers.patch
+external/jsilver/build_script.diff

@@ -9,8 +9,13 @@ Build-Depends:
  android-liblog-dev (>= 1:10.0.0+r36-1~),
  clang,
  debhelper-compat (= 12),
+ default-jdk-headless | default-jdk,
  dh-exec,
+ gradle-debian-helper,
  libpcre3-dev,
+ libguava-java,
+ libpcre3-dev,
+ maven-repo-helper,
  p7zip-full,
 Standards-Version: 4.5.0
 Rules-Requires-Root: no
@@ -142,3 +147,14 @@ Description: Support functions for Android's class libraries - Development files
  This library is only used by Android SDK currently.
  .
  This package contains the development files.
+
+Package: libjsilver-aosp-java
+Architecture: all
+Depends: libguava-java,
+         ${misc:Depends}
+Breaks: libjsilver-java (<= 1.0.0.dfsg-1)
+Replaces: libjsilver-java (<= 1.0.0.dfsg-1)
+Description: Pure-Java implementation of Clearsilver
+ This package is a fork of JSilver by The Android Open Source Project. The
+ upstream website has been abandoned by the developers but remains among AOSP's
+ repositories.

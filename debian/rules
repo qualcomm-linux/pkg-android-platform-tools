@@ -5,6 +5,10 @@ include /usr/share/dpkg/pkg-info.mk
 export DEB_SOURCE
 export DEB_VERSION_UPSTREAM
 
+# external/jsilver
+ANDROID_VERSION = $(shell echo $(DEB_VERSION_UPSTREAM) | sed --expression="s/\+r.*//")
+UPSTREAM_TAG = android-$(subst +,_,$(DEB_VERSION_UPSTREAM))
+
 # external/boringssl
 include /usr/share/dpkg/architecture.mk
 
@@ -19,7 +23,7 @@ export DEB_CPPFLAGS_MAINT_APPEND = -DNDEBUG
 export DEB_CXXFLAGS_MAINT_APPEND = -fPIC
 
 %:
-	dh $@
+	dh $@ --with maven_repo_helper
 
 get-orig-source:
 	debian/scripts/get-orig-source
@@ -31,6 +35,7 @@ override_dh_auto_build:
 	dh_auto_build --buildsystem=makefile -- -f debian/external/selinux/libselinux.mk
 	dh_auto_build --buildsystem=makefile -- -f debian/external/libunwind/libunwind.mk
 	dh_auto_build --buildsystem=makefile -- -f debian/libnativehelper/libnativehelper.mk
+	dh_auto_build --buildsystem=gradle -- assemble --project-dir external/jsilver --project-prop androidVersion=$(ANDROID_VERSION)
 
 override_dh_auto_test:
 	echo ignore tests using upstream build system

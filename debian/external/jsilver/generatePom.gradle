@@ -1,0 +1,13 @@
+apply plugin: 'maven'
+
+task generatePom {
+  outputs.files "${buildDir}/${archivesBaseName}.pom"
+  clean.doLast { delete "${buildDir}/${archivesBaseName}.pom" }
+  assemble.dependsOn generatePom
+  doFirst {
+    mkdir buildDir
+    pom {
+      project { artifactId archivesBaseName }
+    }.writeTo("${buildDir}/${project.archivesBaseName}.pom")
+  }
+}

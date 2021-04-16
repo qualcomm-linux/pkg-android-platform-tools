@@ -1,0 +1,1 @@
+external/jsilver/build/jsilver.pom --artifact=external/jsilver/build/libs/jsilver-*.jar --java-lib
