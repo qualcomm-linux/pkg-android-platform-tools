@@ -1,0 +1,4 @@
+#!/usr/bin/dh-exec
+
+system/core/mkbootimg/mkbootimg.py => usr/bin/mkbootimg
+system/core/mkbootimg/unpack_bootimg.py => usr/bin/unpack_bootimg

@@ -1,0 +1,3 @@
+#!/usr/bin/dh-exec
+
+system/core/fastboot/fastboot   usr/lib/android-sdk/platform-tools

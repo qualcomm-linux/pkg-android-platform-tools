@@ -1,0 +1,4 @@
+#!/usr/bin/dh-exec
+
+system/core/libcrypto_utils.so.*   usr/lib/${DEB_HOST_MULTIARCH}/android
+system/core/libcrypto_utils.so     usr/lib/${DEB_HOST_MULTIARCH}/android

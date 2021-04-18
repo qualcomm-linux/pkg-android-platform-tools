@@ -1,0 +1,3 @@
+#!/usr/bin/dh-exec
+
+system/core/adb/adb   usr/lib/android-sdk/platform-tools

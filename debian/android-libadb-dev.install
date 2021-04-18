@@ -1,0 +1,4 @@
+system/core/adb/adb_trace.h  usr/include/android/adb
+system/core/adb/adb.h        usr/include/android/adb
+system/core/adb/fdevent.h    usr/include/android/adb
+system/core/adb/protocol.txt usr/share/doc/android-libadb
