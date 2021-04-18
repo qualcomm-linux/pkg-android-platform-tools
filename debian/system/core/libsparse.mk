@@ -13,7 +13,7 @@ COBJECTS := $(CSOURCES:.c=.o)
 CXXOBJECTS := $(CXXSOURCES:.cpp=.o)
 CFLAGS += -c
 CXXFLAGS += -c -std=gnu++17
-CPPFLAGS += -Isystem/core/include -Isystem/core/libsparse/include -Isystem/core/base/include
+CPPFLAGS += -I/usr/include/android -Isystem/core/include -Isystem/core/libsparse/include -Isystem/core/base/include
 LDFLAGS += \
   -shared -Wl,-soname,$(NAME).so.0 \
   -lz \
@@ -22,7 +22,7 @@ LDFLAGS += \
   -lbase
 
 
-build: $(COBJECTS) $(CXXOBJECTS)
+system/core/$(NAME).so.0: $(COBJECTS) $(CXXOBJECTS)
 	$(CXX) $^ -o system/core/$(NAME).so.0 $(LDFLAGS)
 	ln -s $(NAME).so.0 system/core/$(NAME).so
 

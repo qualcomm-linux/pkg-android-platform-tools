@@ -25,6 +25,7 @@ SOURCES := \
 
 CXXFLAGS += -std=gnu++2a -fpermissive
 CPPFLAGS += \
+            -I/usr/include/android \
             -DPLATFORM_TOOLS_VERSION='"$(PLATFORM_TOOLS_VERSION)"' \
             -D_FILE_OFFSET_BITS=64 \
             -Isystem/core/include \
@@ -41,7 +42,7 @@ CPPFLAGS += \
             -Isystem/core/libziparchive/include
 LDFLAGS += -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
            -fuse-ld=gold \
-           -Wl,-rpath-link=. \
+           -Wl,-rpath-link system/core \
            -Lsystem/core -lziparchive -lsparse -lbase -lcutils -ladb -lcrypto -lext4_utils \
            -L/usr/lib/$(DEB_HOST_MULTIARCH)/android \
            -l7z \
@@ -52,7 +53,7 @@ ifneq ($(filter armel mipsel,$(DEB_HOST_ARCH)),)
   LDFLAGS += -latomic
 endif
 
-build: $(SOURCES)
+system/core/fastboot/$(NAME): $(SOURCES)
 	$(CXX) $^ -o system/core/fastboot/$(NAME) $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
 
 clean:

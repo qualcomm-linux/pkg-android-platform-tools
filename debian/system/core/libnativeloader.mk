@@ -3,6 +3,7 @@ SOURCES = native_loader.cpp
 SOURCES := $(foreach source, $(SOURCES), system/core/libnativeloader/$(source))
 
 CPPFLAGS += \
+  -I/usr/include/android \
   -Isystem/core/include \
   -Isystem/core/base/include \
   -Isystem/core/libnativebridge/include \
@@ -18,7 +19,7 @@ LDFLAGS += \
   -Lsystem/core \
   -lnativebridge -lbase
 
-build: $(SOURCES)
+system/core/$(NAME).so.0: $(SOURCES)
 	$(CXX) $^ -o system/core/$(NAME).so.0 $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
 	ln -s $(NAME).so.0 system/core/$(NAME).so
 

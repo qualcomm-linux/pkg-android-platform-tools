@@ -45,6 +45,7 @@ CXXOBJECTS := $(CXXSOURCES:.cpp=.o)
 CFLAGS += -c
 CXXFLAGS += -c -std=gnu++17
 CPPFLAGS += \
+            -I/usr/include/android \
             -Isystem/core/base/include \
             -Isystem/core/libcutils/include \
             -Isystem/core/include \
@@ -52,7 +53,7 @@ CPPFLAGS += \
 LDFLAGS += -shared -Wl,-soname,$(NAME).so.0 \
            -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android -lpthread -Lsystem/core -llog -lbase
 
-build: $(COBJECTS) $(CXXOBJECTS)
+system/core/$(NAME).so.0: $(COBJECTS) $(CXXOBJECTS)
 	$(CXX) $^ -o system/core/$(NAME).so.0 $(LDFLAGS)
 	ln -s $(NAME).so.0 system/core/$(NAME).so
 

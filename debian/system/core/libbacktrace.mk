@@ -83,6 +83,7 @@ CXXOBJECTS = $(SOURCES:.cpp=.o)
 OBJECTS_ASSEMBLY := $(SOURCES_ASSEMBLY:.S=.o)
 CXXFLAGS += -c -std=gnu++2a -fno-omit-frame-pointer
 CPPFLAGS += \
+            -I/usr/include/android \
             -DNO_LIBDEXFILE_SUPPORT \
             -Isystem/core/include \
             -Isystem/core/base/include \
@@ -105,7 +106,7 @@ ifeq ($(DEB_HOST_ARCH), mipsel)
   LDFLAGS += -latomic
 endif
 
-build: $(COBJECTS) $(CXXOBJECTS) $(OBJECTS_ASSEMBLY)
+system/core/$(NAME).so.0: $(COBJECTS) $(CXXOBJECTS) $(OBJECTS_ASSEMBLY)
 	$(CXX) $^ -o system/core/$(NAME).so.0 $(LDFLAGS)
 	ln -s $(NAME).so.0 system/core/$(NAME).so
 

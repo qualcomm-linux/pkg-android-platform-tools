@@ -1,3 +1,30 @@
+## external-*
+
 Tests: ls -l /usr/include/android/selinux/*.h /usr/lib/*/android/libselinux.so
        ls -l /usr/include/android/unwind/*.h /usr/lib/*/android/libunwind.so
        ls -l /usr/share/java/jsilver.jar
+
+## system-core
+
+Test-Command: ls -l /usr/lib/*/android/libcutils.so /usr/include/android/cutils/*.h
+Depends: android-libcutils-dev
+
+Test-Command: adb version
+Depends: adb
+
+Test-Command: adb help
+Depends: adb
+
+Test-Command: adb kill-server && adb devices
+Depends: adb
+Restrictions: allow-stderr
+
+Test-Command: adb keygen key.txt && ls -l key.txt* && rm key.txt*
+Depends: adb
+Restrictions: allow-stderr
+
+Test-Command: fastboot --version
+Depends: fastboot
+
+Test-Command: fastboot devices
+Depends: fastboot

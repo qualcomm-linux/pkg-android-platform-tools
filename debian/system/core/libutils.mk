@@ -28,6 +28,7 @@ SOURCES = \
 SOURCES := $(foreach source, $(SOURCES), system/core/libutils/$(source))
 CXXFLAGS += -std=gnu++17
 CPPFLAGS += \
+            -I/usr/include/android \
             -Isystem/core/include \
             -Isystem/core/base/include \
             -Isystem/core/cutils/include \
@@ -47,7 +48,7 @@ ifeq ($(DEB_HOST_ARCH), mipsel)
   LDFLAGS += -latomic
 endif
 
-build: $(SOURCES)
+system/core/$(NAME).so.0: $(SOURCES)
 	$(CXX) $^ -o system/core/$(NAME).so.0 $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
 	ln -s $(NAME).so.0 system/core/$(NAME).so
 

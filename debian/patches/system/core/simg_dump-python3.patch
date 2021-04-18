@@ -5,10 +5,10 @@ Last-Update: 2019-01-05
 Origin: https://bugs.debian.org/945646
 
 ---
-Index: android-platform-system-core/system/core/libsparse/simg_dump.py
+Index: android-platform-tools/system/core/libsparse/simg_dump.py
 ===================================================================
---- android-platform-system-core.orig/system/core/libsparse/simg_dump.py
-+++ android-platform-system-core/system/core/libsparse/simg_dump.py
+--- android-platform-tools.orig/system/core/libsparse/simg_dump.py
++++ android-platform-tools/system/core/libsparse/simg_dump.py
 @@ -1,4 +1,4 @@
 -#! /usr/bin/env python
 +#! /usr/bin/env python3

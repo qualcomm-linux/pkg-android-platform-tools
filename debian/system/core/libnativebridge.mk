@@ -3,6 +3,7 @@ SOURCES = native_bridge.cc
 SOURCES := $(foreach source, $(SOURCES), system/core/libnativebridge/$(source))
 
 CPPFLAGS += \
+  -I/usr/include/android \
   -I/usr/include/android/nativehelper \
   -Isystem/core/include \
   -Isystem/core/base/include \
@@ -17,7 +18,7 @@ LDFLAGS += \
   -Lsystem/core \
   -llog
 
-build: $(SOURCES)
+system/core/$(NAME).so.0: $(SOURCES)
 	$(CXX) $^ -o system/core/$(NAME).so.0 $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
 	ln -s $(NAME).so.0 system/core/$(NAME).so
 

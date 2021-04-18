@@ -30,6 +30,7 @@ CXXOBJECTS := $(CXXSOURCES:.cpp=.o)
 CFLAGS += -c -fvisibility=hidden -fcommon
 CXXFLAGS += -c -std=gnu++17
 CPPFLAGS += \
+            -I/usr/include/android \
             -Isystem/core/liblog/include \
             -Isystem/core/include \
             -DLIBLOG_LOG_TAG=1006 \
@@ -38,7 +39,7 @@ CPPFLAGS += \
 
 LDFLAGS += -shared -Wl,-soname,$(NAME).so.0 -lpthread
 
-build: $(COBJECTS) $(CXXOBJECTS)
+system/core/$(NAME).so.0: $(COBJECTS) $(CXXOBJECTS)
 	$(CXX) $^ -o system/core/$(NAME).so.0 $(LDFLAGS)
 	ln -s $(NAME).so.0 system/core/$(NAME).so
 

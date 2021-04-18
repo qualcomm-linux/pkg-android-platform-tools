@@ -1,7 +1,16 @@
 #!/usr/bin/make -f
 
-# For get-orig-source
+include /usr/share/dpkg/architecture.mk
 include /usr/share/dpkg/pkg-info.mk
+
+# Security Hardening
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+export DEB_CFLAGS_MAINT_APPEND = -fPIC
+export DEB_CPPFLAGS_MAINT_APPEND = -DNDEBUG -UDEBUG
+export DEB_CXXFLAGS_MAINT_APPEND = -fPIC
+export DEB_LDFLAGS_MAINT_APPEND = -fPIC
+
+# For get-orig-source
 export DEB_SOURCE
 export DEB_VERSION_UPSTREAM
 
@@ -9,26 +18,109 @@ export DEB_VERSION_UPSTREAM
 ANDROID_VERSION = $(shell echo $(DEB_VERSION_UPSTREAM) | sed --expression="s/\+r.*//")
 UPSTREAM_TAG = android-$(subst +,_,$(DEB_VERSION_UPSTREAM))
 
-# external/boringssl
-include /usr/share/dpkg/architecture.mk
+# For system/core
+export DEB_HOST_MULTIARCH
+export DEB_VERSION
+# https://android.googlesource.com/platform/development/+/refs/tags/android-10.0.0_r36/sdk/plat_tools_source.prop_template
+export PLATFORM_TOOLS_VERSION = 28.0.2
 
-export DEB_LDFLAGS_MAINT_APPEND = -fPIC
-export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+ifneq (, $(shell which clang))
+  export CC=clang
+  export CXX=clang++
+endif
 
-# external/libselinux
-# external/libunwind
-# libnativehelper
-export DEB_CFLAGS_MAINT_APPEND = -fPIC
-export DEB_CPPFLAGS_MAINT_APPEND = -DNDEBUG
-export DEB_CXXFLAGS_MAINT_APPEND = -fPIC
+COMPONENTS = \
+		libbacktrace.so \
+		libbase.so \
+		libcutils.so \
+		liblog.so \
+		libsparse.so \
+		libutils.so \
+		libziparchive.so \
+		libcrypto_utils.so \
+		simg2img \
+		img2simg \
+		append2simg \
+		simg2simg
+
+COMPONENTS += adb/adb libadb.so fastboot/fastboot libnativebridge.so libnativeloader.so
+
+# Whatever depends on BoringSSL must be disabled on MIPS
+NON_MIPS_COMPONENTS = adb/adb libadb.so libcrypto_utils.so fastboot/fastboot
+ifneq ($(filter mips mipsel mips64el,$(DEB_HOST_ARCH)),)
+  COMPONENTS := $(filter-out $(NON_MIPS_COMPONENTS),$(COMPONENTS))
+endif
+
+# Most components only support ARM, x86 and MIPS, but some can be built
+# on all architectures.
+COMPONENTS_ANY_ARCH = \
+  append2simg \
+  img2simg \
+  libbase.so \
+  libcutils.so \
+  liblog.so \
+  libsparse.so \
+  simg2img \
+  simg2simg
+ifeq ($(filter amd64 i386 armel armhf arm64 mips mipsel mips64el,$(DEB_HOST_ARCH)),)
+  COMPONENTS := $(filter $(COMPONENTS_ANY_ARCH), $(COMPONENTS))
+endif
 
 %:
-	dh $@ --with maven_repo_helper
+	dh $@ --with maven_repo_helper,bash-completion
 
 get-orig-source:
 	debian/scripts/get-orig-source
 
-override_dh_auto_build:
+lib%.so: debian/system/core/lib%.mk
+	dh_auto_build --buildsystem=makefile -- -f $<
+
+debian/manpages/system/core/%.1: debian/manpages/system/core/%.1.md
+	pandoc --standalone --from=markdown-smart --to=man --output=$@ $<
+
+libadb.so: debian/system/core/libadb.mk libcutils.so libbase.so libcrypto_utils.so
+	dh_auto_build --buildsystem=makefile -- -f $<
+
+libbacktrace.so: debian/system/core/libbacktrace.mk libcutils.so libbase.so liblog.so
+	dh_auto_build --buildsystem=makefile -- -f $<
+
+libbase.so: debian/system/core/libbase.mk liblog.so
+	dh_auto_build --buildsystem=makefile -- -f $<
+
+libcutils.so: debian/system/core/libcutils.mk liblog.so libbase.so
+	dh_auto_build --buildsystem=makefile -- -f $<
+
+libutils.so: debian/system/core/libutils.mk liblog.so libcutils.so libbacktrace.so
+	dh_auto_build --buildsystem=makefile -- -f $<
+
+libziparchive: debian/system/core/libziparchive.mk liblog.so libbase.so
+	dh_auto_build --buildsystem=makefile -- -f $<
+
+adb/adb: debian/system/core/adb.mk libadb.so libcutils.so libbase.so debian/manpages/system/core/adb.1
+	dh_auto_build --buildsystem=makefile -- -f $<
+
+fastboot/fastboot: debian/system/core/fastboot.mk libziparchive.so libsparse.so libbase.so libcutils.so libadb.so debian/manpages/system/core/fastboot.1
+	dh_auto_build --buildsystem=makefile -- -f $<
+
+simg2img: debian/system/core/simg2img.mk libbase.so libsparse.so
+	dh_auto_build --buildsystem=makefile -- -f $<
+
+simg2simg: debian/system/core/simg2simg.mk libbase.so libsparse.so
+	dh_auto_build --buildsystem=makefile -- -f $<
+
+img2simg: debian/system/core/img2simg.mk libbase.so libsparse.so
+	dh_auto_build --buildsystem=makefile -- -f $<
+
+append2simg: debian/system/core/append2simg.mk libbase.so libsparse.so
+	dh_auto_build --buildsystem=makefile -- -f $<
+
+libnativebridge.so: debian/system/core/libnativebridge.mk liblog.so
+	dh_auto_build --buildsystem=makefile -- --file=$<
+
+libnativeloader.so: debian/system/core/libnativeloader.mk libnativebridge.so libbase.so
+	dh_auto_build --buildsystem=makefile -- --file=$<
+
+override_dh_auto_build-arch: $(COMPONENTS)
 	dh_auto_build --buildsystem=makefile -- -f debian/external/boringssl/libcrypto.mk
 	dh_auto_build --buildsystem=makefile -- -f debian/external/boringssl/libssl.mk
 	dh_auto_build --buildsystem=makefile -- -f debian/external/selinux/libsepol.mk
@@ -42,3 +134,11 @@ override_dh_auto_test:
 
 override_dh_auto_install:
 	echo ignore upstream build system install procedure
+
+override_dh_auto_clean:
+	dh_auto_clean
+	$(foreach component,$(COMPONENTS),make clean -f debian/system/core/$(component:.so=).mk;)
+	$(RM) debian/manpages/system/core/*.1 system/core/adb/adb system/core/fastboot/fastboot
+
+override_dh_shlibdeps:
+	dh_shlibdeps -l/usr/lib/$(DEB_HOST_MULTIARCH)/android

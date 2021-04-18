@@ -40,6 +40,7 @@ SOURCES := $(foreach source, $(LOCAL_SRC_FILES), adb/$(source)) $(LIBDIAGNOSE_US
 SOURCES := $(foreach source, $(SOURCES), system/core/$(source))
 CXXFLAGS += -std=gnu++2a
 CPPFLAGS += \
+            -I/usr/include/android \
             -Isystem/core/adb \
             -Isystem/core/base/include \
             -Isystem/core/diagnose_usb/include \
