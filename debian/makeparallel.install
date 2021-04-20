@@ -1,1 +1,1 @@
-makeparallel /usr/bin
+build/make/makeparallel /usr/bin

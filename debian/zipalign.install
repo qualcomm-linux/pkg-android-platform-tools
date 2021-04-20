@@ -1,1 +1,1 @@
-zipalign   usr/lib/android-sdk/build-tools/debian
+build/make/zipalign   usr/lib/android-sdk/build-tools/debian

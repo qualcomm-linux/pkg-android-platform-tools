@@ -1,1 +1,1 @@
-signapk.jar  /usr/share/signapk/
+build/make/signapk.jar  /usr/share/signapk/

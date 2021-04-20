@@ -1,9 +1,10 @@
 NAME = ziptime
 SOURCES = ZipTime.cpp ZipEntry.cpp ZipFile.cpp
-SOURCES := $(foreach source, $(SOURCES), tools/ziptime/$(source))
+SOURCES := $(foreach source, $(SOURCES), build/make/tools/ziptime/$(source))
+CPPFLAGS += -I/usr/include/android
 
-build: $(SOURCES)
-	$(CXX) $^ -o $(NAME) $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
+build/make/$(NAME): $(SOURCES)
+	$(CXX) $^ -o build/make/$(NAME) $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
 
 clean:
-	$(RM) $(NAME)
+	$(RM) build/make/$(NAME)

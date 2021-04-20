@@ -1,9 +1,10 @@
 NAME = makeparallel
 SOURCES = makeparallel.cpp
-SOURCES := $(foreach source, $(SOURCES), tools/makeparallel/$(source))
+SOURCES := $(foreach source, $(SOURCES), build/make/tools/makeparallel/$(source))
+CPPFLAGS += -I/usr/include/android
 
-build: $(SOURCES)
-	$(CXX) $^ -o $(NAME) $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
+build/make/$(NAME): $(SOURCES)
+	$(CXX) $^ -o build/make/$(NAME) $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
 
 clean:
-	$(RM) $(NAME)
+	$(RM) build/make/$(NAME)
