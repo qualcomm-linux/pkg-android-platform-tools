@@ -28,3 +28,10 @@ Depends: fastboot
 
 Test-Command: fastboot devices
 Depends: fastboot
+
+## development
+
+Test-Command: apkcheck
+Restrictions: allow-stderr
+
+Test-Command: etc1tool development/tools/templates/ic_launcher_ldpi.png --encode && etc1tool development/tools/templates/ic_launcher_ldpi.pkm --decode

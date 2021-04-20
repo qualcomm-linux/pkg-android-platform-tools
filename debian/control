@@ -6,9 +6,11 @@ Uploaders: Chirayu Desai <chirayudesai1@gmail.com>
 Build-Depends:
  android-libbase-dev (>= 1:10.0.0+r36-1~),
  android-libcutils-dev (>= 1:10.0.0+r36-1~),
+ android-libetc1-dev (>= 1:8.1.0+r23),
  android-liblog-dev (>= 1:10.0.0+r36-1~),
  bash-completion,
  clang,
+ debhelper (>= 11),
  debhelper-compat (= 12),
  default-jdk-headless | default-jdk,
  dh-exec,
@@ -17,8 +19,10 @@ Build-Depends:
  javahelper,
  libguava-java,
  libpcre3-dev,
+ libpng-dev (>= 1.6),
  maven-repo-helper,
  p7zip-full,
+ pandoc,
 Build-Depends-Arch:
  android-libandroidfw-dev (>= 1:10.0.0+r36~),
  android-libbase-dev (>= 1:10.0.0+r36~),
@@ -628,3 +632,34 @@ Description: Tools from AOSP that process event-log-tags files
    * merge-event-log-tags
  They are used in the process of building the Android platform framework
  "android.jar".
+
+Package: etc1tool
+Architecture: amd64 i386 armel armhf arm64 mips mipsel mips64el
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: ETC1 conversion tool
+ etc1tool is a command line utility that lets you encode PNG images to
+ the ETC1 compression standard and decode ETC1 compressed images back
+ to PNG. It is part of the Android SDK for working with media files
+ for game apps. The standard for the ETC1 texture format is here:
+ http://www.khronos.org/registry/gles/extensions/OES/OES_compressed_ETC1_RGB8_texture.txt
+
+Package: apkcheck
+Architecture: all
+Depends: ${java:Depends}, ${misc:Depends}
+Description: Compares classes, fields, methods used by an Android APK
+ This compares the set of classes, fields, and methods used by an
+ Android application against the published API.  It identifies and
+ reports the use of any unpublished members or methods.
+ .
+ The public API description files live in the source tree, in
+ frameworks/base/api/.  The tip-of-tree version is in "current.xml",
+ and each officially released API has a numbered file (e.g. "6.xml").
+ They're generated from the sources, and can take into acount javadoc
+ annotations like "@hide" in comments.
+ .
+ The dependency set for an APK can be generated with "dexdeps".  It
+ finds all classes, fields, and methods that are referenced by
+ classes.dex but not defined locally.  The tool can't easily tell
+ anything about a dependency beyond the name (e.g. whether a class is
+ a static or non-static inner class), so while the output from dexdeps
+ is similar in structure to the API XML file, it has much less detail.

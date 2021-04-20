@@ -145,7 +145,18 @@ build/make/signapk.jar: debian/manpages/build/make/signapk.1
 build/make/signtos.jar: debian/manpages/build/make/signtos.1
 	jh_build --javacopts="-encoding UTF-8 -source 1.9 -target 1.9" --no-javadoc --main=com.android.signtos.SignTos $@ build/make/tools/signtos/
 
-override_dh_auto_build-arch: $(COMPONENTS) makeparallel zipalign ziptime build/make/signapk.jar build/make/signtos.jar debian/manpages/build/make/java-event-log-tags.1 debian/manpages/build/make/merge-event-log-tags.1
+debian/manpages/development/%.1: debian/manpages/development/%.1.md
+	pandoc --standalone --from=markdown-smart --to=man --output=$@ $<
+
+etc1tool: debian/development/etc1tool.mk debian/manpages/development/etc1tool.1
+	dh_auto_build --buildsystem=makefile -- -f $<
+
+apkcheck: debian/manpages/development/apkcheck.1
+	mkdir --parents debian/out/development
+	sed 's,^ *libdir=.*,libdir=/usr/share/apkcheck,' development/tools/apkcheck/etc/apkcheck > debian/out/development/apkcheck
+	jh_build --no-javadoc --main=com.android.apkcheck.ApkCheck debian/out/development/apkcheck.jar development/tools/apkcheck/src
+
+override_dh_auto_build-arch: $(COMPONENTS) etc1tool apkcheck makeparallel zipalign ziptime build/make/signapk.jar build/make/signtos.jar debian/manpages/build/make/java-event-log-tags.1 debian/manpages/build/make/merge-event-log-tags.1
 	dh_auto_build --buildsystem=makefile -- -f debian/external/boringssl/libcrypto.mk
 	dh_auto_build --buildsystem=makefile -- -f debian/external/boringssl/libssl.mk
 	dh_auto_build --buildsystem=makefile -- -f debian/external/selinux/libsepol.mk

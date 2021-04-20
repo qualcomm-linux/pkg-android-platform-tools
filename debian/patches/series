@@ -29,3 +29,4 @@ build/make/fix_zopfli_usage.diff
 build/make/fix_zipalign_typo.diff
 build/make/python-2to3.patch
 build/make/Implement-range-based-pin-list.patch
+development/typos.patch

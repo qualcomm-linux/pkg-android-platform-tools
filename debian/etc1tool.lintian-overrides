@@ -1,0 +1,14 @@
+# Executables of Android SDK uses private libraries located in
+# /usr/lib/android.  Upstream just staticly links all executables
+# against the libraries, but in Debian, private shared libraries are
+# used instead to make it easier to push security fixes, i.e. only the
+# affected shared library rather than every executable that uses that
+# library.
+
+binary-or-shlib-defines-rpath
+
+
+# the line is too long because its a long URL, wrapping it will make
+# it no longer clickable
+
+extended-description-line-too-long
