@@ -24,3 +24,8 @@ libcore/remove-UnsupportedAppUsage.patch
 libcore/remove-NonNull.patch
 libcore/remove-Nullable.patch
 libcore/remove-CorePlatformApi.patch
+build/make/remove-optional-conscrypt-depends.patch
+build/make/fix_zopfli_usage.diff
+build/make/fix_zipalign_typo.diff
+build/make/python-2to3.patch
+build/make/Implement-range-based-pin-list.patch

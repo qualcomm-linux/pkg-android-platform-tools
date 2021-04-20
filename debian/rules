@@ -19,6 +19,12 @@ export DEB_VERSION_UPSTREAM
 ANDROID_VERSION = $(shell echo $(DEB_VERSION_UPSTREAM) | sed --expression="s/\+r.*//")
 UPSTREAM_TAG = android-$(subst +,_,$(DEB_VERSION_UPSTREAM))
 
+# build
+include /usr/share/javahelper/java-vars.mk
+
+export DEB_HOST_MULTIARCH
+export CLASSPATH = /usr/share/java/bcprov.jar:/usr/share/java/bcpkix.jar:/usr/share/java/apksig.jar
+
 # For system/core
 export DEB_HOST_MULTIARCH
 export DEB_VERSION
@@ -121,7 +127,25 @@ libnativebridge.so: debian/system/core/libnativebridge.mk liblog.so
 libnativeloader.so: debian/system/core/libnativeloader.mk libnativebridge.so libbase.so
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
-override_dh_auto_build-arch: $(COMPONENTS)
+debian/manpages/build/make/%.1: debian/manpages/build/make/%.1.md
+	pandoc --standalone --from=markdown-smart --to=man --output=$@ $<
+
+makeparallel: debian/build/make/makeparallel.mk debian/manpages/build/make/makeparallel.1
+	dh_auto_build --buildsystem=makefile -- --file $<
+
+zipalign: debian/build/make/zipalign.mk debian/manpages/build/make/zipalign.1
+	dh_auto_build --buildsystem=makefile -- --file $<
+
+ziptime: debian/build/make/ziptime.mk debian/manpages/build/make/ziptime.1
+	dh_auto_build --buildsystem=makefile -- --file $<
+
+build/make/signapk.jar: debian/manpages/build/make/signapk.1
+	jh_build --javacopts="-encoding UTF-8 -source 1.9 -target 1.9" --no-javadoc --main=com.android.signapk.SignApk $@ build/make/tools/signapk/
+
+build/make/signtos.jar: debian/manpages/build/make/signtos.1
+	jh_build --javacopts="-encoding UTF-8 -source 1.9 -target 1.9" --no-javadoc --main=com.android.signtos.SignTos $@ build/make/tools/signtos/
+
+override_dh_auto_build-arch: $(COMPONENTS) makeparallel zipalign ziptime build/make/signapk.jar build/make/signtos.jar debian/manpages/build/make/java-event-log-tags.1 debian/manpages/build/make/merge-event-log-tags.1
 	dh_auto_build --buildsystem=makefile -- -f debian/external/boringssl/libcrypto.mk
 	dh_auto_build --buildsystem=makefile -- -f debian/external/boringssl/libssl.mk
 	dh_auto_build --buildsystem=makefile -- -f debian/external/selinux/libsepol.mk
