@@ -1,0 +1,9 @@
+subprojects {
+  apply plugin: 'java'
+  apply plugin: 'maven'
+
+  version = "android-$androidVersion"
+  group = 'com.android'
+  sourceCompatibility = 1.8
+  targetCompatibility = 1.8
+}

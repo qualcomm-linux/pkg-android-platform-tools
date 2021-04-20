@@ -13,7 +13,8 @@ Build-Depends:
  default-jdk-headless | default-jdk,
  dh-exec,
  dpkg-dev (>= 1.17.14),
- gradle-debian-helper,
+ gradle-debian-helper (>= 1.4~),
+ javahelper,
  libguava-java,
  libpcre3-dev,
  maven-repo-helper,
@@ -532,3 +533,26 @@ Description: Android native loader library - Development files
  This library is only used by Android SDK currently.
  .
  This package provides the development files.
+
+Package: libandroid-json-java
+Architecture: all
+Depends: ${misc:Depends}
+Description: Android rewrite of the evil licensed json.org
+ Json.org is a popular java library to parse and create JSON string from
+ the author of the JSON standard Douglas Crockford. His implementation however
+ is not free software[1].
+ .
+ Therefore the Android team did a cleanroom reimplementation of a JSON library
+ to be used in place of the original one.
+ .
+ [1] http://wiki.debian.org/qa.debian.org/jsonevil
+
+Package: android-platform-libcore-headers
+Architecture: all
+Section: libdevel
+Depends: ${misc:Depends}
+Description: Header files in AOSP repository platform/libcore
+ This package provides the header files included in the AOSP repository
+ platform/libcore.
+ .
+ These headers are used by android-platform-libnativehelper.

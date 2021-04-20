@@ -15,6 +15,7 @@ export DEB_SOURCE
 export DEB_VERSION_UPSTREAM
 
 # external/jsilver
+# libcore
 ANDROID_VERSION = $(shell echo $(DEB_VERSION_UPSTREAM) | sed --expression="s/\+r.*//")
 UPSTREAM_TAG = android-$(subst +,_,$(DEB_VERSION_UPSTREAM))
 
@@ -67,7 +68,7 @@ ifeq ($(filter amd64 i386 armel armhf arm64 mips mipsel mips64el,$(DEB_HOST_ARCH
 endif
 
 %:
-	dh $@ --with maven_repo_helper,bash-completion
+	dh $@ --with maven_repo_helper,javahelper,bash-completion
 
 get-orig-source:
 	debian/scripts/get-orig-source
@@ -128,6 +129,9 @@ override_dh_auto_build-arch: $(COMPONENTS)
 	dh_auto_build --buildsystem=makefile -- -f debian/external/libunwind/libunwind.mk
 	dh_auto_build --buildsystem=makefile -- -f debian/libnativehelper/libnativehelper.mk
 	dh_auto_build --buildsystem=gradle -- assemble --project-dir external/jsilver --project-prop androidVersion=$(ANDROID_VERSION)
+	dh_auto_build --buildsystem=gradle -- --settings-file debian/libcore/settings.gradle \
+	                                      --project-prop androidVersion=$(ANDROID_VERSION) \
+	                                      assemble
 
 override_dh_auto_test:
 	echo ignore tests using upstream build system

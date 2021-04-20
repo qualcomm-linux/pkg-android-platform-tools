@@ -1,0 +1,16 @@
+Description: Remove libcore.api.CorePlatformApi annotation
+ The annotation is avaiable in libcore. We only build json, so we cannot use it.
+ It can be safely ignored.
+Author: Raman Sarda <theloudspeaker@disroot.org>
+Last-Update: 2020-05-18
+
+--- a/json/src/main/java/org/json/JSONObject.java
++++ b/json/src/main/java/org/json/JSONObject.java
+@@ -668,7 +668,6 @@ public class JSONObject {
+      *
+      * @hide.
+      */
+-    @libcore.api.CorePlatformApi
+     public Set<String> keySet() {
+         return nameValuePairs.keySet();
+     }

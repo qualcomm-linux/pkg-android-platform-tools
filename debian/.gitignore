@@ -1,6 +1,9 @@
+/*.doc-base.javadoc
 /*.log
 /*.substvars
 /.debhelper/
+/.gradle/
+/.javahelper_clean
 /.mh/
 /adb/
 /android-*/
@@ -11,6 +14,8 @@
 /fastboot/
 /files
 /img2simg/
+/libandroid-*-java-doc/
+/libandroid-*-java/
 /libjsilver-aosp-java/
 /manpages/system/core/*.1
 /mkbootimg/
