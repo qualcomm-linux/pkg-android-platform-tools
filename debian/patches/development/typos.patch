@@ -2,8 +2,8 @@ Description: Fix typos
 Author: Kai-Chung Yan (殷啟聰)
 Last-Update: 2016-10-01
 Forwarded: no
---- a/tools/etc1tool/etc1tool.cpp
-+++ b/tools/etc1tool/etc1tool.cpp
+--- a/development/tools/etc1tool/etc1tool.cpp
++++ b/development/tools/etc1tool/etc1tool.cpp
 @@ -56,7 +56,7 @@
              "\t\t                             image to difffile. (Only valid when encoding).\n");
      fprintf(stderr,

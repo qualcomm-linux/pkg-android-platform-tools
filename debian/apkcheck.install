@@ -1,2 +1,2 @@
-debian/out/apkcheck.jar  /usr/share/apkcheck/
-debian/out/apkcheck      /usr/bin/
+debian/out/development/apkcheck.jar  /usr/share/apkcheck/
+debian/out/development/apkcheck      /usr/bin/
