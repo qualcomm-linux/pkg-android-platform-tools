@@ -3,29 +3,29 @@
 include /usr/share/dpkg/architecture.mk
 include /usr/share/dpkg/pkg-info.mk
 
-# Security Hardening
+## Security Hardening
 export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 export DEB_CFLAGS_MAINT_APPEND = -fPIC
 export DEB_CPPFLAGS_MAINT_APPEND = -DNDEBUG -UDEBUG
 export DEB_CXXFLAGS_MAINT_APPEND = -fPIC
 export DEB_LDFLAGS_MAINT_APPEND = -fPIC
 
-# For get-orig-source
+## For get-orig-source
 export DEB_SOURCE
 export DEB_VERSION_UPSTREAM
 
-# external/jsilver
-# libcore
+## external/jsilver
+## libcore
 ANDROID_VERSION = $(shell echo $(DEB_VERSION_UPSTREAM) | sed --expression="s/\+r.*//")
 UPSTREAM_TAG = android-$(subst +,_,$(DEB_VERSION_UPSTREAM))
 
-# build
+## build
 include /usr/share/javahelper/java-vars.mk
 
 export DEB_HOST_MULTIARCH
 export CLASSPATH = /usr/share/java/bcprov.jar:/usr/share/java/bcpkix.jar:/usr/share/java/apksig.jar
 
-# For system/core
+## system/core
 export DEB_HOST_MULTIARCH
 export DEB_VERSION
 # https://android.googlesource.com/platform/development/+/refs/tags/android-10.0.0_r36/sdk/plat_tools_source.prop_template
@@ -73,11 +73,23 @@ ifeq ($(filter amd64 i386 armel armhf arm64 mips mipsel mips64el,$(DEB_HOST_ARCH
   COMPONENTS := $(filter $(COMPONENTS_ANY_ARCH), $(COMPONENTS))
 endif
 
+## art
+
+# MIPS is left out because ART only supports MIPSr6 while Debian is by default MIPSr2
+ifneq ($(filter amd64 i386 armel armhf arm64,$(DEB_HOST_ARCH)),)
+ ifeq ($(findstring stage1,$(DEB_VERSION)),)
+  COMPONENTS += debian/out/art/dexdump debian/out/art/dexlist
+ endif
+  COMPONENTS += debian/out/art/libdexfile_external.so debian/out/art/libdexfile_support.so
+endif
+
 %:
 	dh $@ --with maven_repo_helper,javahelper,bash-completion
 
 get-orig-source:
 	debian/scripts/get-orig-source
+
+## system/core
 
 lib%.so: debian/system/core/lib%.mk
 	dh_auto_build --buildsystem=makefile -- -f $<
@@ -127,6 +139,13 @@ libnativebridge.so: debian/system/core/libnativebridge.mk liblog.so
 libnativeloader.so: debian/system/core/libnativeloader.mk libnativebridge.so libbase.so
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
+clean_system_core:
+	for component in debian/system/core/*.mk; do \
+		make clean --file=$$component; \
+	done
+
+## build
+
 debian/manpages/build/make/%.1: debian/manpages/build/make/%.1.md
 	pandoc --standalone --from=markdown-smart --to=man --output=$@ $<
 
@@ -145,6 +164,10 @@ build/make/signapk.jar: debian/manpages/build/make/signapk.1
 build/make/signtos.jar: debian/manpages/build/make/signtos.1
 	jh_build --javacopts="-encoding UTF-8 -source 1.9 -target 1.9" --no-javadoc --main=com.android.signtos.SignTos $@ build/make/tools/signtos/
 
+COMPONENTS += makeparallel zipalign ziptime build/make/signapk.jar build/make/signtos.jar debian/manpages/build/make/java-event-log-tags.1 debian/manpages/build/make/merge-event-log-tags.1
+
+## development
+
 debian/manpages/development/%.1: debian/manpages/development/%.1.md
 	pandoc --standalone --from=markdown-smart --to=man --output=$@ $<
 
@@ -156,14 +179,59 @@ apkcheck: debian/manpages/development/apkcheck.1
 	sed 's,^ *libdir=.*,libdir=/usr/share/apkcheck,' development/tools/apkcheck/etc/apkcheck > debian/out/development/apkcheck
 	jh_build --no-javadoc --main=com.android.apkcheck.ApkCheck debian/out/development/apkcheck.jar development/tools/apkcheck/src
 
-override_dh_auto_build-arch: $(COMPONENTS) etc1tool apkcheck makeparallel zipalign ziptime build/make/signapk.jar build/make/signtos.jar debian/manpages/build/make/java-event-log-tags.1 debian/manpages/build/make/merge-event-log-tags.1
+COMPONENTS += etc1tool apkcheck
+
+## art
+
+debian/out/art:
+	mkdir --parents $@
+
+debian/out/art/%.1: debian/out/art/%
+	help2man -N -n "Dex Tool" --no-discard-stderr --version-string="$(DEB_VERSION)" \
+		-o $@ $<
+
+debian/out/art/dmtracedump: debian/art/dmtracedump.mk
+	dh_auto_build --buildsystem=makefile -- --file=$<
+
+debian/out/art/libdexfile_support.so: debian/art/libdexfile_support.mk
+	dh_auto_build --buildsystem=makefile -- --file=$<
+
+debian/out/art/libsigchain.so: debian/art/libsigchain.mk
+	dh_auto_build --buildsystem=makefile -- --file=$<
+
+debian/out/art/dexlist: debian/art/dexlist.mk debian/out/art/libart.so
+	dh_auto_build --buildsystem=makefile -- --file=$<
+
+debian/out/art/dexdump: debian/art/dexdump.mk debian/out/art/libart.so
+	dh_auto_build --buildsystem=makefile -- --file=$<
+
+debian/out/art/libdexfile_external.so: debian/art/libdexfile_external.mk debian/out/art/libart.so
+	dh_auto_build --buildsystem=makefile -- --file=$<
+
+debian/out/art/libart.so: debian/art/libart.mk debian/out/art/asm_defines.h debian/out/art/libsigchain.so
+	dh_auto_build --buildsystem=makefile -- --file=$<
+
+# Only for debug purpose to build standalone object
+debian/out/art/asm_defines.h debian/out/art/operator_out.cc: debian/art/libart.mk debian/out/art
+	dh_auto_build --buildsystem=makefile -- --file=$< $@
+debian/out/art/mterp.S: debian/art/libart.mk debian/out/art debian/out/art/asm_defines.h
+	dh_auto_build --buildsystem=makefile -- --file=$< $@
+art/runtime/%.o art/libartbase/%.o art/libdexfile/%.o debian/out/art/%.o: debian/art/libart.mk debian/out/art
+	dh_auto_build --buildsystem=makefile -- --file=$< $@
+
+COMPONENTS += debian/out/art debian/out/art/dmtracedump debian/out/art/dmtracedump.1 debian/out/art/dexdump.1
+
+override_dh_auto_build-arch: $(COMPONENTS)
+## external/*
 	dh_auto_build --buildsystem=makefile -- -f debian/external/boringssl/libcrypto.mk
 	dh_auto_build --buildsystem=makefile -- -f debian/external/boringssl/libssl.mk
 	dh_auto_build --buildsystem=makefile -- -f debian/external/selinux/libsepol.mk
 	dh_auto_build --buildsystem=makefile -- -f debian/external/selinux/libselinux.mk
 	dh_auto_build --buildsystem=makefile -- -f debian/external/libunwind/libunwind.mk
-	dh_auto_build --buildsystem=makefile -- -f debian/libnativehelper/libnativehelper.mk
 	dh_auto_build --buildsystem=gradle -- assemble --project-dir external/jsilver --project-prop androidVersion=$(ANDROID_VERSION)
+## libnativehelper
+	dh_auto_build --buildsystem=makefile -- -f debian/libnativehelper/libnativehelper.mk
+## libcore
 	dh_auto_build --buildsystem=gradle -- --settings-file debian/libcore/settings.gradle \
 	                                      --project-prop androidVersion=$(ANDROID_VERSION) \
 	                                      assemble
@@ -174,10 +242,10 @@ override_dh_auto_test:
 override_dh_auto_install:
 	echo ignore upstream build system install procedure
 
-override_dh_auto_clean:
+override_dh_auto_clean: clean_system_core
 	dh_auto_clean
-	$(foreach component,$(COMPONENTS),make clean -f debian/system/core/$(component:.so=).mk;)
 	$(RM) debian/manpages/system/core/*.1 system/core/adb/adb system/core/fastboot/fastboot
+	make clean --file=debian/art/libart.mk
 
 override_dh_shlibdeps:
 	dh_shlibdeps -l/usr/lib/$(DEB_HOST_MULTIARCH)/android

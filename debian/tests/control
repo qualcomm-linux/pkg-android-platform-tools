@@ -35,3 +35,11 @@ Test-Command: apkcheck
 Restrictions: allow-stderr
 
 Test-Command: etc1tool development/tools/templates/ic_launcher_ldpi.png --encode && etc1tool development/tools/templates/ic_launcher_ldpi.pkm --decode
+
+## art
+
+Test-Command: 2>&1 dmtracedump |  grep 'Turn on HTML output'
+Depends: dmtracedump
+
+Tests: dexdump-dexlist
+Depends: dexdump, dexlist

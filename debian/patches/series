@@ -30,3 +30,17 @@ build/make/fix_zipalign_typo.diff
 build/make/python-2to3.patch
 build/make/Implement-range-based-pin-list.patch
 development/typos.patch
+art/use-android-dlmalloc.patch
+art/missing-system-includes.patch
+art/ucontext.patch
+art/atomic-exception-specification.patch
+art/image-space-dereference.patch
+art/storage-mode-concat.patch
+art/method-reference-std-ns.patch
+art/python3-gen_mterp.patch
+art/stats-incomplete-def.patch
+art/fix-build-on-non-x86.patch
+art/workaround-cacheflush-on-arm.patch
+art/adapt-asm-output-of-clang-that-no-is-placed-before-data.patch
+art/arm-asm-instruction.patch
+art/fix-mterp-assembly-to-use-uxtw-instead-of-lsl-where-needed.patch

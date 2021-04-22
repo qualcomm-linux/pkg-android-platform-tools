@@ -4,25 +4,35 @@ Priority: optional
 Maintainer: Android Tools Maintainers <android-tools-devel@lists.alioth.debian.org>
 Uploaders: Chirayu Desai <chirayudesai1@gmail.com>
 Build-Depends:
- android-libbase-dev (>= 1:10.0.0+r36-1~),
- android-libcutils-dev (>= 1:10.0.0+r36-1~),
+ android-libbacktrace-dev (>= 1:10.0.0+r36-3~~) [amd64 i386 armel armhf arm64],
+ android-libbase-dev (>= 1:10.0.0+r36-3~~) [amd64 i386 armel armhf arm64],
+ android-libcutils-dev (>= 1:10.0.0+r36-3~~) [amd64 i386 armel armhf arm64],
  android-libetc1-dev (>= 1:8.1.0+r23),
  android-liblog-dev (>= 1:10.0.0+r36-1~),
+ android-libnativebridge-dev (>= 1:10.0.0+r36-3~~) [amd64 i386 armel armhf arm64],
+ android-libnativeloader-dev (>= 1:10.0.0+r36-3~~) [amd64 i386 armel armhf arm64],
+ android-libutils-dev (>= 1:10.0.0+r36-3~~) [amd64 i386 armel armhf arm64],
+ android-libziparchive-dev (>= 1:10.0.0+r36-3~~) [amd64 i386 armel armhf arm64],
  bash-completion,
- clang,
+ clang [amd64 i386 armel armhf arm64],
  debhelper (>= 11),
  debhelper-compat (= 12),
  default-jdk-headless | default-jdk,
  dh-exec,
  dpkg-dev (>= 1.17.14),
  gradle-debian-helper (>= 1.4~),
+ help2man,
  javahelper,
  libguava-java,
+ libicu-dev [amd64 i386 armel armhf arm64],
+ liblz4-dev [amd64 i386 armel armhf arm64],
  libpcre3-dev,
  libpng-dev (>= 1.6),
  maven-repo-helper,
  p7zip-full,
  pandoc,
+ python3 [amd64 i386 armel armhf arm64],
+ zlib1g-dev [amd64 i386 armel armhf arm64],
 Build-Depends-Arch:
  android-libandroidfw-dev (>= 1:10.0.0+r36~),
  android-libbase-dev (>= 1:10.0.0+r36~),
@@ -663,3 +673,53 @@ Description: Compares classes, fields, methods used by an Android APK
  anything about a dependency beyond the name (e.g. whether a class is
  a static or non-static inner class), so while the output from dexdeps
  is similar in structure to the API XML file, it has much less detail.
+
+Package: dexdump
+Architecture: amd64 i386 armhf arm64
+Multi-Arch: foreign
+Build-Profiles: <!stage1>
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Displays information about Android DEX files
+ The `dexdump` tool is intended to mimic `objdump`. When possible, use
+ similar command-line arguments.
+ .
+ This is a re-implementation of the original `dexdump` utility that was
+ based on Dalvik functions in `libdex` into a new `dexdump` that is now
+ based on ART functions in `libart` instead. The output is very similar
+ to the original for correct DEX files. Error messages may differ,
+ however. Also, ODEX files are no longer supported.
+
+Package: dmtracedump
+Architecture: any
+Multi-Arch: foreign
+Depends: graphviz, ${shlibs:Depends}, ${misc:Depends}
+Description: Generates graphical call-stack diagrams from Android trace logs
+ `dmtracedump` generates the call stack data as a tree diagram, where
+ each node represents a method call. It shows call flow (from parent
+ node to child nodes) using arrows.
+
+Package: android-libart
+Architecture: amd64 i386 armhf arm64
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Android Runtime
+ Android Runtime (ART) is the managed runtime used by applications and
+ some system services on Android. ART and its predecessor Dalvik were
+ originally created specifically for the Android project. ART as the
+ runtime executes the Dalvik Executable format and DEX bytecode
+ specification.
+ .
+ This package provides `libart` and `libsigchain`.
+ .
+ This library is only used by Android SDK and uses a customized RPATH.
+
+Package: dexlist
+Architecture: amd64 i386 armhf arm64
+Multi-Arch: foreign
+Build-Profiles: <!stage1>
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Lists all methods in all concrete classes in Android DEX files
+ This is a re-implementation of the original `dexlist` utility that was
+ based on Dalvik functions in `libdex` into a new `dexlist` that is now
+ based on ART functions in `libart` instead. The output is very similar
+ to the original for correct DEX files. Error messages may differ,
+ however. Also, ODEX files are no longer supported.

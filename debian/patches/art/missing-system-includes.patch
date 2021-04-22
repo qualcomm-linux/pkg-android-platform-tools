@@ -1,0 +1,287 @@
+Description: somehow upstream builds don't need these headers :-/
+Forwarded: not-needed
+--- a/runtime/runtime_common.h
++++ b/runtime/runtime_common.h
+@@ -27,6 +27,7 @@
+ 
+ #include <sys/utsname.h>
+ #include <ucontext.h>
++#include <signal.h>
+ 
+ #include <iomanip>
+ 
+--- a/sigchainlib/sigchain.cc
++++ b/sigchainlib/sigchain.cc
+@@ -27,6 +27,7 @@
+ #include <mutex>
+ #include <type_traits>
+ #include <utility>
++#include <climits>
+ 
+ #include "log.h"
+ #include "sigchain.h"
+--- a/runtime/base/mutex.cc
++++ b/runtime/base/mutex.cc
+@@ -18,6 +18,7 @@
+ 
+ #include <errno.h>
+ #include <sys/time.h>
++#include <algorithm>
+ 
+ #include "android-base/stringprintf.h"
+ 
+--- a/runtime/exec_utils.cc
++++ b/runtime/exec_utils.cc
+@@ -20,6 +20,7 @@
+ #include <sys/wait.h>
+ #include <string>
+ #include <vector>
++#include <cstring>
+ 
+ #include "android-base/stringprintf.h"
+ #include "android-base/strings.h"
+--- a/runtime/gc/accounting/heap_bitmap.cc
++++ b/runtime/gc/accounting/heap_bitmap.cc
+@@ -16,6 +16,8 @@
+ 
+ #include "heap_bitmap.h"
+ 
++#include <algorithm>
++
+ #include "gc/accounting/space_bitmap-inl.h"
+ #include "gc/space/space.h"
+ 
+--- a/runtime/gc/accounting/read_barrier_table.h
++++ b/runtime/gc/accounting/read_barrier_table.h
+@@ -18,6 +18,7 @@
+ #define ART_RUNTIME_GC_ACCOUNTING_READ_BARRIER_TABLE_H_
+ 
+ #include <sys/mman.h>  // For the PROT_* and MAP_* constants.
++#include <cstring>
+ 
+ #include "base/bit_utils.h"
+ #include "base/locks.h"
+--- a/runtime/jdwp/jdwp_handler.cc
++++ b/runtime/jdwp/jdwp_handler.cc
+@@ -19,6 +19,7 @@
+ #include <unistd.h>
+ #include <memory>
+ #include <string>
++#include <algorithm>
+ 
+ #include "android-base/stringprintf.h"
+ 
+--- a/runtime/jit/profiling_info.h
++++ b/runtime/jit/profiling_info.h
+@@ -18,6 +18,7 @@
+ #define ART_RUNTIME_JIT_PROFILING_INFO_H_
+ 
+ #include <vector>
++#include <cstring>
+ 
+ #include "base/macros.h"
+ #include "gc_root.h"
+--- a/runtime/arch/instruction_set_features.cc
++++ b/runtime/arch/instruction_set_features.cc
+@@ -21,6 +21,8 @@
+ #include <algorithm>
+ #include <ostream>
+ 
++#include <algorithm>
++
+ #include "android-base/strings.h"
+ 
+ #include "base/casts.h"
+--- a/runtime/arch/mips/instruction_set_features_mips.cc
++++ b/runtime/arch/mips/instruction_set_features_mips.cc
+@@ -18,6 +18,7 @@
+ 
+ #include <fstream>
+ #include <sstream>
++#include <cstring>
+ 
+ #include <android-base/stringprintf.h>
+ #include <android-base/strings.h>
+--- a/runtime/monitor.h
++++ b/runtime/monitor.h
+@@ -24,6 +24,7 @@
+ #include <iosfwd>
+ #include <list>
+ #include <vector>
++#include <cstring>
+ 
+ #include "base/allocator.h"
+ #include "base/atomic.h"
+--- a/runtime/arch/x86/context_x86.cc
++++ b/runtime/arch/x86/context_x86.cc
+@@ -16,6 +16,8 @@
+ 
+ #include "context_x86.h"
+ 
++#include <cstring>
++
+ #include "base/bit_utils.h"
+ #include "base/bit_utils_iterator.h"
+ #include "base/memory_tool.h"
+--- a/libartbase/base/arena_allocator.h
++++ b/libartbase/base/arena_allocator.h
+@@ -17,6 +17,7 @@
+ #ifndef ART_LIBARTBASE_BASE_ARENA_ALLOCATOR_H_
+ #define ART_LIBARTBASE_BASE_ARENA_ALLOCATOR_H_
+ 
++#include <cstring>
+ #include <stddef.h>
+ #include <stdint.h>
+ 
+--- a/libdexfile/dex/dex_file_types.h
++++ b/libdexfile/dex/dex_file_types.h
+@@ -17,6 +17,8 @@
+ #ifndef ART_LIBDEXFILE_DEX_DEX_FILE_TYPES_H_
+ #define ART_LIBDEXFILE_DEX_DEX_FILE_TYPES_H_
+ 
++#include <cstdint>
++#include <functional>
+ #include <iosfwd>
+ #include <limits>
+ #include <utility>
+--- a/libdexfile/dex/method_reference.h
++++ b/libdexfile/dex/method_reference.h
+@@ -17,6 +17,7 @@
+ #ifndef ART_LIBDEXFILE_DEX_METHOD_REFERENCE_H_
+ #define ART_LIBDEXFILE_DEX_METHOD_REFERENCE_H_
+ 
++#include <cstring>
+ #include <stdint.h>
+ #include <string>
+ #include "dex/dex_file.h"
+--- a/libartbase/base/arena_containers.h
++++ b/libartbase/base/arena_containers.h
+@@ -17,6 +17,7 @@
+ #ifndef ART_LIBARTBASE_BASE_ARENA_CONTAINERS_H_
+ #define ART_LIBARTBASE_BASE_ARENA_CONTAINERS_H_
+ 
++#include <cstring>
+ #include <deque>
+ #include <queue>
+ #include <set>
+--- a/libartbase/arch/instruction_set.cc
++++ b/libartbase/arch/instruction_set.cc
+@@ -19,6 +19,7 @@
+ #include "android-base/logging.h"
+ #include "base/bit_utils.h"
+ #include "base/globals.h"
++#include <cstring>
+ 
+ namespace art {
+ 
+--- a/libartbase/base/bit_vector-inl.h
++++ b/libartbase/base/bit_vector-inl.h
+@@ -20,6 +20,7 @@
+ #include "bit_vector.h"
+ 
+ #include <android-base/logging.h>
++#include <cstring>
+ 
+ #include "bit_utils.h"
+ 
+--- a/libartbase/base/bit_vector.cc
++++ b/libartbase/base/bit_vector.cc
+@@ -16,6 +16,7 @@
+ 
+ #include "bit_vector.h"
+ 
++#include <cstring>
+ #include <limits>
+ #include <sstream>
+ 
+--- a/libartbase/base/file_utils.cc
++++ b/libartbase/base/file_utils.cc
+@@ -40,6 +40,7 @@
+ 
+ 
+ #include <memory>
++#include <cstring>
+ 
+ #include "android-base/stringprintf.h"
+ #include "android-base/strings.h"
+--- a/libartbase/base/bit_vector.h
++++ b/libartbase/base/bit_vector.h
+@@ -18,6 +18,7 @@
+ #define ART_LIBARTBASE_BASE_BIT_VECTOR_H_
+ 
+ #include <stdint.h>
++#include <cstring>
+ #include <iterator>
+ 
+ #include "bit_utils.h"
+--- a/libartbase/base/file_magic.cc
++++ b/libartbase/base/file_magic.cc
+@@ -19,6 +19,7 @@
+ #include <fcntl.h>
+ #include <sys/stat.h>
+ #include <sys/types.h>
++#include <cstring>
+ 
+ #include <android-base/logging.h>
+ #include <android-base/stringprintf.h>
+--- a/libartbase/base/logging.cc
++++ b/libartbase/base/logging.cc
+@@ -16,6 +16,7 @@
+ 
+ #include "logging.h"
+ 
++#include <cstring>
+ #include <iostream>
+ #include <limits>
+ #include <sstream>
+--- a/libartbase/base/memfd.cc
++++ b/libartbase/base/memfd.cc
+@@ -24,6 +24,7 @@
+ #include <unistd.h>
+ #endif
+ 
++#include <cstring>
+ #include "macros.h"
+ 
+ // When building for linux host, glibc in prebuilts does not include memfd_create system call
+--- a/libartbase/base/scoped_flock.cc
++++ b/libartbase/base/scoped_flock.cc
+@@ -19,6 +19,8 @@
+ #include <sys/file.h>
+ #include <sys/stat.h>
+ 
++#include <cstring>
++
+ #include <android-base/logging.h>
+ #include <android-base/stringprintf.h>
+ 
+--- a/libartbase/base/unix_file/fd_file.cc
++++ b/libartbase/base/unix_file/fd_file.cc
+@@ -29,6 +29,7 @@
+ #include <windows.h>
+ #endif
+ 
++#include <cstring>
+ #include <limits>
+ 
+ #include <android-base/file.h>
+--- a/libdexfile/dex/descriptors_names.cc
++++ b/libdexfile/dex/descriptors_names.cc
+@@ -21,6 +21,7 @@
+ 
+ #include "base/macros.h"
+ #include "dex/utf-inl.h"
++#include <cstring>
+ 
+ namespace art {
+ 
+--- a/libdexfile/dex/dex_file_loader.h
++++ b/libdexfile/dex/dex_file_loader.h
+@@ -18,6 +18,7 @@
+ #define ART_LIBDEXFILE_DEX_DEX_FILE_LOADER_H_
+ 
+ #include <cstdint>
++#include <cstring>
+ #include <memory>
+ #include <string>
+ #include <vector>
