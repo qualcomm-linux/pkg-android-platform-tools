@@ -289,7 +289,7 @@ SOURCES_runtime_mips64 = \
   arch/mips64/fault_handler_mips64.cc \
 
 
-include debian/detect-arch.mk
+include debian/art/detect-arch.mk
 SOURCES_runtime += $(SOURCES_runtime_$(CPU))
 
 # From libartbase/Android.bp
@@ -345,17 +345,17 @@ SOURCES_libdexfile = \
          external/dex_file_ext.cc \
          external/dex_file_supp.cc \
 
-SOURCES := $(foreach source, $(SOURCES_libartbase), libartbase/$(source)) \
-           $(foreach source, $(SOURCES_libdexfile), libdexfile/$(source)) \
-           $(foreach source, $(SOURCES_runtime), runtime/$(source)) \
-           libartpalette/system/palette_fake.cc \
-           libprofile/profile/profile_compilation_info.cc \
+SOURCES := $(foreach source, $(SOURCES_libartbase), art/libartbase/$(source)) \
+           $(foreach source, $(SOURCES_libdexfile), art/libdexfile/$(source)) \
+           $(foreach source, $(SOURCES_runtime), art/runtime/$(source)) \
+           art/libartpalette/system/palette_fake.cc \
+           art/libprofile/profile/profile_compilation_info.cc \
 
 
 # Add generated operator_out.cc and mterp.S
 SOURCES += \
-  debian/out/operator_out.cc \
-  debian/out/mterp.S
+  debian/out/art/operator_out.cc \
+  debian/out/art/mterp.S
 
 # from runtime/Android.bp
 SOURCES_OPERATOR = \
@@ -405,6 +405,8 @@ SOURCES_OPERATOR += \
   libdexfile/dex/invoke_type.h \
   libdexfile/dex/method_reference.h \
 
+SOURCES_OPERATOR := $(foreach source, $(SOURCES_OPERATOR), art/$(source))
+
 # If directly compile all sources together, it will take a huge amount of time
 # and potentially huge amount of memory. Not good for devel-time.
 # On the other hand, individual compiling every source allows incremental
@@ -443,24 +445,27 @@ CPPFLAGS += \
   -DIMT_SIZE=43 \
   -DUSE_D8_DESUGAR=1 \
   -I. \
+  -Iart \
   -I/usr/include/android/nativehelper \
-  -Icmdline \
-  -Iruntime \
-  -Ilibartbase \
-  -Ilibartbase/arch \
-  -Ilibartpalette/include \
-  -Ilibdexfile \
-  -Ilibdexfile/external/include \
-  -Ilibelffile \
-  -Ilibprofile \
-  -Isigchainlib \
-  -Itools/cpp-define-generator \
-  -Idebian/out \
+  -Iart/cmdline \
+  -Iart/runtime \
+  -Iart/libartbase \
+  -Iart/libartbase/arch \
+  -Iart/libartpalette/include \
+  -Iart/libdexfile \
+  -Iart/libdexfile/external/include \
+  -Iart/libelffile \
+  -Iart/libprofile \
+  -Iart/sigchainlib \
+  -Iart/tools/cpp-define-generator \
+  -Idebian/out/art \
+  -I/usr/include/android \
+  -Umips \
 
 LDFLAGS += \
   -fuse-ld=gold \
   -L/usr/lib/$(DEB_HOST_MULTIARCH)/android \
-  -Ldebian/out \
+  -Ldebian/out/art \
   -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
   -shared -Wl,-soname,$(NAME).so.0
 LIBRARIES_FLAGS = \
@@ -482,12 +487,12 @@ ifeq ($(CPU),arm)
   CC_ASSEMBLY = gcc
 endif
 
-debian/out/$(NAME).so.0: $(OBJECTS_CXX) $(OBJECTS_ASSEMBLY)
+debian/out/art/$(NAME).so.0: $(OBJECTS_CXX) $(OBJECTS_ASSEMBLY)
 	$(CXX) -o $@ $(LDFLAGS) $^ $(LIBRARIES_FLAGS)
-	ln -s $(NAME).so.0 debian/out/$(NAME).so
+	ln -s $(NAME).so.0 debian/out/art/$(NAME).so
 
 clean:
-	$(RM) $(NAME).so* debian/out/operator_out.cc debian/out/mterp.S
+	$(RM) $(NAME).so* debian/out/art/operator_out.cc debian/out/art/mterp.S
 	$(RM) $(OBJECTS_CXX)
 	$(RM) $(OBJECTS_ASSEMBLY)
 
@@ -499,16 +504,16 @@ $(OBJECTS_CXX): %.o: %.cc
 $(OBJECTS_ASSEMBLY): %.o: %.S
 	$(CC_ASSEMBLY) -o $@ $(CFLAGS) $(CPPFLAGS) $^
 
-debian/out/operator_out.cc: $(SOURCES_OPERATOR)
-	python3 tools/generate_operator_out.py art/libartbase $^ > $@
+debian/out/art/operator_out.cc: $(SOURCES_OPERATOR)
+	python3 art/tools/generate_operator_out.py art/libartbase $^ > $@
 
-debian/out/mterp.S: runtime/interpreter/mterp/$(CPU)/*.S
-	python3 runtime/interpreter/mterp/gen_mterp.py $@ $^
+debian/out/art/mterp.S: art/runtime/interpreter/mterp/$(CPU)/*.S
+	python3 art/runtime/interpreter/mterp/gen_mterp.py $@ $^
 
-debian/out/asm_defines.h: debian/out/asm_defines.output
-	python3 tools/cpp-define-generator/make_header.py $^ > $@
+debian/out/art/asm_defines.h: debian/out/art/asm_defines.output
+	python3 art/tools/cpp-define-generator/make_header.py $^ > $@
 
-debian/out/asm_defines.output: tools/cpp-define-generator/asm_defines.cc
+debian/out/art/asm_defines.output: art/tools/cpp-define-generator/asm_defines.cc
 	$(CXX) \
 		$(CPPFLAGS) \
 		$(CXXFLAGS) \

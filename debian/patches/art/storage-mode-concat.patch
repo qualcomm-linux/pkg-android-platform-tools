@@ -1,5 +1,5 @@
---- a/runtime/image.cc
-+++ b/runtime/image.cc
+--- a/art/runtime/image.cc
++++ b/art/runtime/image.cc
 @@ -172,7 +172,7 @@ bool ImageHeader::Block::Decompress(uint8_t* out_ptr,
      }
      default: {

@@ -1,7 +1,7 @@
 Description: somehow upstream builds don't need these headers :-/
 Forwarded: not-needed
---- a/runtime/runtime_common.h
-+++ b/runtime/runtime_common.h
+--- a/art/runtime/runtime_common.h
++++ b/art/runtime/runtime_common.h
 @@ -27,6 +27,7 @@
  
  #include <sys/utsname.h>
@@ -10,8 +10,8 @@ Forwarded: not-needed
  
  #include <iomanip>
  
---- a/sigchainlib/sigchain.cc
-+++ b/sigchainlib/sigchain.cc
+--- a/art/sigchainlib/sigchain.cc
++++ b/art/sigchainlib/sigchain.cc
 @@ -27,6 +27,7 @@
  #include <mutex>
  #include <type_traits>
@@ -20,8 +20,8 @@ Forwarded: not-needed
  
  #include "log.h"
  #include "sigchain.h"
---- a/runtime/base/mutex.cc
-+++ b/runtime/base/mutex.cc
+--- a/art/runtime/base/mutex.cc
++++ b/art/runtime/base/mutex.cc
 @@ -18,6 +18,7 @@
  
  #include <errno.h>
@@ -30,8 +30,8 @@ Forwarded: not-needed
  
  #include "android-base/stringprintf.h"
  
---- a/runtime/exec_utils.cc
-+++ b/runtime/exec_utils.cc
+--- a/art/runtime/exec_utils.cc
++++ b/art/runtime/exec_utils.cc
 @@ -20,6 +20,7 @@
  #include <sys/wait.h>
  #include <string>
@@ -40,8 +40,8 @@ Forwarded: not-needed
  
  #include "android-base/stringprintf.h"
  #include "android-base/strings.h"
---- a/runtime/gc/accounting/heap_bitmap.cc
-+++ b/runtime/gc/accounting/heap_bitmap.cc
+--- a/art/runtime/gc/accounting/heap_bitmap.cc
++++ b/art/runtime/gc/accounting/heap_bitmap.cc
 @@ -16,6 +16,8 @@
  
  #include "heap_bitmap.h"
@@ -51,8 +51,8 @@ Forwarded: not-needed
  #include "gc/accounting/space_bitmap-inl.h"
  #include "gc/space/space.h"
  
---- a/runtime/gc/accounting/read_barrier_table.h
-+++ b/runtime/gc/accounting/read_barrier_table.h
+--- a/art/runtime/gc/accounting/read_barrier_table.h
++++ b/art/runtime/gc/accounting/read_barrier_table.h
 @@ -18,6 +18,7 @@
  #define ART_RUNTIME_GC_ACCOUNTING_READ_BARRIER_TABLE_H_
  
@@ -61,8 +61,8 @@ Forwarded: not-needed
  
  #include "base/bit_utils.h"
  #include "base/locks.h"
---- a/runtime/jdwp/jdwp_handler.cc
-+++ b/runtime/jdwp/jdwp_handler.cc
+--- a/art/runtime/jdwp/jdwp_handler.cc
++++ b/art/runtime/jdwp/jdwp_handler.cc
 @@ -19,6 +19,7 @@
  #include <unistd.h>
  #include <memory>
@@ -71,8 +71,8 @@ Forwarded: not-needed
  
  #include "android-base/stringprintf.h"
  
---- a/runtime/jit/profiling_info.h
-+++ b/runtime/jit/profiling_info.h
+--- a/art/runtime/jit/profiling_info.h
++++ b/art/runtime/jit/profiling_info.h
 @@ -18,6 +18,7 @@
  #define ART_RUNTIME_JIT_PROFILING_INFO_H_
  
@@ -81,8 +81,8 @@ Forwarded: not-needed
  
  #include "base/macros.h"
  #include "gc_root.h"
---- a/runtime/arch/instruction_set_features.cc
-+++ b/runtime/arch/instruction_set_features.cc
+--- a/art/runtime/arch/instruction_set_features.cc
++++ b/art/runtime/arch/instruction_set_features.cc
 @@ -21,6 +21,8 @@
  #include <algorithm>
  #include <ostream>
@@ -92,8 +92,8 @@ Forwarded: not-needed
  #include "android-base/strings.h"
  
  #include "base/casts.h"
---- a/runtime/arch/mips/instruction_set_features_mips.cc
-+++ b/runtime/arch/mips/instruction_set_features_mips.cc
+--- a/art/runtime/arch/mips/instruction_set_features_mips.cc
++++ b/art/runtime/arch/mips/instruction_set_features_mips.cc
 @@ -18,6 +18,7 @@
  
  #include <fstream>
@@ -102,8 +102,8 @@ Forwarded: not-needed
  
  #include <android-base/stringprintf.h>
  #include <android-base/strings.h>
---- a/runtime/monitor.h
-+++ b/runtime/monitor.h
+--- a/art/runtime/monitor.h
++++ b/art/runtime/monitor.h
 @@ -24,6 +24,7 @@
  #include <iosfwd>
  #include <list>
@@ -112,8 +112,8 @@ Forwarded: not-needed
  
  #include "base/allocator.h"
  #include "base/atomic.h"
---- a/runtime/arch/x86/context_x86.cc
-+++ b/runtime/arch/x86/context_x86.cc
+--- a/art/runtime/arch/x86/context_x86.cc
++++ b/art/runtime/arch/x86/context_x86.cc
 @@ -16,6 +16,8 @@
  
  #include "context_x86.h"
@@ -123,8 +123,8 @@ Forwarded: not-needed
  #include "base/bit_utils.h"
  #include "base/bit_utils_iterator.h"
  #include "base/memory_tool.h"
---- a/libartbase/base/arena_allocator.h
-+++ b/libartbase/base/arena_allocator.h
+--- a/art/libartbase/base/arena_allocator.h
++++ b/art/libartbase/base/arena_allocator.h
 @@ -17,6 +17,7 @@
  #ifndef ART_LIBARTBASE_BASE_ARENA_ALLOCATOR_H_
  #define ART_LIBARTBASE_BASE_ARENA_ALLOCATOR_H_
@@ -133,8 +133,8 @@ Forwarded: not-needed
  #include <stddef.h>
  #include <stdint.h>
  
---- a/libdexfile/dex/dex_file_types.h
-+++ b/libdexfile/dex/dex_file_types.h
+--- a/art/libdexfile/dex/dex_file_types.h
++++ b/art/libdexfile/dex/dex_file_types.h
 @@ -17,6 +17,8 @@
  #ifndef ART_LIBDEXFILE_DEX_DEX_FILE_TYPES_H_
  #define ART_LIBDEXFILE_DEX_DEX_FILE_TYPES_H_
@@ -144,8 +144,8 @@ Forwarded: not-needed
  #include <iosfwd>
  #include <limits>
  #include <utility>
---- a/libdexfile/dex/method_reference.h
-+++ b/libdexfile/dex/method_reference.h
+--- a/art/libdexfile/dex/method_reference.h
++++ b/art/libdexfile/dex/method_reference.h
 @@ -17,6 +17,7 @@
  #ifndef ART_LIBDEXFILE_DEX_METHOD_REFERENCE_H_
  #define ART_LIBDEXFILE_DEX_METHOD_REFERENCE_H_
@@ -154,8 +154,8 @@ Forwarded: not-needed
  #include <stdint.h>
  #include <string>
  #include "dex/dex_file.h"
---- a/libartbase/base/arena_containers.h
-+++ b/libartbase/base/arena_containers.h
+--- a/art/libartbase/base/arena_containers.h
++++ b/art/libartbase/base/arena_containers.h
 @@ -17,6 +17,7 @@
  #ifndef ART_LIBARTBASE_BASE_ARENA_CONTAINERS_H_
  #define ART_LIBARTBASE_BASE_ARENA_CONTAINERS_H_
@@ -164,8 +164,8 @@ Forwarded: not-needed
  #include <deque>
  #include <queue>
  #include <set>
---- a/libartbase/arch/instruction_set.cc
-+++ b/libartbase/arch/instruction_set.cc
+--- a/art/libartbase/arch/instruction_set.cc
++++ b/art/libartbase/arch/instruction_set.cc
 @@ -19,6 +19,7 @@
  #include "android-base/logging.h"
  #include "base/bit_utils.h"
@@ -174,8 +174,8 @@ Forwarded: not-needed
  
  namespace art {
  
---- a/libartbase/base/bit_vector-inl.h
-+++ b/libartbase/base/bit_vector-inl.h
+--- a/art/libartbase/base/bit_vector-inl.h
++++ b/art/libartbase/base/bit_vector-inl.h
 @@ -20,6 +20,7 @@
  #include "bit_vector.h"
  
@@ -184,8 +184,8 @@ Forwarded: not-needed
  
  #include "bit_utils.h"
  
---- a/libartbase/base/bit_vector.cc
-+++ b/libartbase/base/bit_vector.cc
+--- a/art/libartbase/base/bit_vector.cc
++++ b/art/libartbase/base/bit_vector.cc
 @@ -16,6 +16,7 @@
  
  #include "bit_vector.h"
@@ -194,8 +194,8 @@ Forwarded: not-needed
  #include <limits>
  #include <sstream>
  
---- a/libartbase/base/file_utils.cc
-+++ b/libartbase/base/file_utils.cc
+--- a/art/libartbase/base/file_utils.cc
++++ b/art/libartbase/base/file_utils.cc
 @@ -40,6 +40,7 @@
  
  
@@ -204,8 +204,8 @@ Forwarded: not-needed
  
  #include "android-base/stringprintf.h"
  #include "android-base/strings.h"
---- a/libartbase/base/bit_vector.h
-+++ b/libartbase/base/bit_vector.h
+--- a/art/libartbase/base/bit_vector.h
++++ b/art/libartbase/base/bit_vector.h
 @@ -18,6 +18,7 @@
  #define ART_LIBARTBASE_BASE_BIT_VECTOR_H_
  
@@ -214,8 +214,8 @@ Forwarded: not-needed
  #include <iterator>
  
  #include "bit_utils.h"
---- a/libartbase/base/file_magic.cc
-+++ b/libartbase/base/file_magic.cc
+--- a/art/libartbase/base/file_magic.cc
++++ b/art/libartbase/base/file_magic.cc
 @@ -19,6 +19,7 @@
  #include <fcntl.h>
  #include <sys/stat.h>
@@ -224,8 +224,8 @@ Forwarded: not-needed
  
  #include <android-base/logging.h>
  #include <android-base/stringprintf.h>
---- a/libartbase/base/logging.cc
-+++ b/libartbase/base/logging.cc
+--- a/art/libartbase/base/logging.cc
++++ b/art/libartbase/base/logging.cc
 @@ -16,6 +16,7 @@
  
  #include "logging.h"
@@ -234,8 +234,8 @@ Forwarded: not-needed
  #include <iostream>
  #include <limits>
  #include <sstream>
---- a/libartbase/base/memfd.cc
-+++ b/libartbase/base/memfd.cc
+--- a/art/libartbase/base/memfd.cc
++++ b/art/libartbase/base/memfd.cc
 @@ -24,6 +24,7 @@
  #include <unistd.h>
  #endif
@@ -244,8 +244,8 @@ Forwarded: not-needed
  #include "macros.h"
  
  // When building for linux host, glibc in prebuilts does not include memfd_create system call
---- a/libartbase/base/scoped_flock.cc
-+++ b/libartbase/base/scoped_flock.cc
+--- a/art/libartbase/base/scoped_flock.cc
++++ b/art/libartbase/base/scoped_flock.cc
 @@ -19,6 +19,8 @@
  #include <sys/file.h>
  #include <sys/stat.h>
@@ -255,8 +255,8 @@ Forwarded: not-needed
  #include <android-base/logging.h>
  #include <android-base/stringprintf.h>
  
---- a/libartbase/base/unix_file/fd_file.cc
-+++ b/libartbase/base/unix_file/fd_file.cc
+--- a/art/libartbase/base/unix_file/fd_file.cc
++++ b/art/libartbase/base/unix_file/fd_file.cc
 @@ -29,6 +29,7 @@
  #include <windows.h>
  #endif
@@ -265,8 +265,8 @@ Forwarded: not-needed
  #include <limits>
  
  #include <android-base/file.h>
---- a/libdexfile/dex/descriptors_names.cc
-+++ b/libdexfile/dex/descriptors_names.cc
+--- a/art/libdexfile/dex/descriptors_names.cc
++++ b/art/libdexfile/dex/descriptors_names.cc
 @@ -21,6 +21,7 @@
  
  #include "base/macros.h"
@@ -275,8 +275,8 @@ Forwarded: not-needed
  
  namespace art {
  
---- a/libdexfile/dex/dex_file_loader.h
-+++ b/libdexfile/dex/dex_file_loader.h
+--- a/art/libdexfile/dex/dex_file_loader.h
++++ b/art/libdexfile/dex/dex_file_loader.h
 @@ -18,6 +18,7 @@
  #define ART_LIBDEXFILE_DEX_DEX_FILE_LOADER_H_
  

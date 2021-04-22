@@ -1,1 +1,1 @@
-debian/out/dexdump           usr/lib/android-sdk/build-tools/debian
+debian/out/art/dexdump           usr/lib/android-sdk/build-tools/debian

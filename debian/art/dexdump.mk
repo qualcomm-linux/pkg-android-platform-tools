@@ -1,13 +1,15 @@
 NAME = dexdump
 SOURCES = dexdump_cfg.cc dexdump_main.cc dexdump.cc
-SOURCES := $(foreach source, $(SOURCES), dexdump/$(source))
+SOURCES := $(foreach source, $(SOURCES), art/dexdump/$(source))
 
 CPPFLAGS += \
-  -Ilibartbase \
-  -Idexdump \
-  -Ilibdexfile \
-  -Iruntime \
+  -Iart/libartbase \
+  -Iart/dexdump \
+  -Iart/libdexfile \
+  -Iart/runtime \
   -I/usr/include/android/nativehelper \
+  -I/usr/include/android \
+  -Umips \
 
 CXXFLAGS += -std=gnu++17
 
@@ -16,7 +18,7 @@ CXXFLAGS += -std=gnu++17
 # object dependency tree before libc in the breadth-first order.
 LDFLAGS += -nodefaultlibs \
   -L/usr/lib/$(DEB_HOST_MULTIARCH)/android \
-  -Ldebian/out \
+  -Ldebian/out/art \
   -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android
 LIBRARIES_FLAGS += \
   -lsigchain \
@@ -26,5 +28,5 @@ LIBRARIES_FLAGS += \
   -lart \
   -lbase \
 
-debian/out/$(NAME): $(SOURCES)
+debian/out/art/$(NAME): $(SOURCES)
 	$(CXX) $^ -o $@ $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS) $(LIBRARIES_FLAGS)

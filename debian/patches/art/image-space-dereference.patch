@@ -1,5 +1,5 @@
---- a/runtime/gc/space/image_space.cc
-+++ b/runtime/gc/space/image_space.cc
+--- a/art/runtime/gc/space/image_space.cc
++++ b/art/runtime/gc/space/image_space.cc
 @@ -1432,7 +1432,7 @@ class ImageSpace::BootImageLoader {
  
      if (VLOG_IS_ON(image)) {

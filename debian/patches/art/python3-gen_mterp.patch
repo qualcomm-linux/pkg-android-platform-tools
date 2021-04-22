@@ -1,7 +1,7 @@
-diff --git a/runtime/interpreter/mterp/common/gen_setup.py b/runtime/interpreter/mterp/common/gen_setup.py
+diff --git a/art/runtime/interpreter/mterp/common/gen_setup.py b/art/runtime/interpreter/mterp/common/gen_setup.py
 index 2684ab2..ac0606b 100644
---- a/runtime/interpreter/mterp/common/gen_setup.py
-+++ b/runtime/interpreter/mterp/common/gen_setup.py
+--- a/art/runtime/interpreter/mterp/common/gen_setup.py
++++ b/art/runtime/interpreter/mterp/common/gen_setup.py
 @@ -19,7 +19,7 @@
  # the templated snippets. Those define all the helper functions used below.
  
@@ -11,10 +11,10 @@ index 2684ab2..ac0606b 100644
  
  out = StringIO()  # File-like in-memory buffer.
  handler_size_bytes = "MTERP_HANDLER_SIZE"
-diff --git a/runtime/interpreter/mterp/gen_mterp.py b/runtime/interpreter/mterp/gen_mterp.py
+diff --git a/art/runtime/interpreter/mterp/gen_mterp.py b/art/runtime/interpreter/mterp/gen_mterp.py
 index 5d25955..8534e99 100755
---- a/runtime/interpreter/mterp/gen_mterp.py
-+++ b/runtime/interpreter/mterp/gen_mterp.py
+--- a/art/runtime/interpreter/mterp/gen_mterp.py
++++ b/art/runtime/interpreter/mterp/gen_mterp.py
 @@ -1,4 +1,4 @@
 -#!/usr/bin/env python
 +#!/usr/bin/env python3

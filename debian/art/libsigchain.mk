@@ -1,9 +1,9 @@
 NAME = libsigchain
 
 SOURCES = sigchain.cc
-SOURCES := $(foreach source, $(SOURCES), sigchainlib/$(source))
+SOURCES := $(foreach source, $(SOURCES), art/sigchainlib/$(source))
 
-CPPFLAGS += -Isigchainlib
+CPPFLAGS += -Iart/sigchainlib -I/usr/include/android -Umips
 CXXFLAGS += -std=gnu++17
 LDFLAGS += \
   -shared \
@@ -12,6 +12,6 @@ LIBRARIES_FLAGS = \
   -ldl \
   -lpthread \
 
-debian/out/$(NAME).so.0: $(SOURCES)
+debian/out/art/$(NAME).so.0: $(SOURCES)
 	$(CXX) -o $@ $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS) $^ $(LIBRARIES_FLAGS)
-	ln -s $(NAME).so.0 debian/out/$(NAME).so
+	ln -s $(NAME).so.0 debian/out/art/$(NAME).so

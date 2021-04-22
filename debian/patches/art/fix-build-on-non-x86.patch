@@ -1,7 +1,7 @@
 Description: non-x86 arches do not have PAGE_SIZE
 Forwarded: not-needed
---- a/libartbase/base/safe_copy.cc
-+++ b/libartbase/base/safe_copy.cc
+--- a/art/libartbase/base/safe_copy.cc
++++ b/art/libartbase/base/safe_copy.cc
 @@ -56,10 +56,11 @@ ssize_t SafeCopy(void *dst, const void *src, size_t len) {
      }
  

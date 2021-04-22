@@ -1,5 +1,5 @@
---- a/libdexfile/dex/method_reference.h
-+++ b/libdexfile/dex/method_reference.h
+--- a/art/libdexfile/dex/method_reference.h
++++ b/art/libdexfile/dex/method_reference.h
 @@ -52,20 +52,20 @@ struct MethodReferenceValueComparator {
      // Compare the class descriptors first.
      const dex::MethodId& mid1 = mr1.GetMethodId();

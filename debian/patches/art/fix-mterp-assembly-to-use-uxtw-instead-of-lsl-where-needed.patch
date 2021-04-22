@@ -21,10 +21,10 @@ Change-Id: I66f67ccc5a401d0cf6ac5b42d41d8df26a190046
  runtime/interpreter/mterp/arm64/other.S |  2 +-
  3 files changed, 13 insertions(+), 13 deletions(-)
 
-diff --git a/runtime/interpreter/mterp/arm64/array.S b/runtime/interpreter/mterp/arm64/array.S
+diff --git a/art/runtime/interpreter/mterp/arm64/array.S b/art/runtime/interpreter/mterp/arm64/array.S
 index a023d22..628f832 100644
---- a/runtime/interpreter/mterp/arm64/array.S
-+++ b/runtime/interpreter/mterp/arm64/array.S
+--- a/art/runtime/interpreter/mterp/arm64/array.S
++++ b/art/runtime/interpreter/mterp/arm64/array.S
 @@ -75,7 +75,7 @@
      GET_VREG w1, w3                     // w1<- vCC (requested index)
      cbz     w0, common_errNullObject        // yes, bail
@@ -52,10 +52,10 @@ index a023d22..628f832 100644
      cmp     w1, w3                      // compare unsigned index, length
      bcs     common_errArrayIndex        // index >= length, bail
      GET_VREG_WIDE x1, w4
-diff --git a/runtime/interpreter/mterp/arm64/main.S b/runtime/interpreter/mterp/arm64/main.S
+diff --git a/art/runtime/interpreter/mterp/arm64/main.S b/art/runtime/interpreter/mterp/arm64/main.S
 index aefec61..fd745f1 100644
---- a/runtime/interpreter/mterp/arm64/main.S
-+++ b/runtime/interpreter/mterp/arm64/main.S
+--- a/art/runtime/interpreter/mterp/arm64/main.S
++++ b/art/runtime/interpreter/mterp/arm64/main.S
 @@ -268,23 +268,23 @@ codes.
   * Get/set the 64-bit value from a Dalvik register.
   */
@@ -107,10 +107,10 @@ index aefec61..fd745f1 100644
      CFI_DEFINE_DEX_PC_WITH_OFFSET(CFI_TMP, CFI_DEX, 0)
      EXPORT_PC
  
-diff --git a/runtime/interpreter/mterp/arm64/other.S b/runtime/interpreter/mterp/arm64/other.S
+diff --git a/art/runtime/interpreter/mterp/arm64/other.S b/art/runtime/interpreter/mterp/arm64/other.S
 index f1d0ef3..eccd521 100644
---- a/runtime/interpreter/mterp/arm64/other.S
-+++ b/runtime/interpreter/mterp/arm64/other.S
+--- a/art/runtime/interpreter/mterp/arm64/other.S
++++ b/art/runtime/interpreter/mterp/arm64/other.S
 @@ -263,7 +263,7 @@
      ldr     x0, [xFP, #OFF_FP_RESULT_REGISTER]  // get pointer to result JType.
      ldr     x0, [x0]                    // r0 <- result.i.
