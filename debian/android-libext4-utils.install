@@ -1,0 +1,5 @@
+#!/usr/bin/dh-exec
+
+debian/out/libext4_utils.so     usr/lib/${DEB_HOST_MULTIARCH}/android
+debian/out/libext4_utils.so.*   usr/lib/${DEB_HOST_MULTIARCH}/android
+ext4_utils/NOTICE               usr/share/doc/android-libext4-utils

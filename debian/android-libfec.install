@@ -1,0 +1,5 @@
+#!/usr/bin/dh-exec
+
+debian/out/libfec.so     usr/lib/${DEB_HOST_MULTIARCH}/android
+debian/out/libfec.so.*   usr/lib/${DEB_HOST_MULTIARCH}/android
+libfec/NOTICE            usr/share/doc/android-libfec
