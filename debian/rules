@@ -81,6 +81,12 @@ ifneq ($(filter amd64 i386 armel armhf arm64,$(DEB_HOST_ARCH)),)
   COMPONENTS += debian/out/art/libdexfile_external.so debian/out/art/libdexfile_support.so
 endif
 
+## frameworks/native
+
+ifneq ($(filter amd64 i386 armel armhf arm64 mips mipsel mips64el,$(DEB_HOST_ARCH)),)
+  COMPONENTS += libETC1.so
+endif
+
 %:
 	dh $@ --with maven_repo_helper,javahelper,bash-completion
 
@@ -218,6 +224,11 @@ art/runtime/%.o art/libartbase/%.o art/libdexfile/%.o debian/out/art/%.o: debian
 	dh_auto_build --buildsystem=makefile -- --file=$< $@
 
 COMPONENTS += debian/out/art debian/out/art/dmtracedump debian/out/art/dmtracedump.1 debian/out/art/dexdump.1
+
+## frameworks/native
+
+libETC1.so: debian/frameworks/native/libETC1.mk
+	dh_auto_build --buildsystem=makefile -- -f $<
 
 override_dh_auto_build-arch: $(COMPONENTS)
 ## external/*

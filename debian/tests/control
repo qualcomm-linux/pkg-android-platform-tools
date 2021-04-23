@@ -43,3 +43,7 @@ Depends: dmtracedump
 
 Tests: dexdump-dexlist
 Depends: dexdump, dexlist
+
+## frameworks-native
+
+Test-Command: ls -l /usr/include/android/android/*.h /usr/lib/*/android/libETC1.so

@@ -16,7 +16,7 @@ Build-Depends:
  bash-completion,
  clang [amd64 i386 armel armhf arm64],
  debhelper (>= 11),
- debhelper-compat (= 12),
+ debhelper-compat (= 13),
  default-jdk-headless | default-jdk,
  dh-exec,
  dpkg-dev (>= 1.17.14),
@@ -721,3 +721,33 @@ Description: Lists all methods in all concrete classes in Android DEX files
  based on ART functions in `libart` instead. The output is very similar
  to the original for correct DEX files. Error messages may differ,
  however. Also, ODEX files are no longer supported.
+
+Package: android-platform-frameworks-native-headers
+Section: libdevel
+Architecture: all
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Breaks: android-libutils-dev (<< 1:6.0.0+r26)
+Replaces: android-libutils-dev (<< 1:6.0.0+r26)
+Description: Headers of android-platform-frameworks-native
+ This package contains headers in include/android in platform/frameworks/native
+ Consists of all the header files ranging from asset_manager.h to window.h.
+
+Package: android-libetc1
+Section: libs
+Architecture: amd64 i386 armel armhf arm64 mips mipsel mips64el
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: ETC1 compression library
+ Ericsson Texture Compression (ETC) is a lossy texture compression technique
+ developed in collaboration with Ericsson Research in early 2005. libETC1
+ provides the encoding and decoding of ETC1 compression algorithm.
+
+Package: android-libetc1-dev
+Section: libdevel
+Architecture: amd64 i386 armel armhf arm64 mips mipsel mips64el
+Depends: android-libetc1 (= ${binary:Version}), ${misc:Depends},  ${shlibs:Depends}
+Description: ETC1 compression library - Development files
+ Ericsson Texture Compression (ETC) is a lossy texture compression technique
+ developed in collaboration with Ericsson Research in early 2005. libETC1
+ provides the encoding and decoding of ETC1 compression algorithm.
+ .
+ This package provides the development files.
