@@ -1,1 +1,1 @@
-include/android   usr/include/android
+frameworks/native/include/android   usr/include/android

@@ -5,4 +5,3 @@ build/zipalign
 build/ziptime
 debian/manpages/development/*.1
 development/etc1tool
-debian/*.symbols
