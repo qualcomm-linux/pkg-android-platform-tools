@@ -77,9 +77,7 @@ endif
 
 # MIPS is left out because ART only supports MIPSr6 while Debian is by default MIPSr2
 ifneq ($(filter amd64 i386 armel armhf arm64,$(DEB_HOST_ARCH)),)
- ifeq ($(findstring stage1,$(DEB_VERSION)),)
   COMPONENTS += debian/out/art/dexdump debian/out/art/dexlist
- endif
   COMPONENTS += debian/out/art/libdexfile_external.so debian/out/art/libdexfile_support.so
 endif
 

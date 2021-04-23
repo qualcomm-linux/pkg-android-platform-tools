@@ -677,7 +677,6 @@ Description: Compares classes, fields, methods used by an Android APK
 Package: dexdump
 Architecture: amd64 i386 armhf arm64
 Multi-Arch: foreign
-Build-Profiles: <!stage1>
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: Displays information about Android DEX files
  The `dexdump` tool is intended to mimic `objdump`. When possible, use
@@ -715,7 +714,6 @@ Description: Android Runtime
 Package: dexlist
 Architecture: amd64 i386 armhf arm64
 Multi-Arch: foreign
-Build-Profiles: <!stage1>
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: Lists all methods in all concrete classes in Android DEX files
  This is a re-implementation of the original `dexlist` utility that was
