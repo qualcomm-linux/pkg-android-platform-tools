@@ -1,7 +1,7 @@
 Description: fix proto import paths, this dir layout is different
 Forwarded: not-needed
---- android-platform-frameworks-base-10.0.0+r36.orig/tools/aapt2/Resources.proto
-+++ android-platform-frameworks-base-10.0.0+r36/tools/aapt2/Resources.proto
+--- android-platform-tools-10.0.0+r36.orig/frameworks/base/tools/aapt2/Resources.proto
++++ android-platform-tools-10.0.0+r36/frameworks/base/tools/aapt2/Resources.proto
 @@ -16,7 +16,7 @@
  
  syntax = "proto3";
@@ -11,8 +11,8 @@ Forwarded: not-needed
  
  package aapt.pb;
  
---- android-platform-frameworks-base-10.0.0+r36.orig/tools/aapt2/ResourcesInternal.proto
-+++ android-platform-frameworks-base-10.0.0+r36/tools/aapt2/ResourcesInternal.proto
+--- android-platform-tools-10.0.0+r36.orig/frameworks/base/tools/aapt2/ResourcesInternal.proto
++++ android-platform-tools-10.0.0+r36/frameworks/base/tools/aapt2/ResourcesInternal.proto
 @@ -16,8 +16,8 @@
  
  syntax = "proto3";

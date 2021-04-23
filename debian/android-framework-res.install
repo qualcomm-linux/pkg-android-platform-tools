@@ -1,1 +1,1 @@
-debian/out/framework-res.apk   usr/share/android-framework-res
+debian/out/frameworks/base/framework-res.apk   usr/share/android-framework-res

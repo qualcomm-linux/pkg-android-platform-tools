@@ -22,21 +22,28 @@ SOURCES = \
         ZipEntry.cpp \
         ZipFile.cpp \
 
-SOURCES := $(foreach source, $(SOURCES), tools/aapt/$(source))
-CPPFLAGS += -Ilibs/androidfw/include \
+SOURCES := $(foreach source, $(SOURCES), frameworks/base/tools/aapt/$(source))
+CPPFLAGS += -Iframeworks/base/libs/androidfw/include \
             -I/usr/include/android \
             -Wno-format-y2k -Wno-error=implicit-fallthrough \
-	    -DSTATIC_ANDROIDFW_FOR_TOOLS \
-            -DAAPT_VERSION=\"$(ANDROID_BUILD_TOOLS_VERSION)\"
+            -DSTATIC_ANDROIDFW_FOR_TOOLS \
+            -DAAPT_VERSION=\"$(ANDROID_BUILD_TOOLS_VERSION)\" \
+            -DANDROID \
+            -fmessage-length=0 \
+            -fno-exceptions \
+            -fno-strict-aliasing \
+            -no-canonical-prefixes \
+            -O2 \
+
 CXXFLAGS += -std=gnu++17
 LDFLAGS += -shared -Wl,-soname,$(NAME).so.0 \
            -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
            -lpng -lexpat -lz -lpthread \
-           -Ldebian/out -landroidfw \
+           -Ldebian/out/frameworks/base -landroidfw \
            -L/usr/lib/$(DEB_HOST_MULTIARCH)/android \
            -llog -lutils -llog
 
-build: $(SOURCES)
-	mkdir --parents debian/out
-	$(CXX) $^ -o debian/out/$(NAME).so.0 $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
-	ln -s $(NAME).so.0 debian/out/$(NAME).so
+debian/out/frameworks/base/$(NAME).so.0: $(SOURCES)
+	mkdir --parents debian/out/frameworks/base
+	$(CXX) $^ -o debian/out/frameworks/base/$(NAME).so.0 $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
+	ln -s $(NAME).so.0 debian/out/frameworks/base/$(NAME).so
