@@ -44,3 +44,7 @@ art/workaround-cacheflush-on-arm.patch
 art/adapt-asm-output-of-clang-that-no-is-placed-before-data.patch
 art/arm-asm-instruction.patch
 art/fix-mterp-assembly-to-use-uxtw-instead-of-lsl-where-needed.patch
+frameworks/base/hard-code-versions.patch
+frameworks/base/aapt_typo.diff
+frameworks/base/fix-compile-error.patch
+frameworks/base/fix-proto-import-paths.patch
