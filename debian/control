@@ -38,6 +38,12 @@ Build-Depends:
  protobuf-compiler,
  python3 [amd64 i386 armel armhf arm64],
  zlib1g-dev [amd64 i386 armel armhf arm64],
+ android-libsparse-dev (>= 1:10.0.0+r36-1~),
+ android-libselinux-dev (>= 10.0.0+r36-1~),
+ android-libcutils-dev (>= 1:10.0.0+r36-1~),
+ android-libbase-dev (>= 1:10.0.0+r36-1~),
+ android-platform-system-core-headers (>= 1:10.0.0+r36-1~),
+ libsquashfuse-dev
 Build-Depends-Arch:
  android-libandroidfw-dev (>= 1:10.0.0+r36~),
  android-libbase-dev (>= 1:10.0.0+r36~),
@@ -832,3 +838,49 @@ Depends: ${misc:Depends}
 Description: Android platform framework resources
  This package provides the Android framework resources in an apk file,
  framework-res.apk
+
+Package: android-libext4-utils
+Section: libs
+Architecture: i386 amd64 armel armhf arm64 mips mipsel mips64el
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Android ext4 utility library
+ Android ext4 filesystem utility library, which is only used by fastboot
+ currently.
+
+Package: android-libext4-utils-dev
+Section: libdevel
+Architecture: all
+Depends:
+ android-libext4-utils (>= ${binary:Version}),
+ android-libext4-utils (<< ${binary:Version}.1~),
+ ${misc:Depends}
+Description: Android ext4 utility library - Development files
+ Android ext4 filesystem utility library header files, which is only
+ used by fastboot currently.
+ .
+ This package contains the development files.
+
+Package: android-libfec
+Section: libs
+Architecture: i386 amd64 armel armhf arm64 mips mipsel mips64el
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Android libfec library
+ Android libfec library, which read files or partitions with
+ error-correcting codes appended to them. Uses verity metadata to speed
+ up I/O and improve error correction effectiveness.
+ .
+ This is only used by fastboot currently.
+
+Package: android-libfec-dev
+Section: libdevel
+Architecture: all
+Depends:
+ android-libfec (>= ${binary:Version}),
+ android-libfec (<< ${binary:Version}.1~),
+ ${misc:Depends}
+Description: Android libfec library - Development files
+ Android libfec library, which read files or partitions with
+ error-correcting codes appended to them. Uses verity metadata to speed
+ up I/O and improve error correction effectiveness.
+ .
+ This package contains the development files.

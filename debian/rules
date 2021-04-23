@@ -288,6 +288,8 @@ override_dh_auto_build-arch: $(COMPONENTS)
 	dh_auto_build --buildsystem=gradle -- --settings-file debian/libcore/settings.gradle \
 	                                      --project-prop androidVersion=$(ANDROID_VERSION) \
 	                                      assemble
+	dh_auto_build --buildsystem=makefile -- -f debian/system/extras/libext4_utils.mk
+	dh_auto_build --buildsystem=makefile -- -f debian/system/extras/libfec.mk
 
 override_dh_auto_test:
 	echo ignore tests using upstream build system

@@ -1,1 +1,1 @@
-libfec/include/*             usr/include/android
+system/extras/libfec/include/*             usr/include/android

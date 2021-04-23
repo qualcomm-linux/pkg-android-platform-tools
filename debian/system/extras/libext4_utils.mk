@@ -9,14 +9,14 @@ squashfs_utils_SOURCES := \
         squashfs_utils.c \
 
 SOURCES := \
-  $(foreach source, $(ext4_utils_SOURCES), ext4_utils/$(source)) \
-  $(foreach source, $(squashfs_utils_SOURCES), squashfs_utils/$(source)) \
+  $(foreach source, $(ext4_utils_SOURCES), system/extras/ext4_utils/$(source)) \
+  $(foreach source, $(squashfs_utils_SOURCES), system/extras/squashfs_utils/$(source)) \
 
 CXXFLAGS += -fno-strict-aliasing -std=g++17
 CPPFLAGS += \
-            -Iext4_utils/include \
-            -Ilibfec/include \
-            -Isquashfs_utils \
+            -Isystem/extras/ext4_utils/include \
+            -Isystem/extras/libfec/include \
+            -Isystem/extras/squashfs_utils \
             -I/usr/include/android \
             -D_GNU_SOURCE -DFEC_NO_KLOG -DSQUASHFS_NO_KLOG -D_LARGEFILE64_SOURCE
 LDFLAGS += -shared -Wl,-soname,$(NAME).so.0 \
@@ -24,7 +24,7 @@ LDFLAGS += -shared -Wl,-soname,$(NAME).so.0 \
            -L/usr/lib/$(DEB_HOST_MULTIARCH)/android \
            -lbase -lsparse -lselinux
 
-build: $(SOURCES)
-	mkdir --parents $(OUT_DIR)
-	$(CC) $^ -o $(OUT_DIR)/$(NAME).so.0 $(CFLAGS) $(CPPFLAGS) $(LDFLAGS)
-	ln -s $(NAME).so.0 $(OUT_DIR)/$(NAME).so
+debian/out/system/extras/libext4_utils.so: $(SOURCES)
+	mkdir --parents debian/out/system/extras/
+	$(CC) $^ -o debian/out/system/extras/$(NAME).so.0 $(CFLAGS) $(CPPFLAGS) $(LDFLAGS)
+	ln -s $(NAME).so.0 debian/out/system/extras/$(NAME).so
