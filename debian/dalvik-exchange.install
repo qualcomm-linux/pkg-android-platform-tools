@@ -1,0 +1,4 @@
+dx/etc/dx                      usr/lib/android-sdk/build-tools/debian
+dx/etc/mainDexClasses          usr/lib/android-sdk/build-tools/debian
+dx/etc/mainDexClasses.rules    usr/lib/android-sdk/build-tools/debian
+dx/etc/mainDexClassesNoAapt.rules   usr/lib/android-sdk/build-tools/debian
