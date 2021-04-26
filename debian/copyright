@@ -415,6 +415,10 @@ Files: debian/include/external/libunwind/*
 Copyright: 2013-2014, Igor Pavlov
 License: public-domain
 
+Files: libnativehelper/*
+Copyright: 2005-2014, The Android Open Source Project
+License: Apache-2.0
+
 License: Apache-2.0
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
