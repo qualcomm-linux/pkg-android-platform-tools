@@ -347,6 +347,74 @@ Copyright: 2004-2005, Trusted Computer Solutions, Inc.
            2005-2007, Red Hat Inc.
 License: LGPL-2.1
 
+Files: external/libunwind/*
+Copyright: 2001-2005 Hewlett-Packard Co.
+           2007 David Mosberger-Tang
+License: MIT
+
+Files: external/libunwind/android/*
+Copyright: 2014 The Android Open Source Project
+License: Apache-2.0
+
+Files: external/libunwind/src/arm/*
+Copyright: 2008 CodeSourcery
+License: MIT
+
+Files: external/libunwind/src/mi/strerror.c
+Copyright: 2004 BEA Systems
+License: MIT
+
+Files: external/libunwind/src/mips/*
+Copyright: 2008 CodeSourcery
+License: MIT
+
+Files: external/libunwind/src/os-freebsd.c src/x86/*-freebsd.*
+Copyright: 2010 Konstantin Belousov <kib@freebsd.org>
+License: MIT
+
+Files: external/libunwind/src/ppc*/*
+Copyright: 2006-2007 IBM
+License: MIT
+
+Files: external/libunwind/src/ptrace/_UPT_access_*
+Copyright: 2003-2005 Hewlett-Packard Co
+           2010 Konstantin Belousov <kib@freebsd.org>
+License: MIT
+
+Files: external/libunwind/src/unwind/GetIPInfo.c
+Copyright: 2009 Red Hat
+License: MIT
+
+Files: external/libunwind/src/x86/getcontext-linux.S
+Copyright: 2009 Google, Inc
+License: MIT
+
+Files: external/libunwind/src/x86_64/Gstash_frame.c src/x86_64/Gtrace.c
+Copyright: 2010, 2011 by FERMI NATIONAL ACCELERATOR LABORATORY
+License: MIT
+
+Files: external/libunwind/src/x86_64/*context.S
+Copyright: 2008 Google, Inc
+           2010 Konstantin Belousov <kib@freebsd.org>
+License: MIT
+
+Files: external/libunwind/tests/Gtest-nomalloc.c
+Copyright: 2009, 2011 Google, Inc
+License: MIT
+
+Files: external/libunwind/tests/Gtest-trace.c
+Copyright: 2010, 2011 by FERMI NATIONAL ACCELERATOR LABORATORY
+License: MIT
+
+Files: external/libunwind/tests/Ltest-cxx-exceptions.cxx
+Copyright: 2010 stefan.demharter@gmx.net
+           2010 arun.sharma@google.com
+License: MIT
+
+Files: debian/include/external/libunwind/*
+Copyright: 2013-2014, Igor Pavlov
+License: public-domain
+
 License: Apache-2.0
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
