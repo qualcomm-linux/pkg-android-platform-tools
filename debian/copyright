@@ -1,5 +1,20 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0
 Upstream-Contact: https://source.android.com/compatibility/contact-us.html
+Files-Excluded: development/*.a
+                development/*.apk
+                development/*.dll
+                development/*.exe
+                development/*.jar
+                development/*.o
+                development/*.so
+                development/*.zip
+                development/host/windows/usb/api/AdbWinApi.rc
+                development/host/windows/usb/api/Resource.h
+                development/host/windows/usb/winusb/AdbWinUsbApi.rc
+                development/host/windows/usb/winusb/Resource.h
+                development/perftests
+                development/prebuilt
+                development/samples
 
 Files: *
 Copyright: 2019, Kai-Chung Yan (殷啟聰)
@@ -504,6 +519,12 @@ License: BSD-3-clause
 Files: system/core/libcutils/strlcpy.c
 Copyright: 1998, Todd C. Miller <Todd.Miller@courtesan.com>
 License: MIT
+
+Files: development/*
+Copyright: 2005-2016, The Android Open Source Project
+           2008-2012, Google Inc.
+           1995-1996, Carnegie-Mellon University.
+License: Apache-2.0
 
 License: Apache-2.0
  Licensed under the Apache License, Version 2.0 (the "License");
