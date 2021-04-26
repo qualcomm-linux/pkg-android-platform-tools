@@ -526,6 +526,14 @@ Copyright: 2005-2016, The Android Open Source Project
            1995-1996, Carnegie-Mellon University.
 License: Apache-2.0
 
+Files: art/*
+Copyright: 2005-2018, The Android Open Source Project
+License: Apache-2.0
+
+Files: debian/include/art/dlmalloc/*
+Copyright: N/A
+License: public-domain
+
 License: Apache-2.0
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
