@@ -419,6 +419,92 @@ Files: libnativehelper/*
 Copyright: 2005-2014, The Android Open Source Project
 License: Apache-2.0
 
+Files: system/core/*
+Copyright: 2005-2014, The Android Open Source Project
+License: Apache-2.0
+
+Files: debian/bash-completion/system/core/*
+Copyright: 2009, Matt Brubeck
+License: MIT
+
+Files: system/core/fastboot/*.cpp
+       system/core/fastboot/*.h
+       system/core/libcutils/arch-mips/android_memset.c
+       system/core/libcutils/socket_inaddr_any_server_windows.cpp
+       system/core/libcutils/socket_network_client_windows.cpp
+       system/core/libcutils/sockets.cpp
+       system/core/libcutils/sockets_windows.cpp
+       system/core/libpixelflinger/arch-arm64/col32cb16blend.S
+       system/core/libpixelflinger/arch-arm64/t32cb16blend.S
+       system/core/libpixelflinger/codeflinger/Arm64Assembler.cpp
+       system/core/libpixelflinger/codeflinger/Arm64Assembler.h
+       system/core/libpixelflinger/codeflinger/Arm64Disassembler.cpp
+       system/core/libpixelflinger/codeflinger/Arm64Disassembler.h
+       system/core/libpixelflinger/tests/arch-arm64/*
+       system/core/libpixelflinger/tests/arch-mips/*
+       system/core/libpixelflinger/tests/arch-mips64/*
+       system/core/libpixelflinger/tests/gglmul/gglmul_test.cpp
+Copyright: 2008-2016, The Android Open Source Project
+License: BSD-2-clause
+
+Files: system/core/libcutils/include/cutils/ashmem.h
+       system/core/liblog/logger.h
+Copyright: 2007-2014, The Android Open Source Project
+License: Apache-2.0 or GPL-2
+
+Files: system/core/libion/original-kernel-headers/linux/ion.h
+       system/core/libion/original-kernel-headers/linux/ion_test.h
+Copyright: 2011, Google, Inc. <google.com>
+License: GPL-2
+
+Files: system/core/libpixelflinger/codeflinger/armreg.h
+       system/core/libpixelflinger/codeflinger/disassem.c
+       system/core/libpixelflinger/codeflinger/disassem.h
+Copyright: 1998-2001, Ben Harris
+           1994-1996, Mark Brinicombe
+           1994, Brini
+           1997, Causality Limited
+License: BSD-4-clause
+
+Files: system/core/libpixelflinger/codeflinger/mips_opcode.h
+       system/core/libpixelflinger/codeflinger/mips_disassem.c
+       system/core/libpixelflinger/codeflinger/mips_disassem.h
+       system/core/libpixelflinger/codeflinger/mips64_disassem.c
+       system/core/libpixelflinger/codeflinger/mips64_disassem.h
+Copyright: 1987-1994, The Regents of the University of California
+License: BSD-3-clause
+
+Files: system/core/toolbox/upstream-netbsd/usr.bin/grep/*
+Copyright: 1999, James Howard and Dag-Erling Coïdan Smørgrav
+           2008-2010, Gabor Kovesdan <gabor@FreeBSD.org>
+License: BSD-2-clause
+
+Files: system/core/toolbox/upstream-netbsd/usr.bin/grep/file.c
+Copyright: 1999, James Howard and Dag-Erling Coïdan Smørgrav
+           2008-2010, Gabor Kovesdan <gabor@FreeBSD.org>
+           2010, Dimitry Andric <dimitry@andric.com>
+License: BSD-2-clause
+
+Files: system/core/toolbox/upstream-netbsd/usr.bin/grep/queue.c
+Copyright: 1999, James Howard and Dag-Erling Coïdan Smørgrav
+License: BSD-2-clause
+
+Files: system/core/libsparse/sparse_crc32.cpp
+Copyright: 1986, Gary S. Brow
+License: BSD-2-clause
+
+Files: system/core/debuggerd/libdebuggerd/test/sys/system_properties.h
+Copyright: 2015, The Android Open Source Project
+License: BSD-2-clause
+
+Files: system/core/libcutils/arch-arm64/android_memset.S
+Copyright: 2012, Linaro Limited
+License: BSD-3-clause
+
+Files: system/core/libcutils/strlcpy.c
+Copyright: 1998, Todd C. Miller <Todd.Miller@courtesan.com>
+License: MIT
+
 License: Apache-2.0
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -618,3 +704,42 @@ License: GPL-2
 License: LGPL-2.1
  Full text of the GNU Lesser General Public License version 2.1 can be found at
  `/usr/share/common-licenses/GPL-2` in any Debian distribution.
+
+License: BSD-2-clause
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions
+ are met:
+ *  Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer.
+ *  Redistributions in binary form must reproduce the above copyright
+    notice, this list of conditions and the following disclaimer in
+    the documentation and/or other materials provided with the
+    distribution.
+ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
+ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ SUCH DAMAGE.
+
+License: BSD-4-clause
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions
+ are met:
+ 1. Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer.
+ 2. Redistributions in binary form must reproduce the above copyright
+    notice, this list of conditions and the following disclaimer in the
+    documentation and/or other materials provided with the distribution.
+ 3. All advertising materials mentioning features or use of this software
+    must display the following acknowledgement:
+    This product includes software developed by Mark Brinicombe.
+ 4. The name of the company nor the name of the author may be used to
+    endorse or promote products derived from this software without specific
+    prior written permission.
