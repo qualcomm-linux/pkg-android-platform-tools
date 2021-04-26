@@ -11,7 +11,6 @@
 /fastboot/
 /files
 /img2simg/
-/libjsilver-aosp-java/
 /manpages/system/core/*.1
 /mkbootimg/
 /out/

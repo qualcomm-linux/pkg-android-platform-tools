@@ -2,7 +2,6 @@
 
 Tests: ls -l /usr/include/android/selinux/*.h /usr/lib/*/android/libselinux.so
        ls -l /usr/include/android/unwind/*.h /usr/lib/*/android/libunwind.so
-       ls -l /usr/share/java/jsilver.jar
 
 ## system-core
 

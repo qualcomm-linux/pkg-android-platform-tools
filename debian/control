@@ -187,17 +187,6 @@ Description: Support functions for Android's class libraries - Development files
  .
  This package contains the development files.
 
-Package: libjsilver-aosp-java
-Architecture: all
-Depends: libguava-java,
-         ${misc:Depends}
-Breaks: libjsilver-java (<= 1.0.0.dfsg-1)
-Replaces: libjsilver-java (<= 1.0.0.dfsg-1)
-Description: Pure-Java implementation of Clearsilver
- This package is a fork of JSilver by The Android Open Source Project. The
- upstream website has been abandoned by the developers but remains among AOSP's
- repositories.
-
 Package: android-sdk-libsparse-utils
 Architecture: any
 Multi-Arch: foreign
