@@ -1,5 +1,5 @@
 include 'json'
 
 rootProject.children.each {
-  it.projectDir = file("../../libcore/${it.name}")
+  it.projectDir = file("../${it.name}")
 }

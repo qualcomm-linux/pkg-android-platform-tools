@@ -4,8 +4,8 @@ Description: Remove libcore.api.CorePlatformApi annotation
 Author: Raman Sarda <theloudspeaker@disroot.org>
 Last-Update: 2020-05-18
 
---- a/libcore/json/src/main/java/org/json/JSONObject.java
-+++ b/libcore/json/src/main/java/org/json/JSONObject.java
+--- a/json/src/main/java/org/json/JSONObject.java
++++ b/json/src/main/java/org/json/JSONObject.java
 @@ -668,7 +668,6 @@ public class JSONObject {
       *
       * @hide.
