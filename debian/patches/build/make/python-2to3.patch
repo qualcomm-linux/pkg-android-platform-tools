@@ -1,8 +1,8 @@
 Author: 2to3 tool, no copyright
 Forwarded: not-needed
 Description: run 2to3 tool
---- a/build/make/tools/event_log_tags.py
-+++ b/build/make/tools/event_log_tags.py
+--- a/tools/event_log_tags.py
++++ b/tools/event_log_tags.py
 @@ -55,7 +55,7 @@
      if file_object is None:
        try:
@@ -30,8 +30,8 @@ Description: run 2to3 tool
 +  except (IOError, OSError) as e:
 +    print("failed to write %s: %s" % (output_file, e), file=sys.stderr)
      sys.exit(1)
---- a/build/make/tools/java-event-log-tags.py
-+++ b/build/make/tools/java-event-log-tags.py
+--- a/tools/java-event-log-tags.py
++++ b/tools/java-event-log-tags.py
 @@ -23,7 +23,7 @@
  -h to display this usage message and exit.
  """
@@ -86,8 +86,8 @@ Description: run 2to3 tool
  buffer.write("/* This file is auto-generated.  DO NOT MODIFY.\n"
               " * Source file: %s\n"
               " */\n\n" % (fn,))
---- a/build/make/tools/merge-event-log-tags.py
-+++ b/build/make/tools/merge-event-log-tags.py
+--- a/tools/merge-event-log-tags.py
++++ b/tools/merge-event-log-tags.py
 @@ -24,7 +24,7 @@
  -h to display this usage message and exit.
  """

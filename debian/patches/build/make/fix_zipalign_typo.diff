@@ -1,8 +1,8 @@
 Description: Fix typo
 Author: Kai-Chung Yan (殷啟聰)
 Last-Update: 2016-10-06
---- a/build/make/tools/zipalign/ZipAlign.cpp
-+++ b/build/make/tools/zipalign/ZipAlign.cpp
+--- a/tools/zipalign/ZipAlign.cpp
++++ b/tools/zipalign/ZipAlign.cpp
 @@ -213,7 +213,7 @@
      }
  

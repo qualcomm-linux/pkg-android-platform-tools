@@ -1,2 +1,2 @@
-debian/manpages/build/make/java-event-log-tags.1
-debian/manpages/build/make/merge-event-log-tags.1
+debian/java-event-log-tags.1
+debian/merge-event-log-tags.1

@@ -15,10 +15,10 @@ Change-Id: I6de8c2b4c2f35c6bf257f61414c6bce761233e51
  .../src/com/android/signapk/SignApk.java      | 66 +++++++++++++------
  1 file changed, 46 insertions(+), 20 deletions(-)
 
-diff --git a/build/make/tools/signapk/src/com/android/signapk/SignApk.java b/build/make/tools/signapk/src/com/android/signapk/SignApk.java
+diff --git a/tools/signapk/src/com/android/signapk/SignApk.java b/tools/signapk/src/com/android/signapk/SignApk.java
 index 57973ec044..9809ed406b 100644
---- a/build/make/tools/signapk/src/com/android/signapk/SignApk.java
-+++ b/build/make/tools/signapk/src/com/android/signapk/SignApk.java
+--- a/tools/signapk/src/com/android/signapk/SignApk.java
++++ b/tools/signapk/src/com/android/signapk/SignApk.java
 @@ -381,9 +381,8 @@ class SignApk {
          byte[] buffer = new byte[4096];
          int num;

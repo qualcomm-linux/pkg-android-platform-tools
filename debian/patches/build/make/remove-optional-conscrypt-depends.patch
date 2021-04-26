@@ -5,8 +5,8 @@ Description: remove optional conscrypt depends
 Author: Hans-Christoph Steiner
 Forwarded: not-needed
 Last-Update: 2016-10-12
---- a/build/make/tools/signapk/src/com/android/signapk/SignApk.java
-+++ b/build/make/tools/signapk/src/com/android/signapk/SignApk.java
+--- a/tools/signapk/src/com/android/signapk/SignApk.java
++++ b/tools/signapk/src/com/android/signapk/SignApk.java
 @@ -32,7 +32,6 @@
  import org.bouncycastle.operator.OperatorCreationException;
  import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
