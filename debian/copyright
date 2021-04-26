@@ -328,6 +328,25 @@ Files: debian/*
 Copyright: 2016, Kai-Chung Yan <seamlikok@gmail.com>
 License: MIT
 
+Files: external/selinux/*
+       external/selinux/libselinux/utils/avcstat.c
+Copyright: 2004-2005, Trusted Computer Solutions, Inc.
+           2003-2008, Tresys Technology, LLC
+           2005-2013, Red Hat Inc.
+License: GPL-2
+
+Files: external/selinux/libselinux/*
+Copyright: N/A
+License: public-domain
+
+Files: external/selinux/checkpolicy/parse_util.*
+       external/selinux/libsemanage/*
+       external/selinux/libsepol/*
+Copyright: 2004-2005, Trusted Computer Solutions, Inc.
+           2003-2008, Tresys Technology, LLC
+           2005-2007, Red Hat Inc.
+License: LGPL-2.1
+
 License: Apache-2.0
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -488,3 +507,42 @@ License: BSD-3-clause
  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+License: public-domain
+ The person or persons who have associated work with this document (the
+ "Dedicator" or "Certifier") hereby either (a) certifies that, to the best of
+ his knowledge, the work of authorship identified is in the public domain of the
+ country from which the work is published, or (b) hereby dedicates whatever
+ copyright the dedicators holds in the work of authorship identified below (the
+ "Work") to the public domain. A certifier, moreover, dedicates any copyright
+ interest he may have in the associated work, and for these purposes, is
+ described as a "dedicator" below.
+ .
+ A certifier has taken reasonable steps to verify the copyright status of this
+ work. Certifier recognizes that his good faith efforts may not shield him from
+ liability if in fact the work certified is not in the public domain.
+ .
+ Dedicator makes this dedication for the benefit of the public at large and to
+ the detriment of the Dedicator's heirs and successors. Dedicator intends this
+ dedication to be an overt act of relinquishment in perpetuity of all present
+ and future rights under copyright law, whether vested or contingent, in the
+ Work. Dedicator understands that such relinquishment of all rights includes the
+ relinquishment of all rights to enforce (by lawsuit or otherwise) those
+ copyrights in the Work.
+ .
+ Dedicator recognizes that, once placed in the public domain, the Work may be
+ freely reproduced, distributed, transmitted, used, modified, built upon, or
+ otherwise exploited by anyone for any purpose, commercial or non-commercial,
+ and in any way, including by methods that have not yet been invented or
+ conceived.
+ .
+ This copy of license text is based on
+   http://creativecommons.org/licenses/publicdomain
+
+License: GPL-2
+ Full text of the GNU General Public License version 2 can be found at
+ `/usr/share/common-licenses/GPL-2` in any Debian distribution.
+
+License: LGPL-2.1
+ Full text of the GNU Lesser General Public License version 2.1 can be found at
+ `/usr/share/common-licenses/GPL-2` in any Debian distribution.
