@@ -8,6 +8,7 @@
 /adb/
 /android-*/
 /append2simg/
+/build/
 /cmake-obj/
 /debhelper-build-stamp
 /fastboot/
@@ -23,12 +24,6 @@
 /tmp/
 /*~
 /_jh_*
-/build/*
-!/build/make/
-/signapk/
-/signtos/
-/zipalign/
-/ziptime/
 /etc1tool/
 /dexdump/
 /dexlist/

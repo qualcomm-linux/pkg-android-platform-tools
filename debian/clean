@@ -1,8 +1,5 @@
 debian/out/
 libnativehelper/*.so*
-build/*.jar
-build/zipalign
-build/ziptime
 debian/manpages/development/*.1
 development/etc1tool
 debian/.gradle/
