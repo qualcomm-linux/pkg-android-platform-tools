@@ -1,5 +1,0 @@
-include 'json'
-
-rootProject.children.each {
-  it.projectDir = file("../${it.name}")
-}

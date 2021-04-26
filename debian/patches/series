@@ -20,10 +20,6 @@ system/core/fix-gettid-exception-declaration.patch
 system/core/fix-build-on-non-x86.patch
 system/core/add-missing-headers.patch
 system/core/hard-code-build-number.patch
-libcore/remove-UnsupportedAppUsage.patch
-libcore/remove-NonNull.patch
-libcore/remove-Nullable.patch
-libcore/remove-CorePlatformApi.patch
 development/typos.patch
 art/use-android-dlmalloc.patch
 art/missing-system-includes.patch
