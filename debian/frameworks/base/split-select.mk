@@ -8,23 +8,16 @@ SOURCES = \
           SplitSelector.cpp \
           Main.cpp \
 
-SOURCES := $(foreach source, $(SOURCES), frameworks/base/tools/split-select/$(source))
-CPPFLAGS += -Iframeworks/base/tools \
-            -Iframeworks/base/libs/androidfw/include \
+SOURCES := $(foreach source, $(SOURCES), tools/split-select/$(source))
+CPPFLAGS += -Itools \
+            -Ilibs/androidfw/include \
             -I/usr/include/android \
-            -D_DARWIN_UNLIMITED_STREAMS \
-            -DANDROID \
-            -fmessage-length=0 \
-            -fno-exceptions \
-            -fno-strict-aliasing \
-            -no-canonical-prefixes \
-            -O2 \
-
+            -D_DARWIN_UNLIMITED_STREAMS
 CXXFLAGS += -std=gnu++17
 LDFLAGS += -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
            -L/usr/lib/$(DEB_HOST_MULTIARCH)/android \
-           -llog -lutils -Ldebian/out/frameworks/base -landroidfw -laapt
+           -llog -lutils -Ldebian/out -landroidfw -laapt
 
-debian/out/frameworks/base/$(NAME): $(SOURCES)
-	mkdir --parents debian/out/frameworks/base
-	$(CXX) $^ -o debian/out/frameworks/base/$(NAME) $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
+build: $(SOURCES)
+	mkdir --parents debian/out
+	$(CXX) $^ -o debian/out/$(NAME) $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)

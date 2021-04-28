@@ -1,5 +1,5 @@
---- a/frameworks/base/tools/aapt/Main.cpp
-+++ b/frameworks/base/tools/aapt/Main.cpp
+--- a/tools/aapt/Main.cpp
++++ b/tools/aapt/Main.cpp
 @@ -6,7 +6,6 @@
  #include "Main.h"
  #include "Bundle.h"
@@ -17,8 +17,8 @@
  
      return 0;
  }
---- a/frameworks/base/tools/aapt2/util/Util.cpp
-+++ b/frameworks/base/tools/aapt2/util/Util.cpp
+--- a/tools/aapt2/util/Util.cpp
++++ b/tools/aapt2/util/Util.cpp
 @@ -23,7 +23,6 @@
  
  #include "android-base/stringprintf.h"

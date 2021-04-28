@@ -85,26 +85,20 @@ SOURCES = \
 	xml/XmlUtil.cpp \
 	Main.cpp \
 
-SOURCES := $(foreach source, $(SOURCES), frameworks/base/tools/aapt2/$(source))
+SOURCES := $(foreach source, $(SOURCES), tools/aapt2/$(source))
 SOURCES += \
 	debian/out/proto/frameworks/base/tools/aapt2/Configuration.pb.cc \
 	debian/out/proto/frameworks/base/tools/aapt2/Resources.pb.cc \
 	debian/out/proto/frameworks/base/tools/aapt2/ResourcesInternal.pb.cc
 CXXFLAGS += -std=gnu++17 -fno-exceptions -fno-rtti -Wno-missing-field-initializers
-CPPFLAGS += -Iframeworks/base/libs/androidfw/include -Iframeworks/base/tools/aapt2 \
+CPPFLAGS += -Ilibs/androidfw/include -Itools/aapt2 \
             -Idebian/out/proto/frameworks/base/tools/aapt2 \
             -I/usr/include/android \
             -Wno-unused-parameter -Wno-missing-field-initializers \
-            -DANDROID \
-            -fmessage-length=0 \
-            -fno-exceptions \
-            -fno-strict-aliasing \
-            -no-canonical-prefixes \
-            -O2 \
 
 LDFLAGS += -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
 	-lexpat -lpng -lprotobuf-lite \
-	-Ldebian/out/frameworks/base -landroidfw \
+	-Ldebian/out -landroidfw \
 	-L/usr/lib/$(DEB_HOST_MULTIARCH)/android \
 	-lutils -lbase -lziparchive -llog
 
@@ -117,20 +111,20 @@ ifeq ($(DEB_HOST_ARCH), mipsel)
   LDFLAGS += -latomic
 endif
 
-debian/out/frameworks/base/$(NAME): $(SOURCES)
-	$(CXX) $^ -o debian/out/frameworks/base/$(NAME) $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
+build: $(SOURCES)
+	$(CXX) $^ -o debian/out/$(NAME) $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
 
-debian/out/proto/frameworks/base/tools/aapt2/Configuration.pb.cc: frameworks/base/tools/aapt2/Configuration.proto
+debian/out/proto/frameworks/base/tools/aapt2/Configuration.pb.cc: tools/aapt2/Configuration.proto
 	mkdir --parents debian/out/proto/frameworks/base/tools/aapt2
 	protoc --cpp_out=debian/out/proto/frameworks/base/tools/aapt2 \
-		--proto_path=frameworks/base/tools/aapt2 $<
+		--proto_path=tools/aapt2 $<
 
-debian/out/proto/frameworks/base/tools/aapt2/Resources.pb.cc: frameworks/base/tools/aapt2/Resources.proto
+debian/out/proto/frameworks/base/tools/aapt2/Resources.pb.cc: tools/aapt2/Resources.proto
 	mkdir --parents debian/out/proto/frameworks/base/tools/aapt2
 	protoc --cpp_out=debian/out/proto/frameworks/base/tools/aapt2 \
-		--proto_path=frameworks/base/tools/aapt2 $<
+		--proto_path=tools/aapt2 $<
 
-debian/out/proto/frameworks/base/tools/aapt2/ResourcesInternal.pb.cc: frameworks/base/tools/aapt2/ResourcesInternal.proto
+debian/out/proto/frameworks/base/tools/aapt2/ResourcesInternal.pb.cc: tools/aapt2/ResourcesInternal.proto
 	mkdir --parents debian/out/proto/frameworks/base/tools/aapt2
 	protoc --cpp_out=debian/out/proto/frameworks/base/tools/aapt2 \
-		--proto_path=frameworks/base/tools/aapt2 $<
+		--proto_path=tools/aapt2 $<

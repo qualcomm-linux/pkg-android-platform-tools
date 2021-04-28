@@ -1,7 +1,7 @@
 Description: fix std::vector must have a non-const, non-volatile value_type
 Forwarded: not-needed
---- a/frameworks/base/libs/androidfw/include/androidfw/LoadedArsc.h
-+++ b/frameworks/base/libs/androidfw/include/androidfw/LoadedArsc.h
+--- a/libs/androidfw/include/androidfw/LoadedArsc.h
++++ b/libs/androidfw/include/androidfw/LoadedArsc.h
 @@ -265,7 +265,7 @@
    ByteBucketArray<TypeSpecPtr> type_specs_;
    ByteBucketArray<uint32_t> resource_ids_;
@@ -11,8 +11,8 @@ Forwarded: not-needed
    std::unordered_map<std::string, std::string> overlayable_map_;
  };
  
---- a/frameworks/base/tools/aapt2/util/Files.cpp
-+++ b/frameworks/base/tools/aapt2/util/Files.cpp
+--- a/tools/aapt2/util/Files.cpp
++++ b/tools/aapt2/util/Files.cpp
 @@ -189,7 +189,7 @@
    base->append(part.data(), part.size());
  }
@@ -22,8 +22,8 @@ Forwarded: not-needed
    if (args.empty()) {
      return "";
    }
---- a/frameworks/base/tools/aapt2/util/Files.h
-+++ b/frameworks/base/tools/aapt2/util/Files.h
+--- a/tools/aapt2/util/Files.h
++++ b/tools/aapt2/util/Files.h
 @@ -59,7 +59,7 @@
  void AppendPath(std::string* base, android::StringPiece part);
  
