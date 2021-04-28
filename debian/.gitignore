@@ -23,8 +23,5 @@
 /dexlist/
 /dmtracedump/
 /*.symbols
-/aapt/
-/split-select/
-/manpages/frameworks/base/split-select.1
 /dalvik-exchange/
 /hprof-conv/

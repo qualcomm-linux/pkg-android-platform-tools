@@ -13,9 +13,7 @@ Build-Depends:
  android-libnativeloader-dev (>= 1:10.0.0+r36-3~~) [amd64 i386 armel armhf arm64],
  android-libutils-dev (>= 1:10.0.0+r36-3~~) [amd64 i386 armel armhf arm64],
  android-libziparchive-dev (>= 1:10.0.0+r36-3~~) [amd64 i386 armel armhf arm64],
- android-platform-frameworks-native-headers (>= 1:10.0.0+r36~),
  bash-completion,
- chrpath,
  clang [amd64 i386 armel armhf arm64],
  debhelper (>= 11),
  debhelper-compat (= 13),
@@ -25,17 +23,14 @@ Build-Depends:
  gradle-debian-helper (>= 1.4~),
  help2man,
  javahelper,
- libexpat-dev,
  libguava-java,
  libicu-dev [amd64 i386 armel armhf arm64],
  liblz4-dev [amd64 i386 armel armhf arm64],
  libpcre3-dev,
  libpng-dev (>= 1.6),
- libprotobuf-dev,
  maven-repo-helper,
  p7zip-full,
  pandoc,
- protobuf-compiler,
  python3 [amd64 i386 armel armhf arm64],
  zlib1g-dev [amd64 i386 armel armhf arm64],
  android-libsparse-dev (>= 1:10.0.0+r36-1~),
@@ -656,82 +651,6 @@ Description: ETC1 compression library - Development files
  provides the encoding and decoding of ETC1 compression algorithm.
  .
  This package provides the development files.
-
-Package: android-libandroidfw
-Section: libs
-Architecture: amd64 i386 armel armhf arm64 mips mipsel mips64el
-Multi-Arch: same
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: Android utility library
- Library providing utility functions to Android related tools. This is needed
- purely to get various Android utilities working.  In the Google builds of the
- Android SDK, this library is statically linked, but in the Debian packaging,
- it is a private shared library.
-
-Package: android-libandroidfw-dev
-Section: libdevel
-Architecture: amd64 i386 armel armhf arm64 mips mipsel mips64el
-Multi-Arch: foreign
-Depends: android-libandroidfw (= ${binary:Version}),
-         android-libutils-dev (>= 1:10.0.0+r36~),
-         android-platform-frameworks-native-headers (>= 10.0.0+r36~),
-         ${misc:Depends},
-Breaks: android-libandroidfw (<< 21-2~)
-Replaces: android-libandroidfw (<< 21-2~)
-Description: Android utility library - Development files
- Library providing utility functions to Android related tools. This is needed
- purely to get various Android utilities working.  In the Google builds of the
- Android SDK, this library is statically linked, but in the Debian packaging,
- it is a private shared library.
- .
- This package contains the development files.
-
-Package: aapt
-Architecture: amd64 i386 armel armhf arm64 mips mipsel mips64el
-Multi-Arch: foreign
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: Android Asset Packaging Tool
- The Android Asset Packaging Tool (aapt) takes your application resource
- files, such as the AndroidManifest.xml file and the XML files for your
- Activities, and compiles them. An R.java is also produced so you can
- reference your resources from your Java code. This tool allows you to view,
- create, and update Zip-compatible archives (zip, jar, apk). It can also
- compile resources into binary assets.
-
-Package: android-libaapt
-Architecture: amd64 i386 armel armhf arm64 mips mipsel mips64el
-Multi-Arch: same
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: Android Asset Packaging Tool - Shared library
- The Android Asset Packaging Tool (aapt) takes your application resource
- files, such as the AndroidManifest.xml file and the XML files for your
- Activities, and compiles them. An R.java is also produced so you can
- reference your resources from your Java code. This tool allows you to view,
- create, and update Zip-compatible archives (zip, jar, apk). It can also
- compile resources into binary assets.
- .
- This package contains the shared library.
-
-Package: split-select
-Architecture: amd64 i386 armel armhf arm64 mips mipsel mips64el
-Multi-Arch: foreign
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: APK split and selection tool
- Generates the logic for selecting a Split APK given some target Android device
- configuration.
- .
- Using the flag --generate will emit a JSON encoded tree of rules that must be
- satisfied in order to install the given Split APK. Using the flag --target
- along with the device configuration will emit the set of Split APKs to install,
- following the same logic that would have been emitted
-
-Package: android-framework-res
-Architecture: all
-Multi-Arch: foreign
-Depends: ${misc:Depends}
-Description: Android platform framework resources
- This package provides the Android framework resources in an apk file,
- framework-res.apk
 
 Package: android-libext4-utils
 Section: libs

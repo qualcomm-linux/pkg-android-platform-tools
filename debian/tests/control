@@ -46,9 +46,3 @@ Depends: dexdump, dexlist
 ## frameworks-native
 
 Test-Command: ls -l /usr/include/android/android/*.h /usr/lib/*/android/libETC1.so
-
-## frameworks-base
-
-Test-Command: for i in strings badging permissions resources configurations; do aapt dump $i tools/aapt2/integration-tests/ConvertTest/duplicate_entries.apk > /dev/null; done
-
-Test-Command: for i in badging configurations packagename permissions strings resources; do aapt2 dump $i tools/aapt2/integration-tests/ConvertTest/duplicate_entries.apk > /dev/null; done

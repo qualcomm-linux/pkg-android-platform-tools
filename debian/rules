@@ -17,10 +17,6 @@ export DEB_VERSION_UPSTREAM
 export DEB_HOST_MULTIARCH
 export CLASSPATH = /usr/share/java/bcprov.jar:/usr/share/java/bcpkix.jar:/usr/share/java/apksig.jar
 
-## frameworks/base
-# https://android.googlesource.com/platform/development/+/android-10.0.0_r36/sdk/build_tools_source.prop_template
-export ANDROID_BUILD_TOOLS_VERSION = 29.0.3
-
 ## system/core
 export DEB_HOST_MULTIARCH
 export DEB_VERSION
@@ -203,46 +199,6 @@ COMPONENTS += debian/out/art debian/out/art/dmtracedump debian/out/art/dmtracedu
 
 libETC1.so: debian/frameworks/native/libETC1.mk
 	dh_auto_build --buildsystem=makefile -- -f $<
-
-## frameworks/base
-
-debian/out/frameworks/base:
-	mkdir --parents $@
-
-aapt: debian/frameworks/base/aapt.mk libaapt.so debian/out/frameworks/base
-	dh_auto_build --buildsystem=makefile -- -f $<
-
-aapt2: debian/frameworks/base/aapt2.mk libandroidfw.so debian/out/frameworks/base
-	dh_auto_build --buildsystem=makefile -- -f $<
-
-aapt2_build-indep: aapt2 debian/out/frameworks/base
-	cp /usr/lib/$(DEB_HOST_MULTIARCH)/android/*.so.0 debian/out/frameworks/base
-	ln -s /usr/lib/p7zip/7z.so debian/out/frameworks/base/7z.so
-	chrpath --replace debian/out/frameworks/base debian/out/frameworks/base/aapt2
-	debian/out/frameworks/base/aapt2 compile --dir frameworks/base/core/res/res \
-				-o debian/out/frameworks/base/resources.zip
-	debian/out/frameworks/base/aapt2 link --manifest frameworks/base/core/res/AndroidManifest.xml \
-				debian/out/frameworks/base/resources.zip \
-				-o debian/out/frameworks/base/framework-res.apk \
-				-A frameworks/base/core/res/assets \
-				--min-sdk-version 29 --target-sdk-version 29 \
-				--product default \
-				--version-code 29 --version-name 10.0.0
-	chrpath --replace /usr/lib/$(DEB_HOST_MULTIARCH)/android debian/out/frameworks/base/aapt2
-
-libaapt.so: debian/frameworks/base/libaapt.mk libandroidfw.so debian/out/frameworks/base
-	dh_auto_build --buildsystem=makefile -- -f $<
-
-libandroidfw.so: debian/frameworks/base/libandroidfw.mk debian/out/frameworks/base
-	dh_auto_build --buildsystem=makefile -- -f $<
-
-debian/manpages/frameworks/base/split-select.1: debian/manpages/frameworks/base/split-select.1.md
-	pandoc --standalone --output=$@ $<
-
-split-select: debian/frameworks/base/split-select.mk libandroidfw.so libaapt.so debian/out/frameworks/base debian/manpages/frameworks/base/split-select.1
-	dh_auto_build --buildsystem=makefile -- -f $<
-
-COMPONENTS += aapt aapt2 split-select aapt2_build-indep
 
 override_dh_auto_build-arch: $(COMPONENTS)
 ## external/*
