@@ -80,7 +80,7 @@ ifneq ($(filter amd64 i386 armel armhf arm64 mips mipsel mips64el,$(DEB_HOST_ARC
 endif
 
 %:
-	dh $@ --with bash-completion
+	dh $@ --with bash-completion,javahelper
 
 get-orig-source:
 	debian/scripts/get-orig-source
