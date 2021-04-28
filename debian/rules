@@ -15,7 +15,6 @@ export DEB_SOURCE
 export DEB_VERSION_UPSTREAM
 
 export DEB_HOST_MULTIARCH
-export CLASSPATH = /usr/share/java/bcprov.jar:/usr/share/java/bcpkix.jar:/usr/share/java/apksig.jar
 
 ## system/core
 export DEB_HOST_MULTIARCH
