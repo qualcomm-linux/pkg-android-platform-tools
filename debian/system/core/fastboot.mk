@@ -39,11 +39,13 @@ CPPFLAGS += \
             -Isystem/core/fs_mgr/liblp/include \
             -I/usr/include/android/openssl \
             -Isystem/core/libsparse/include \
-            -Isystem/core/libziparchive/include
+            -Isystem/core/libziparchive/include \
+            -Iexternal/boringssl/include \
+
 LDFLAGS += -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
            -fuse-ld=gold \
            -Wl,-rpath-link system/core \
-           -Lsystem/core -lziparchive -lsparse -lbase -lcutils -ladb -lcrypto -lext4_utils \
+           -Lsystem/core -Ldebian/out/external/boringssl -lziparchive -lsparse -lbase -lcutils -ladb -lcrypto -lext4_utils \
            -L/usr/lib/$(DEB_HOST_MULTIARCH)/android \
            -l7z \
 

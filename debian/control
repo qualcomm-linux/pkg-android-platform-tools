@@ -40,7 +40,6 @@ Build-Depends:
  android-platform-system-core-headers (>= 1:10.0.0+r36-1~),
  libsquashfuse-dev
 Build-Depends-Arch:
- android-libboringssl-dev (>= 10.0.0+r36~) [amd64 i386 armel armhf arm64],
  android-libext4-utils-dev (>= 10.0.0+r36) [amd64 i386 armel armhf arm64 mips mipsel mips64el],
  android-libnativehelper-dev (>= 10.0.0+r36) [amd64 i386 armel armhf arm64 mips mipsel mips64el],
  android-libselinux-dev (>= 10.0.0+r36~) [amd64 i386 armel armhf arm64 mips mipsel mips64el],

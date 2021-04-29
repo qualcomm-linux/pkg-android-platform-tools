@@ -12,10 +12,14 @@ SOURCES = client/adb_client.cpp \
 
 SOURCES := $(foreach source, $(SOURCES), system/core/adb/$(source))
 CXXFLAGS += -std=gnu++2a
-CPPFLAGS += -I/usr/include/android -Isystem/core/include -Isystem/core/adb -Isystem/core/base/include \
+CPPFLAGS += -I/usr/include/android \
+            -Isystem/core/include \
+            -Isystem/core/adb \
+            -Isystem/core/base/include \
+            -Iexternal/boringssl/include \
             -DADB_VERSION='"$(DEB_VERSION)"' -DADB_HOST=1 -D_GNU_SOURCE
 LDFLAGS += -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android -Wl,-rpath-link system/core \
-           -lpthread -Lsystem/core -ladb -lbase
+           -Wl,-rpath-link debian/out/external/boringssl -lpthread -Lsystem/core -ladb -lbase
 
 # -latomic should be the last library specified
 # https://github.com/android/ndk/issues/589

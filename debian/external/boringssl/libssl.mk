@@ -51,7 +51,7 @@ CPPFLAGS += -Iexternal/boringssl/src/include
 
 LDFLAGS += -shared -Wl,-soname,$(NAME).so.0 \
            -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
-           -lpthread -Ldebian/out/external/boringssl/ -lcrypto
+           -lpthread -Ldebian/out/external/boringssl -lcrypto
 
 debian/out/external/boringssl/$(NAME).so.0: $(SOURCES)
 	mkdir --parents debian/out/external/boringssl

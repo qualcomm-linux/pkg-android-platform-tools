@@ -41,10 +41,10 @@ COMPONENTS = \
 		append2simg \
 		simg2simg
 
-COMPONENTS += adb/adb libadb.so fastboot/fastboot libnativebridge.so libnativeloader.so
+COMPONENTS += adb libadb.so fastboot libnativebridge.so libnativeloader.so
 
 # Whatever depends on BoringSSL must be disabled on MIPS
-NON_MIPS_COMPONENTS = adb/adb libadb.so libcrypto_utils.so fastboot/fastboot
+NON_MIPS_COMPONENTS = adb libadb.so libcrypto_utils.so fastboot
 ifneq ($(filter mips mipsel mips64el,$(DEB_HOST_ARCH)),)
   COMPONENTS := $(filter-out $(NON_MIPS_COMPONENTS),$(COMPONENTS))
 endif
@@ -92,7 +92,10 @@ lib%.so: debian/system/core/lib%.mk
 debian/manpages/system/core/%.1: debian/manpages/system/core/%.1.md
 	pandoc --standalone --from=markdown-smart --to=man --output=$@ $<
 
-libadb.so: debian/system/core/libadb.mk libcutils.so libbase.so libcrypto_utils.so
+libcrypto_utils.so: debian/system/core/libcrypto_utils.mk libcrypto.so
+	dh_auto_build --buildsystem=makefile -- -f $<
+
+libadb.so: debian/system/core/libadb.mk libcutils.so libbase.so libcrypto_utils.so libcrypto.so
 	dh_auto_build --buildsystem=makefile -- -f $<
 
 libbacktrace.so: debian/system/core/libbacktrace.mk libcutils.so libbase.so liblog.so
@@ -107,13 +110,13 @@ libcutils.so: debian/system/core/libcutils.mk liblog.so libbase.so
 libutils.so: debian/system/core/libutils.mk liblog.so libcutils.so libbacktrace.so
 	dh_auto_build --buildsystem=makefile -- -f $<
 
-libziparchive: debian/system/core/libziparchive.mk liblog.so libbase.so
+libziparchive.so: debian/system/core/libziparchive.mk liblog.so libbase.so
 	dh_auto_build --buildsystem=makefile -- -f $<
 
-adb/adb: debian/system/core/adb.mk libadb.so libcutils.so libbase.so debian/manpages/system/core/adb.1
+adb: debian/system/core/adb.mk libadb.so libcutils.so libbase.so debian/manpages/system/core/adb.1
 	dh_auto_build --buildsystem=makefile -- -f $<
 
-fastboot/fastboot: debian/system/core/fastboot.mk libziparchive.so libsparse.so libbase.so libcutils.so libadb.so debian/manpages/system/core/fastboot.1
+fastboot: debian/system/core/fastboot.mk libziparchive.so libsparse.so libbase.so libcutils.so libadb.so debian/manpages/system/core/fastboot.1 libcrypto.so
 	dh_auto_build --buildsystem=makefile -- -f $<
 
 simg2img: debian/system/core/simg2img.mk libbase.so libsparse.so
@@ -135,6 +138,7 @@ libnativeloader.so: debian/system/core/libnativeloader.mk libnativebridge.so lib
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
 clean_system_core:
+	$(RM) debian/manpages/system/core/*.1
 	for component in debian/system/core/*.mk; do \
 		make clean --file=$$component; \
 	done
@@ -199,10 +203,18 @@ COMPONENTS += debian/out/art debian/out/art/dmtracedump debian/out/art/dmtracedu
 libETC1.so: debian/frameworks/native/libETC1.mk
 	dh_auto_build --buildsystem=makefile -- -f $<
 
+## external/boringssl
+
+libcrypto.so: debian/external/boringssl/libcrypto.mk
+	dh_auto_build --buildsystem=makefile -- --file=$<
+
+libssl.so: debian/external/boringssl/libssl.mk libcrypto.so
+	dh_auto_build --buildsystem=makefile -- --file=$<
+
+COMPONENTS += libcrypto.so libssl.so
+
 override_dh_auto_build-arch: $(COMPONENTS)
 ## external/*
-	dh_auto_build --buildsystem=makefile -- -f debian/external/boringssl/libcrypto.mk
-	dh_auto_build --buildsystem=makefile -- -f debian/external/boringssl/libssl.mk
 	dh_auto_build --buildsystem=makefile -- -f debian/external/selinux/libsepol.mk
 	dh_auto_build --buildsystem=makefile -- -f debian/external/selinux/libselinux.mk
 	dh_auto_build --buildsystem=makefile -- -f debian/external/libunwind/libunwind.mk
@@ -222,7 +234,6 @@ override_dh_auto_install:
 
 override_dh_auto_clean: clean_system_core
 	dh_auto_clean
-	$(RM) debian/manpages/system/core/*.1 system/core/adb/adb system/core/fastboot/fastboot
 	make clean --file=debian/art/libart.mk
 
 override_dh_shlibdeps:

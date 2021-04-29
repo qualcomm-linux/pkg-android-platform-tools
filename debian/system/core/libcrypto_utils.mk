@@ -1,11 +1,15 @@
 NAME:= libcrypto_utils
 SOURCES := android_pubkey.c
 SOURCES := $(foreach source, $(SOURCES), system/core/libcrypto_utils/$(source))
-CPPFLAGS += -I/usr/include/android -Isystem/core/libcrypto_utils/include -Isystem/core/include
+CPPFLAGS += -I/usr/include/android \
+            -Isystem/core/libcrypto_utils/include \
+            -Isystem/core/include \
+            -Iexternal/boringssl/include \
+
 LDFLAGS += -shared -Wl,-soname,$(NAME).so.0 \
-	-Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
-	-L/usr/lib/$(DEB_HOST_MULTIARCH)/android \
-	-lcrypto -Wl,-z,defs
+           -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
+           -L/usr/lib/$(DEB_HOST_MULTIARCH)/android \
+           -Ldebian/out/external/boringssl -lcrypto -Wl,-z,defs
 
 system/core/$(NAME).so.0: $(SOURCES)
 	$(CC) $^ -o system/core/$(NAME).so.0  $(CPPFLAGS) $(LDFLAGS)

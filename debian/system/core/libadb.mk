@@ -46,12 +46,13 @@ CPPFLAGS += \
             -Isystem/core/diagnose_usb/include \
             -Isystem/core/libcrypto_utils/include \
             -Isystem/core/include \
+            -Iexternal/boringssl/include \
             -DPLATFORM_TOOLS_VERSION='"$(PLATFORM_TOOLS_VERSION)"' \
             -DADB_HOST=1 -DADB_VERSION='"$(DEB_VERSION)"'
 
 LDFLAGS += -shared -Wl,-soname,$(NAME).so.0 \
            -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
-           -L/usr/lib/$(DEB_HOST_MULTIARCH)/android -lcrypto \
+           -L/usr/lib/$(DEB_HOST_MULTIARCH)/android -Ldebian/out/external/boringssl -lcrypto \
            -lpthread -Lsystem/core -lbase -lcutils -lcrypto_utils -lusb-1.0
 
 system/core/$(NAME).so: $(SOURCES)
