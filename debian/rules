@@ -148,7 +148,7 @@ clean_system_core:
 debian/manpages/development/%.1: debian/manpages/development/%.1.md
 	pandoc --standalone --from=markdown-smart --to=man --output=$@ $<
 
-etc1tool: debian/development/etc1tool.mk debian/manpages/development/etc1tool.1
+etc1tool: debian/development/etc1tool.mk debian/manpages/development/etc1tool.1 libETC1.so
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
 apkcheck: debian/manpages/development/apkcheck.1
