@@ -91,11 +91,13 @@ CPPFLAGS += \
             -Isystem/core/libprocinfo/include \
             -Isystem/core/libunwindstack/include \
             -I/usr/include/android/lzma \
-            -I/usr/include/android/unwind
+            -Iexternal/libunwind/include \
+            -Idebian/include/external/libunwind \
+
 LDFLAGS += -shared -Wl,-soname,$(NAME).so.0 \
            -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
-           -L/usr/lib/$(DEB_HOST_MULTIARCH)/android -lunwind \
-           -Lsystem/core -lbase -llog -lpthread -l7z
+           -L/usr/lib/$(DEB_HOST_MULTIARCH)/android -Lsystem/core \
+           -Ldebian/out/external/libunwind -lunwind -lbase -llog -lpthread -l7z
 
 # -latomic should be the last library specified
 # https://github.com/android/ndk/issues/589

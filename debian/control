@@ -43,7 +43,6 @@ Build-Depends-Arch:
  android-libext4-utils-dev (>= 10.0.0+r36) [amd64 i386 armel armhf arm64 mips mipsel mips64el],
  android-libnativehelper-dev (>= 10.0.0+r36) [amd64 i386 armel armhf arm64 mips mipsel mips64el],
  android-libselinux-dev (>= 10.0.0+r36~) [amd64 i386 armel armhf arm64 mips mipsel mips64el],
- android-libunwind-dev (>= 10.0.0+r36-4~) [amd64 i386 armel armhf arm64 mips mipsel mips64el],
  libgtest-dev [amd64 i386 armel armhf arm64],
  liblzma-dev [any],
  libsafe-iop-dev [amd64 i386 armel armhf arm64 mips mipsel mips64el],

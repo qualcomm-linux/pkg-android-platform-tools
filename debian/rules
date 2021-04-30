@@ -87,49 +87,49 @@ get-orig-source:
 ## system/core
 
 lib%.so: debian/system/core/lib%.mk
-	dh_auto_build --buildsystem=makefile -- -f $<
+	dh_auto_build --buildsystem=makefile -- --file=$<
 
 debian/manpages/system/core/%.1: debian/manpages/system/core/%.1.md
 	pandoc --standalone --from=markdown-smart --to=man --output=$@ $<
 
 libcrypto_utils.so: debian/system/core/libcrypto_utils.mk libcrypto.so
-	dh_auto_build --buildsystem=makefile -- -f $<
+	dh_auto_build --buildsystem=makefile -- --file=$<
 
 libadb.so: debian/system/core/libadb.mk libcutils.so libbase.so libcrypto_utils.so libcrypto.so
-	dh_auto_build --buildsystem=makefile -- -f $<
+	dh_auto_build --buildsystem=makefile -- --file=$<
 
-libbacktrace.so: debian/system/core/libbacktrace.mk libcutils.so libbase.so liblog.so
-	dh_auto_build --buildsystem=makefile -- -f $<
+libbacktrace.so: debian/system/core/libbacktrace.mk libcutils.so libbase.so liblog.so libunwind.so
+	dh_auto_build --buildsystem=makefile -- --file=$<
 
 libbase.so: debian/system/core/libbase.mk liblog.so
-	dh_auto_build --buildsystem=makefile -- -f $<
+	dh_auto_build --buildsystem=makefile -- --file=$<
 
 libcutils.so: debian/system/core/libcutils.mk liblog.so libbase.so
-	dh_auto_build --buildsystem=makefile -- -f $<
+	dh_auto_build --buildsystem=makefile -- --file=$<
 
 libutils.so: debian/system/core/libutils.mk liblog.so libcutils.so libbacktrace.so
-	dh_auto_build --buildsystem=makefile -- -f $<
+	dh_auto_build --buildsystem=makefile -- --file=$<
 
 libziparchive.so: debian/system/core/libziparchive.mk liblog.so libbase.so
-	dh_auto_build --buildsystem=makefile -- -f $<
+	dh_auto_build --buildsystem=makefile -- --file=$<
 
 adb: debian/system/core/adb.mk libadb.so libcutils.so libbase.so debian/manpages/system/core/adb.1
-	dh_auto_build --buildsystem=makefile -- -f $<
+	dh_auto_build --buildsystem=makefile -- --file=$<
 
 fastboot: debian/system/core/fastboot.mk libziparchive.so libsparse.so libbase.so libcutils.so libadb.so debian/manpages/system/core/fastboot.1 libcrypto.so
-	dh_auto_build --buildsystem=makefile -- -f $<
+	dh_auto_build --buildsystem=makefile -- --file=$<
 
 simg2img: debian/system/core/simg2img.mk libbase.so libsparse.so
-	dh_auto_build --buildsystem=makefile -- -f $<
+	dh_auto_build --buildsystem=makefile -- --file=$<
 
 simg2simg: debian/system/core/simg2simg.mk libbase.so libsparse.so
-	dh_auto_build --buildsystem=makefile -- -f $<
+	dh_auto_build --buildsystem=makefile -- --file=$<
 
 img2simg: debian/system/core/img2simg.mk libbase.so libsparse.so
-	dh_auto_build --buildsystem=makefile -- -f $<
+	dh_auto_build --buildsystem=makefile -- --file=$<
 
 append2simg: debian/system/core/append2simg.mk libbase.so libsparse.so
-	dh_auto_build --buildsystem=makefile -- -f $<
+	dh_auto_build --buildsystem=makefile -- --file=$<
 
 libnativebridge.so: debian/system/core/libnativebridge.mk liblog.so
 	dh_auto_build --buildsystem=makefile -- --file=$<
@@ -149,7 +149,7 @@ debian/manpages/development/%.1: debian/manpages/development/%.1.md
 	pandoc --standalone --from=markdown-smart --to=man --output=$@ $<
 
 etc1tool: debian/development/etc1tool.mk debian/manpages/development/etc1tool.1
-	dh_auto_build --buildsystem=makefile -- -f $<
+	dh_auto_build --buildsystem=makefile -- --file=$<
 
 apkcheck: debian/manpages/development/apkcheck.1
 	mkdir --parents debian/out/development
@@ -201,7 +201,7 @@ COMPONENTS += debian/out/art debian/out/art/dmtracedump debian/out/art/dmtracedu
 ## frameworks/native
 
 libETC1.so: debian/frameworks/native/libETC1.mk
-	dh_auto_build --buildsystem=makefile -- -f $<
+	dh_auto_build --buildsystem=makefile -- --file=$<
 
 ## external/boringssl
 
@@ -213,11 +213,17 @@ libssl.so: debian/external/boringssl/libssl.mk libcrypto.so
 
 COMPONENTS += libcrypto.so libssl.so
 
+## external/libunwind
+
+libunwind.so: debian/external/libunwind/libunwind.mk
+	dh_auto_build --buildsystem=makefile -- --file=$<
+
+COMPONENTS += libunwind.so
+
 override_dh_auto_build-arch: $(COMPONENTS)
 ## external/*
 	dh_auto_build --buildsystem=makefile -- -f debian/external/selinux/libsepol.mk
 	dh_auto_build --buildsystem=makefile -- -f debian/external/selinux/libselinux.mk
-	dh_auto_build --buildsystem=makefile -- -f debian/external/libunwind/libunwind.mk
 ## libnativehelper
 	dh_auto_build --buildsystem=makefile -- -f debian/libnativehelper/libnativehelper.mk
 	dh_auto_build --buildsystem=makefile -- -f debian/system/extras/libext4_utils.mk
