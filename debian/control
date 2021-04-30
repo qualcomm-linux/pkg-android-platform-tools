@@ -5,9 +5,7 @@ Maintainer: Android Tools Maintainers <android-tools-devel@lists.alioth.debian.o
 Uploaders: Chirayu Desai <chirayudesai1@gmail.com>
 Build-Depends:
  android-libbacktrace-dev (>= 1:10.0.0+r36-3~~) [amd64 i386 armel armhf arm64],
- android-libbase-dev (>= 1:10.0.0+r36-1~),
  android-libbase-dev (>= 1:10.0.0+r36-3~~) [amd64 i386 armel armhf arm64],
- android-libcutils-dev (>= 1:10.0.0+r36-1~),
  android-libcutils-dev (>= 1:10.0.0+r36-3~~) [amd64 i386 armel armhf arm64],
  android-libetc1-dev (>= 1:8.1.0+r23),
  android-liblog-dev (>= 1:10.0.0+r36-1~),
@@ -39,7 +37,6 @@ Build-Depends:
  python3 [amd64 i386 armel armhf arm64],
  zlib1g-dev [amd64 i386 armel armhf arm64],
 Build-Depends-Arch:
- android-libnativehelper-dev (>= 10.0.0+r36) [amd64 i386 armel armhf arm64 mips mipsel mips64el],
  libgtest-dev [amd64 i386 armel armhf arm64],
  liblzma-dev [any],
  libsafe-iop-dev [amd64 i386 armel armhf arm64 mips mipsel mips64el],

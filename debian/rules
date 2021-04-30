@@ -240,12 +240,20 @@ libfec.so: debian/system/extras/libfec.mk libselinux.so
 
 COMPONENTS += libext4_utils.so libfec.so
 
-override_dh_auto_build-arch: $(COMPONENTS)
 ## libnativehelper
-	dh_auto_build --buildsystem=makefile -- -f debian/libnativehelper/libnativehelper.mk
+
+libnativehelper.so: debian/libnativehelper/libnativehelper.mk
+	dh_auto_build --buildsystem=makefile -- --file=$<
+
+COMPONENTS += libnativehelper.so
 
 ## dalvik
-	dh_auto_build --buildsystem=makefile -- -f debian/dalvik/hprof-conv.mk
+hprof-conv: debian/dalvik/hprof-conv.mk
+	dh_auto_build --buildsystem=makefile -- --file=$<
+
+COMPONENTS += hprof-conv
+
+override_dh_auto_build-arch: $(COMPONENTS)
 
 override_dh_auto_test:
 	echo ignore tests using upstream build system

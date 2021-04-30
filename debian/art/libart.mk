@@ -446,7 +446,7 @@ CPPFLAGS += \
   -DUSE_D8_DESUGAR=1 \
   -I. \
   -Iart \
-  -I/usr/include/android/nativehelper \
+  -Ilibnativehelper/include_jni \
   -Iart/cmdline \
   -Iart/runtime \
   -Iart/libartbase \

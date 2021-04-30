@@ -4,7 +4,7 @@ SOURCES := $(foreach source, $(SOURCES), system/core/libnativebridge/$(source))
 
 CPPFLAGS += \
   -I/usr/include/android \
-  -I/usr/include/android/nativehelper \
+  -Ilibnativehelper/include_jni \
   -Isystem/core/include \
   -Isystem/core/base/include \
   -Isystem/core/libnativebridge/include \

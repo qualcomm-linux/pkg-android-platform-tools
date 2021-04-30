@@ -8,7 +8,7 @@ CPPFLAGS += \
   -Isystem/core/base/include \
   -Isystem/core/libnativebridge/include \
   -Isystem/core/libnativeloader/include \
-  -I/usr/include/android/nativehelper \
+  -Ilibnativehelper/include_jni \
 
 CXXFLAGS += -std=gnu++2a
 

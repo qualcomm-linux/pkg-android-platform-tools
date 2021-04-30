@@ -5,7 +5,7 @@ CPPFLAGS += \
   -Iart/libartbase \
   -Iart/libdexfile \
   -Iart/runtime \
-  -I/usr/include/android/nativehelper \
+  -Ilibnativehelper/include_jni \
   -I/usr/include/android \
   -Umips \
 
