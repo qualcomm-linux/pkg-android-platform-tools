@@ -34,7 +34,6 @@ Build-Depends:
  python3 [amd64 i386 armel armhf arm64],
  zlib1g-dev [amd64 i386 armel armhf arm64],
  android-libsparse-dev (>= 1:10.0.0+r36-1~),
- android-libselinux-dev (>= 10.0.0+r36-1~),
  android-libcutils-dev (>= 1:10.0.0+r36-1~),
  android-libbase-dev (>= 1:10.0.0+r36-1~),
  android-platform-system-core-headers (>= 1:10.0.0+r36-1~),
@@ -42,7 +41,6 @@ Build-Depends:
 Build-Depends-Arch:
  android-libext4-utils-dev (>= 10.0.0+r36) [amd64 i386 armel armhf arm64 mips mipsel mips64el],
  android-libnativehelper-dev (>= 10.0.0+r36) [amd64 i386 armel armhf arm64 mips mipsel mips64el],
- android-libselinux-dev (>= 10.0.0+r36~) [amd64 i386 armel armhf arm64 mips mipsel mips64el],
  libgtest-dev [amd64 i386 armel armhf arm64],
  liblzma-dev [any],
  libsafe-iop-dev [amd64 i386 armel armhf arm64 mips mipsel mips64el],
