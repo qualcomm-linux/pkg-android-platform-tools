@@ -5,14 +5,18 @@ Maintainer: Android Tools Maintainers <android-tools-devel@lists.alioth.debian.o
 Uploaders: Chirayu Desai <chirayudesai1@gmail.com>
 Build-Depends:
  android-libbacktrace-dev (>= 1:10.0.0+r36-3~~) [amd64 i386 armel armhf arm64],
+ android-libbase-dev (>= 1:10.0.0+r36-1~),
  android-libbase-dev (>= 1:10.0.0+r36-3~~) [amd64 i386 armel armhf arm64],
+ android-libcutils-dev (>= 1:10.0.0+r36-1~),
  android-libcutils-dev (>= 1:10.0.0+r36-3~~) [amd64 i386 armel armhf arm64],
  android-libetc1-dev (>= 1:8.1.0+r23),
  android-liblog-dev (>= 1:10.0.0+r36-1~),
  android-libnativebridge-dev (>= 1:10.0.0+r36-3~~) [amd64 i386 armel armhf arm64],
  android-libnativeloader-dev (>= 1:10.0.0+r36-3~~) [amd64 i386 armel armhf arm64],
+ android-libsparse-dev (>= 1:10.0.0+r36-1~),
  android-libutils-dev (>= 1:10.0.0+r36-3~~) [amd64 i386 armel armhf arm64],
  android-libziparchive-dev (>= 1:10.0.0+r36-3~~) [amd64 i386 armel armhf arm64],
+ android-platform-system-core-headers (>= 1:10.0.0+r36-1~),
  bash-completion,
  clang [amd64 i386 armel armhf arm64],
  debhelper (>= 11),
@@ -28,25 +32,20 @@ Build-Depends:
  liblz4-dev [amd64 i386 armel armhf arm64],
  libpcre3-dev,
  libpng-dev (>= 1.6),
+ libsquashfuse-dev,
  maven-repo-helper,
  p7zip-full,
  pandoc,
  python3 [amd64 i386 armel armhf arm64],
  zlib1g-dev [amd64 i386 armel armhf arm64],
- android-libsparse-dev (>= 1:10.0.0+r36-1~),
- android-libcutils-dev (>= 1:10.0.0+r36-1~),
- android-libbase-dev (>= 1:10.0.0+r36-1~),
- android-platform-system-core-headers (>= 1:10.0.0+r36-1~),
- libsquashfuse-dev
 Build-Depends-Arch:
- android-libext4-utils-dev (>= 10.0.0+r36) [amd64 i386 armel armhf arm64 mips mipsel mips64el],
  android-libnativehelper-dev (>= 10.0.0+r36) [amd64 i386 armel armhf arm64 mips mipsel mips64el],
  libgtest-dev [amd64 i386 armel armhf arm64],
  liblzma-dev [any],
  libsafe-iop-dev [amd64 i386 armel armhf arm64 mips mipsel mips64el],
  libusb-1.0-0-dev [amd64 i386 armel armhf arm64],
  pandoc [amd64 i386 armel armhf arm64],
- zlib1g-dev [any]
+ zlib1g-dev [any],
 Standards-Version: 4.5.0
 Rules-Requires-Root: no
 Vcs-Git: https://salsa.debian.org/android-tools-team/android-platform-tools.git

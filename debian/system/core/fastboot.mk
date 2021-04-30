@@ -37,16 +37,17 @@ CPPFLAGS += \
             -Isystem/core/fs_mgr/include \
             -Isystem/core/fs_mgr/include_fstab \
             -Isystem/core/fs_mgr/liblp/include \
-            -I/usr/include/android/openssl \
             -Isystem/core/libsparse/include \
             -Isystem/core/libziparchive/include \
             -Iexternal/boringssl/include \
+            -Isystem/extras/ext4_utils/include \
 
 LDFLAGS += -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
            -fuse-ld=gold \
            -Wl,-rpath-link system/core \
            -Lsystem/core -Ldebian/out/external/boringssl -lziparchive -lsparse -lbase -lcutils -ladb -lcrypto -lext4_utils \
            -L/usr/lib/$(DEB_HOST_MULTIARCH)/android \
+           -Ldebian/out/system/extras \
            -l7z \
 
 # -latomic should be the last library specified
