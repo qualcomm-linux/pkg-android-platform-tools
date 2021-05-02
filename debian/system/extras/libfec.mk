@@ -16,6 +16,7 @@ CPPFLAGS += \
             -I/usr/include/android \
             -Iexternal/selinux/libselinux/include \
             -Isystem/core/libsparse/include \
+            -Isystem/core/base/include \
             -D_GNU_SOURCE -DFEC_NO_KLOG -D_LARGEFILE64_SOURCE \
 
 LDFLAGS += -shared -Wl,-soname,$(NAME).so.0 \

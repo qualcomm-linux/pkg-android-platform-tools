@@ -13,6 +13,7 @@ CPPFLAGS += \
   -Ilibnativehelper/platform_include \
   -I/usr/include/android \
   -Isystem/core/liblog/include \
+  -Isystem/core/base/include \
 
 LDFLAGS += -shared -Wl,-soname,$(NAME).so.0 -ldl -lpthread \
            -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \

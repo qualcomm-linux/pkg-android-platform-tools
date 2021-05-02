@@ -9,6 +9,7 @@ CPPFLAGS += \
   -Iart/runtime \
   -Ilibnativehelper/include_jni \
   -I/usr/include/android \
+  -Isystem/core/base/include \
   -Umips \
 
 CXXFLAGS += -std=gnu++17
@@ -19,7 +20,10 @@ CXXFLAGS += -std=gnu++17
 LDFLAGS += -nodefaultlibs \
   -L/usr/lib/$(DEB_HOST_MULTIARCH)/android \
   -Ldebian/out/art \
-  -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android
+  -Lsystem/core \
+  -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
+  -Wl,-rpath=system/core
+
 LIBRARIES_FLAGS += \
   -lsigchain \
   -lc \

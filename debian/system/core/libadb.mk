@@ -48,6 +48,7 @@ CPPFLAGS += \
             -Isystem/core/include \
             -Iexternal/boringssl/include \
             -Isystem/core/libcutils/include \
+            -Isystem/core/base/include \
             -DPLATFORM_TOOLS_VERSION='"$(PLATFORM_TOOLS_VERSION)"' \
             -DADB_HOST=1 -DADB_VERSION='"$(DEB_VERSION)"'
 

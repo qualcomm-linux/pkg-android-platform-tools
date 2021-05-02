@@ -465,6 +465,7 @@ CPPFLAGS += \
   -Isystem/core/libnativeloader/include \
   -Isystem/core/libnativebridge/include \
   -Isystem/core/liblog/include \
+  -Isystem/core/base/include \
   -Ilibnativehelper/include_jni \
   -Ilibnativehelper/include \
   -Ilibnativehelper/header_only_include \

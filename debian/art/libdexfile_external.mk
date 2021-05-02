@@ -7,6 +7,7 @@ CPPFLAGS += \
   -Iart/libdexfile/external/include \
   -Ilibnativehelper/include_jni \
   -I/usr/include/android \
+  -Isystem/core/base/include \
   -Umips \
 
 CXXFLAGS += -std=gnu++17
