@@ -40,6 +40,7 @@ CPPFLAGS += \
             -Isystem/core/libsparse/include \
             -Isystem/core/libziparchive/include \
             -Iexternal/boringssl/include \
+            -Isystem/core/libcutils/include \
             -Isystem/extras/ext4_utils/include \
 
 LDFLAGS += -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
