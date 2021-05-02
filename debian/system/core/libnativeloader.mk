@@ -9,6 +9,8 @@ CPPFLAGS += \
   -Isystem/core/libnativebridge/include \
   -Isystem/core/libnativeloader/include \
   -Ilibnativehelper/include_jni \
+  -Ilibnativehelper/include \
+  -Ilibnativehelper/header_only_include \
 
 CXXFLAGS += -std=gnu++2a
 

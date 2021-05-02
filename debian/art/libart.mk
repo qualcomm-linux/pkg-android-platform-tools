@@ -464,6 +464,11 @@ CPPFLAGS += \
   -Isystem/core/libziparchive/include \
   -Isystem/core/libnativeloader/include \
   -Isystem/core/libnativebridge/include \
+  -Isystem/core/liblog/include \
+  -Ilibnativehelper/include_jni \
+  -Ilibnativehelper/include \
+  -Ilibnativehelper/header_only_include \
+  -Ilibnativehelper/platform_include \
   -Umips \
 
 LDFLAGS += \
@@ -472,6 +477,7 @@ LDFLAGS += \
   -Lsystem/core \
   -Ldebian/out/art \
   -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
+  -Wl,-rpath=system/core \
   -shared -Wl,-soname,$(NAME).so.0
 LIBRARIES_FLAGS = \
   -latomic \

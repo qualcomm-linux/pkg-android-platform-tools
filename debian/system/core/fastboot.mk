@@ -47,7 +47,8 @@ CPPFLAGS += \
 LDFLAGS += -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
            -fuse-ld=gold \
            -Wl,-rpath-link system/core \
-           -Lsystem/core -Ldebian/out/external/boringssl -lziparchive -lsparse -lbase -lcutils -ladb -lcrypto -lext4_utils \
+           -Lsystem/core -Ldebian/out/external/boringssl -Ldebian/out/external/libunwind \
+           -lziparchive -lsparse -lbase -lcutils -ladb -lcrypto -lext4_utils \
            -L/usr/lib/$(DEB_HOST_MULTIARCH)/android \
            -Ldebian/out/system/extras \
            -l7z \
