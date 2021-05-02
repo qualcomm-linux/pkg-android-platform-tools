@@ -93,6 +93,7 @@ CPPFLAGS += \
             -I/usr/include/android/lzma \
             -Iexternal/libunwind/include \
             -Idebian/include/external/libunwind \
+            -Isystem/core/liblog/include \
 
 LDFLAGS += -shared -Wl,-soname,$(NAME).so.0 \
            -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \

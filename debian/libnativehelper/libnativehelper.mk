@@ -12,10 +12,11 @@ CPPFLAGS += \
   -Ilibnativehelper/header_only_include \
   -Ilibnativehelper/platform_include \
   -I/usr/include/android \
+  -Isystem/core/liblog/include \
 
 LDFLAGS += -shared -Wl,-soname,$(NAME).so.0 -ldl -lpthread \
            -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
-           -L/usr/lib/$(DEB_HOST_MULTIARCH)/android -llog
+           -L/usr/lib/$(DEB_HOST_MULTIARCH)/android -Lsystem/core -llog
 
 libnativehelper/$(NAME).so.0: $(SOURCES)
 	$(CXX) $^ -o libnativehelper/$(NAME).so.0 $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)

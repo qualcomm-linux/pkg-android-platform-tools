@@ -5,7 +5,12 @@ SOURCES = zip_archive.cc \
 SOURCES := $(foreach source, $(SOURCES), system/core/libziparchive/$(source))
 CXXFLAGS += -std=gnu++17
 CPPFLAGS += -DZLIB_CONST -D_FILE_OFFSET_BITS=64 \
-            -I/usr/include/android -Isystem/core/include -Isystem/core/base/include -Isystem/core/libziparchive/include
+            -I/usr/include/android \
+            -Isystem/core/include \
+            -Isystem/core/base/include \
+            -Isystem/core/libziparchive/include \
+            -Isystem/core/liblog/include \
+
 LDFLAGS += -shared -Wl,-soname,$(NAME).so.0 \
            -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
            -lz -Lsystem/core -llog -lbase

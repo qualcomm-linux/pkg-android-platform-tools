@@ -48,6 +48,7 @@ CPPFLAGS += \
             -I/usr/include/android \
             -Isystem/core/base/include \
             -Isystem/core/libcutils/include \
+            -Isystem/core/liblog/include \
             -Isystem/core/include \
 
 LDFLAGS += -shared -Wl,-soname,$(NAME).so.0 \

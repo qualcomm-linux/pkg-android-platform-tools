@@ -8,6 +8,7 @@ CPPFLAGS += \
   -Isystem/core/include \
   -Isystem/core/base/include \
   -Isystem/core/libnativebridge/include \
+  -Isystem/core/liblog/include \
 
 CXXFLAGS += -std=gnu++2a
 

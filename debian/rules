@@ -242,7 +242,7 @@ COMPONENTS += libext4_utils.so libfec.so
 
 ## libnativehelper
 
-libnativehelper.so: debian/libnativehelper/libnativehelper.mk
+libnativehelper.so: debian/libnativehelper/libnativehelper.mk liblog.so
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
 COMPONENTS += libnativehelper.so

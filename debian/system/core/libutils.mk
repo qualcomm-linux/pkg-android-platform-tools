@@ -34,6 +34,7 @@ CPPFLAGS += \
             -Isystem/core/cutils/include \
             -Isystem/core/libprocessgroup/include \
             -Isystem/core/libbacktrace/include \
+            -Isystem/core/liblog/include \
             -DLIBUTILS_NATIVE=1 \
 
 LDFLAGS += -shared -Wl,-soname,$(NAME).so.0 \
