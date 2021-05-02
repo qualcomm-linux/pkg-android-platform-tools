@@ -463,6 +463,7 @@ CPPFLAGS += \
   -Isystem/core/libbacktrace/include \
   -Isystem/core/libziparchive/include \
   -Isystem/core/libnativeloader/include \
+  -Isystem/core/libnativebridge/include \
   -Umips \
 
 LDFLAGS += \
