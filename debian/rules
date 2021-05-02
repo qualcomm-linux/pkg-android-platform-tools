@@ -232,10 +232,10 @@ COMPONENTS += libsepol.so libselinux.so
 
 ## system/extras
 
-libext4_utils.so: debian/system/extras/libext4_utils.mk libselinux.so
+libext4_utils.so: debian/system/extras/libext4_utils.mk libselinux.so libsparse.so
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
-libfec.so: debian/system/extras/libfec.mk libselinux.so
+libfec.so: debian/system/extras/libfec.mk libselinux.so libsparse.so
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
 COMPONENTS += libext4_utils.so libfec.so

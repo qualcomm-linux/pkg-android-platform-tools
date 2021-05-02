@@ -19,12 +19,13 @@ CPPFLAGS += \
             -Isystem/extras/squashfs_utils \
             -I/usr/include/android \
             -Iexternal/selinux/libselinux/include \
+            -Isystem/core/libsparse/include \
             -D_GNU_SOURCE -DFEC_NO_KLOG -DSQUASHFS_NO_KLOG -D_LARGEFILE64_SOURCE \
 
 LDFLAGS += -shared -Wl,-soname,$(NAME).so.0 \
            -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
            -L/usr/lib/$(DEB_HOST_MULTIARCH)/android \
-           -Ldebian/out/external/selinux -lbase -lsparse -lselinux
+           -Ldebian/out/external/selinux -Lsystem/core -lbase -lsparse -lselinux
 
 debian/out/system/extras/libext4_utils.so: $(SOURCES)
 	mkdir --parents debian/out/system/extras/

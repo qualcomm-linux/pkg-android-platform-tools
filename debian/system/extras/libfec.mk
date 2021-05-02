@@ -15,12 +15,13 @@ CPPFLAGS += \
             -Isystem/extras/libfec/include \
             -I/usr/include/android \
             -Iexternal/selinux/libselinux/include \
+            -Isystem/core/libsparse/include \
             -D_GNU_SOURCE -DFEC_NO_KLOG -D_LARGEFILE64_SOURCE \
 
 LDFLAGS += -shared -Wl,-soname,$(NAME).so.0 \
            -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
            -L/usr/lib/$(DEB_HOST_MULTIARCH)/android \
-           -Ldebian/out/external/selinux -lbase -lsparse -lselinux
+           -Ldebian/out/external/selinux -Lsystem/core -lbase -lsparse -lselinux
 
 debian/out/system/extras/libfec.so: $(COBJECTS) $(CXXOBJECTS)
 	mkdir -p debian/out/system/extras/
