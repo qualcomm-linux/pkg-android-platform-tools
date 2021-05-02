@@ -107,7 +107,7 @@ libbase.so: debian/system/core/libbase.mk liblog.so
 libcutils.so: debian/system/core/libcutils.mk liblog.so libbase.so
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
-libutils.so: debian/system/core/libutils.mk liblog.so libcutils.so libbacktrace.so
+libutils.so: debian/system/core/libutils.mk liblog.so libcutils.so libbacktrace.so libbacktrace.so
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
 libziparchive.so: debian/system/core/libziparchive.mk liblog.so libbase.so
@@ -185,7 +185,7 @@ debian/out/art/dexdump: debian/art/dexdump.mk debian/out/art/libart.so
 debian/out/art/libdexfile_external.so: debian/art/libdexfile_external.mk debian/out/art/libart.so
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
-debian/out/art/libart.so: debian/art/libart.mk debian/out/art/asm_defines.h debian/out/art/libsigchain.so
+debian/out/art/libart.so: debian/art/libart.mk debian/out/art/asm_defines.h debian/out/art/libsigchain.so libbacktrace.so
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
 # Only for debug purpose to build standalone object

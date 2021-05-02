@@ -460,11 +460,13 @@ CPPFLAGS += \
   -Iart/tools/cpp-define-generator \
   -Idebian/out/art \
   -I/usr/include/android \
+  -Isystem/core/libbacktrace/include \
   -Umips \
 
 LDFLAGS += \
   -fuse-ld=gold \
   -L/usr/lib/$(DEB_HOST_MULTIARCH)/android \
+  -Lsystem/core \
   -Ldebian/out/art \
   -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
   -shared -Wl,-soname,$(NAME).so.0

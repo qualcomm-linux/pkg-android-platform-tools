@@ -33,11 +33,13 @@ CPPFLAGS += \
             -Isystem/core/base/include \
             -Isystem/core/cutils/include \
             -Isystem/core/libprocessgroup/include \
+            -Isystem/core/libbacktrace/include \
             -DLIBUTILS_NATIVE=1 \
 
 LDFLAGS += -shared -Wl,-soname,$(NAME).so.0 \
            -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
-           -lpthread -Lsystem/core -llog -lcutils -lbacktrace
+           -lpthread -Lsystem/core -llog -lcutils -lbacktrace \
+           -Lsystem/core \
 
 # -latomic should be the last library specified
 # https://github.com/android/ndk/issues/589
