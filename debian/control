@@ -6,7 +6,6 @@ Uploaders: Chirayu Desai <chirayudesai1@gmail.com>
 Build-Depends:
  android-libbase-dev (>= 1:10.0.0+r36-3~~) [amd64 i386 armel armhf arm64],
  android-libnativebridge-dev (>= 1:10.0.0+r36-3~~) [amd64 i386 armel armhf arm64],
- android-libnativeloader-dev (>= 1:10.0.0+r36-3~~) [amd64 i386 armel armhf arm64],
  android-libutils-dev (>= 1:10.0.0+r36-3~~) [amd64 i386 armel armhf arm64],
  bash-completion,
  clang [amd64 i386 armel armhf arm64],

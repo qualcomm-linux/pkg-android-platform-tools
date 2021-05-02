@@ -462,6 +462,7 @@ CPPFLAGS += \
   -I/usr/include/android \
   -Isystem/core/libbacktrace/include \
   -Isystem/core/libziparchive/include \
+  -Isystem/core/libnativeloader/include \
   -Umips \
 
 LDFLAGS += \

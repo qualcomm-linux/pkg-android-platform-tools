@@ -185,7 +185,7 @@ debian/out/art/dexdump: debian/art/dexdump.mk debian/out/art/libart.so
 debian/out/art/libdexfile_external.so: debian/art/libdexfile_external.mk debian/out/art/libart.so
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
-debian/out/art/libart.so: debian/art/libart.mk debian/out/art/asm_defines.h debian/out/art/libsigchain.so libbacktrace.so libziparchive.so
+debian/out/art/libart.so: debian/art/libart.mk debian/out/art/asm_defines.h debian/out/art/libsigchain.so libbacktrace.so libziparchive.so libnativeloader.so
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
 # Only for debug purpose to build standalone object
