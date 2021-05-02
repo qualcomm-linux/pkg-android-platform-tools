@@ -461,6 +461,7 @@ CPPFLAGS += \
   -Idebian/out/art \
   -I/usr/include/android \
   -Isystem/core/libbacktrace/include \
+  -Isystem/core/libziparchive/include \
   -Umips \
 
 LDFLAGS += \
