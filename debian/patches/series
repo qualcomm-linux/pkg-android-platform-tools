@@ -9,7 +9,6 @@ system/core/libusb-header-path.patch
 system/core/stdatomic.patch
 system/core/Nonnull.patch
 system/core/Vector-cast.patch
-system/core/use-Python-3-for-mkbootimg.patch
 system/core/throw-exception-on-unknown-os.patch
 system/core/simg_dump-python3.patch
 system/core/fix-attribute-issue-with-gcc.patch
@@ -18,6 +17,7 @@ system/core/fix-gettid-exception-declaration.patch
 system/core/fix-build-on-non-x86.patch
 system/core/add-missing-headers.patch
 system/core/hard-code-build-number.patch
+system/tools/mkbootimg/use-Python-3-for-mkbootimg.patch
 development/typos.patch
 art/use-android-dlmalloc.patch
 art/missing-system-includes.patch
@@ -30,6 +30,4 @@ art/python3-gen_mterp.patch
 art/stats-incomplete-def.patch
 art/fix-build-on-non-x86.patch
 art/workaround-cacheflush-on-arm.patch
-art/adapt-asm-output-of-clang-that-no-is-placed-before-data.patch
 art/arm-asm-instruction.patch
-art/fix-mterp-assembly-to-use-uxtw-instead-of-lsl-where-needed.patch

@@ -28,7 +28,7 @@ Forwarded: not-needed
  #include <sys/time.h>
 +#include <algorithm>
  
- #include "android-base/stringprintf.h"
+ #include <sstream>
  
 --- a/art/runtime/exec_utils.cc
 +++ b/art/runtime/exec_utils.cc
@@ -236,14 +236,14 @@ Forwarded: not-needed
  #include <sstream>
 --- a/art/libartbase/base/memfd.cc
 +++ b/art/libartbase/base/memfd.cc
-@@ -24,6 +24,7 @@
- #include <unistd.h>
- #endif
+@@ -31,6 +31,7 @@
+ #include <android-base/logging.h>
+ #include <android-base/unique_fd.h>
  
 +#include <cstring>
  #include "macros.h"
  
- // When building for linux host, glibc in prebuilts does not include memfd_create system call
+ 
 --- a/art/libartbase/base/scoped_flock.cc
 +++ b/art/libartbase/base/scoped_flock.cc
 @@ -19,6 +19,8 @@
@@ -285,3 +285,13 @@ Forwarded: not-needed
  #include <memory>
  #include <string>
  #include <vector>
+--- a/art/libprofile/profile/profile_boot_info.cc
++++ b/art/libprofile/profile/profile_boot_info.cc
+@@ -18,6 +18,7 @@
+ 
+ #include <unistd.h>
+ 
++#include <cstring>
+ #include <vector>
+ 
+ #include "dex/dex_file.h"
