@@ -58,30 +58,6 @@ Description: Google's internal fork of OpenSSL for the Android SDK
  releases of BoringSSL on its own, so it must be included separately
  for each project that uses it.
 
-Package: android-libboringssl-dev
-Section: libdevel
-Architecture: armel armhf arm64 amd64 i386 ppc64el
-Depends: android-libboringssl (= ${binary:Version}), ${misc:Depends}
-Description: Google's internal fork of OpenSSL for the Android SDK - devel
- The Android SDK builds against a static version of BoringSSL,
- Google's internal fork of OpenSSL.  This package should never be used
- for anything but Android SDK packages that already depend on it.
- .
- BoringSSL arose because Google used OpenSSL for many years in various
- ways and, over time, built up a large number of patches that were
- maintained while tracking upstream OpenSSL. As Google’s product
- portfolio became more complex, more copies of OpenSSL sprung up and
- the effort involved in maintaining all these patches in multiple
- places was growing steadily.
- .
- This is the Android AOSP fork of BoringSSL which is designed to be
- used by Android and its SDK.  BoringSSL is only ever statically linked
- into apps, and pinned to a commit version.  Upstream has no official
- releases of BoringSSL on its own, so it must be included separately
- for each project that uses it.
- .
- This package contains the development files.
-
 Package: android-libselinux
 Architecture: linux-any
 Depends: ${misc:Depends},
@@ -93,31 +69,11 @@ Description: Security-Enhanced Linux for Android
  This library is an AOSP fork of libselinux, adding features specifically for
  Android and is intended for Android libraries only.
 
-Package: android-libselinux-dev
-Section: libdevel
-Architecture: linux-any
-Depends: android-libselinux (= ${binary:Version}), ${misc:Depends}
-Description: Security-Enhanced Linux for Android - Development files
- This library provides an API for SELinux applications to get and set process
- and file security contexts and to obtain security policy decisions.
- .
- This library is an AOSP fork of libselinux, adding features specifically for
- Android and is intended for Android libraries only.
- .
- This package provides the development files.
-
 Package: android-libsepol
 Architecture: linux-any
 Depends: ${misc:Depends},
          ${shlibs:Depends}
 Description: Security-Policy Linux for Android
- This library provides an API for setting, checking sepolicy.
-
-Package: android-libsepol-dev
-Section: libdevel
-Architecture: linux-any
-Depends: android-libsepol (= ${binary:Version}), ${misc:Depends}
-Description: Security-Policy Linux for Android - Development files
  This library provides an API for setting, checking sepolicy.
 
 Package: android-libunwind
@@ -131,37 +87,11 @@ Description: libunwind for Android
  .
  This library is only used by Android SDK currently.
 
-Package: android-libunwind-dev
-Section: libdevel
-Architecture: amd64 i386 arm64 armel armhf mips mipsel mips64el
-Depends: android-libunwind (= ${binary:Version}),
-         libbsd-dev,
-         ${misc:Depends}
-Description: libunwind for Android - Development files
- This library is the AOSP fork of libunwind. It is used by libbacktrace.
- .
- This package is only available on x86, ARM and MIPS because the AOSP
- modifications only apply on these platforms.
- .
- This library is only used by Android SDK currently.
- .
- This package provides the development files.
-
 Package: android-libnativehelper
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Support functions for Android's class libraries
  This library is only used by Android SDK currently.
-
-Package: android-libnativehelper-dev
-Architecture: any
-Depends: android-libnativehelper (= ${binary:Version}), ${misc:Depends}
-Breaks: android-libnativehelper (<< 10.0.0+r36-1~)
-Replaces: android-libnativehelper (<< 10.0.0+r36-1~)
-Description: Support functions for Android's class libraries - Development files
- This library is only used by Android SDK currently.
- .
- This package contains the development files.
 
 Package: android-sdk-libsparse-utils
 Architecture: any
@@ -190,22 +120,6 @@ Description: Android NDK logger interfaces
  logs. The log buffers are divided up in Main, System, Radio and Events
  sub-logs.
 
-Package: android-liblog-dev
-Section: libdevel
-Architecture: all
-Depends: android-liblog (>= ${binary:Version}),
-         android-liblog (<< ${binary:Version}.1~),
-         ${misc:Depends}
-Breaks: android-liblog (<< 21-4~)
-Replaces: android-liblog (<< 21-4~)
-Description: Android NDK logger interfaces - Development files
- liblog represents an interface to the volatile Android Logging system for NDK
- (Native) applications and libraries. Interfaces for either writing or reading
- logs. The log buffers are divided up in Main, System, Radio and Events
- sub-logs.
- .
- This package contains the development files.
-
 Package: android-libcutils
 Section: libs
 Architecture: any
@@ -217,26 +131,6 @@ Description: Android utils library for C
  This library provides common functionalities for android related tools.
  .
  This library is only used by Android SDK currently.
-
-Package: android-libcutils-dev
-Section: libdevel
-Architecture: all
-Depends: ${misc:Depends},
-         android-libcutils (>= ${binary:Version}),
-         android-libcutils (<< ${binary:Version}.1~),
-         android-liblog-dev (= ${binary:Version}),
-         android-platform-system-core-headers (= ${source:Version}),
-         libbsd-dev
-Breaks: android-libcutils (<< 21-4~),
-        android-liblog-dev (<< 1:6)
-Replaces: android-libcutils (<< 21-4~),
-          android-liblog-dev (<< 1:6)
-Description: Android utils library for C - Development files
- This library provides common functionalities for android related tools.
- .
- This library is only used by Android SDK currently.
- .
- This package contains the development files.
 
 Package: adb
 Architecture: amd64 i386 armel armhf arm64
@@ -267,20 +161,6 @@ Description: Library for sparse files
  .
  This library is only used by Android SDK currently.
 
-Package: android-libsparse-dev
-Section: libdevel
-Architecture: all
-Depends: android-libsparse (>= ${binary:Version}),
-         android-libsparse (<< ${binary:Version}.1~),
-         ${misc:Depends}
-Description: Library for sparse files - Development files
- This library provides APIs for creating, manipulating and destroying sparse
- files.
- .
- This library is only used by Android SDK currently.
- .
- This package contains the development files.
-
 Package: android-libutils
 Section: libs
 Architecture: amd64 i386 armel armhf arm64 mips mipsel mips64el
@@ -289,22 +169,6 @@ Description: Android Utility Function Library
  This library provides miscellaneous utility functions.
  .
  This library is only used by Android SDK currently.
-
-Package: android-libutils-dev
-Section: libdevel
-Architecture: all
-Depends: android-libbacktrace-dev (>= ${binary:Version}),
-         android-libcutils-dev (>= ${binary:Version}),
-         android-libutils (>= ${binary:Version}),
-         android-libutils (<< ${binary:Version}.1~),
-         android-platform-system-core-headers (>= ${source:Version}),
-         ${misc:Depends}
-Description: Android Utility Function Library - Development files
- This library provides miscellaneous utility functions.
- .
- This library is only used by Android SDK currently.
- .
- This package contains the development files.
 
 Package: android-libziparchive
 Section: libs
@@ -315,50 +179,12 @@ Description: Library for ZIP archives
  .
  This library is only used by Android SDK currently.
 
-Package: android-libziparchive-dev
-Section: libdevel
-Architecture: all
-Depends: android-libziparchive (>= ${binary:Version}),
-         android-libziparchive (<< ${binary:Version}.1~),
-         ${misc:Depends}
-Description: Library for ZIP archives - Development files
- This library provides APIs for creating and manipulating ZIP archives.
- .
- This library is only used by Android SDK currently.
- .
- This package contains the development files.
-
-Package: android-platform-system-core-headers
-Section: libdevel
-Architecture: all
-Multi-Arch: foreign
-Depends: ${misc:Depends}
-Breaks: android-system-dev
-Replaces: android-system-dev
-Provides: android-system-dev
-Description: Shared headers in AOSP repository platform/system/core
- This package contains header files in AOSP repository platform/system/core that
- do not belong to any specific libraries but used by other programs.
- .
- This package currently contains headers in include/private and include/system.
-
 Package: android-libbacktrace
 Section: libs
 Architecture: amd64 i386 armel armhf arm64 mips mipsel mips64el
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Android backtrace library
  This library is only used by Android SDK currently.
-
-Package: android-libbacktrace-dev
-Section: libdevel
-Architecture: all
-Depends: android-libbacktrace (>= ${binary:Version}),
-         android-libbacktrace (<< ${binary:Version}.1~),
-         ${misc:Depends}
-Description: Android backtrace library - Development files
- This library is only used by Android SDK currently.
- .
- This package contains the development files.
 
 Package: android-libadb
 Section: libs
@@ -370,20 +196,6 @@ Description: Library for Android Debug Bridge
  This library provides APIs for accessing and controlling Android devices.
  .
  This library is only used by Android SDK currently.
-
-Package: android-libadb-dev
-Section: libdevel
-Architecture: all
-Depends: android-libadb (>= ${binary:Version}),
-         android-libadb (<< ${binary:Version}.1~),
-         android-liblog-dev (= ${binary:Version}),
-         ${misc:Depends}
-Description: Library for Android Debug Bridge - Development files
- This library provides APIs for accessing and controlling Android devices.
- .
- This library is only used by Android SDK currently.
- .
- This package contains the development files.
 
 Package: android-libbase
 Section: libs
@@ -397,20 +209,6 @@ Description: Android base library
  .
  This library is only used by Android SDK currently.
 
-Package: android-libbase-dev
-Section: libdevel
-Architecture: all
-Depends: android-libbase (>= ${binary:Version}),
-         android-libbase (<< ${binary:Version}.1~),
-         ${misc:Depends}
-Description: Android base library - Development files
- This library provides APIs for basic tasks like handling files, Unicode
- strings, logging, memory allocation, integer parsing, etc..
- .
- This library is only used by Android SDK currently.
- .
- This package contains the development files.
-
 Package: android-libcrypto-utils
 Section: libs
 Architecture: amd64 i386 armel armhf arm64
@@ -419,19 +217,6 @@ Description: Android crypto-utils library
  This library provides utility APIs for cryptography.
  .
  This library is only used by Android SDK currently.
-
-Package: android-libcrypto-utils-dev
-Section: libdevel
-Architecture: all
-Depends: android-libcrypto-utils (>= ${binary:Version}),
-         android-libcrypto-utils (<< ${binary:Version}.1~),
-         ${misc:Depends}
-Description: Android crypto-utils library - Development files
- This library provides utility APIs for cryptography.
- .
- This library is only used by Android SDK currently.
- .
- This package provides the development files.
 
 Package: simg2img
 Depends: android-sdk-libsparse-utils, ${misc:Depends}
@@ -493,36 +278,12 @@ Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Android native bridge library
  This library is only used by Android SDK currently.
 
-Package: android-libnativebridge-dev
-Section: libdevel
-Architecture: all
-Depends: android-libnativebridge (>= ${binary:Version}),
-         android-libnativebridge (<< ${binary:Version}.1~),
-         android-libnativehelper-dev,
-         ${misc:Depends}
-Description: Android native bridge library - Development files
- This library is only used by Android SDK currently.
- .
- This package provides the development files.
-
 Package: android-libnativeloader
 Section: libs
 Architecture: amd64 i386 armel armhf arm64 mips mipsel mips64el
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Android native loader library
  This library is only used by Android SDK currently.
-
-Package: android-libnativeloader-dev
-Section: libdevel
-Architecture: all
-Depends: android-libnativehelper-dev,
-         android-libnativeloader (>= ${binary:Version}),
-         android-libnativeloader (<< ${binary:Version}.1~),
-         ${misc:Depends}
-Description: Android native loader library - Development files
- This library is only used by Android SDK currently.
- .
- This package provides the development files.
 
 Package: etc1tool
 Architecture: amd64 i386 armel armhf arm64 mips mipsel mips64el
@@ -603,16 +364,6 @@ Description: Lists all methods in all concrete classes in Android DEX files
  to the original for correct DEX files. Error messages may differ,
  however. Also, ODEX files are no longer supported.
 
-Package: android-platform-frameworks-native-headers
-Section: libdevel
-Architecture: all
-Depends: ${misc:Depends}, ${shlibs:Depends}
-Breaks: android-libutils-dev (<< 1:6.0.0+r26)
-Replaces: android-libutils-dev (<< 1:6.0.0+r26)
-Description: Headers of android-platform-frameworks-native
- This package contains headers in include/android in platform/frameworks/native
- Consists of all the header files ranging from asset_manager.h to window.h.
-
 Package: android-libetc1
 Section: libs
 Architecture: amd64 i386 armel armhf arm64 mips mipsel mips64el
@@ -622,17 +373,6 @@ Description: ETC1 compression library
  developed in collaboration with Ericsson Research in early 2005. libETC1
  provides the encoding and decoding of ETC1 compression algorithm.
 
-Package: android-libetc1-dev
-Section: libdevel
-Architecture: amd64 i386 armel armhf arm64 mips mipsel mips64el
-Depends: android-libetc1 (= ${binary:Version}), ${misc:Depends},  ${shlibs:Depends}
-Description: ETC1 compression library - Development files
- Ericsson Texture Compression (ETC) is a lossy texture compression technique
- developed in collaboration with Ericsson Research in early 2005. libETC1
- provides the encoding and decoding of ETC1 compression algorithm.
- .
- This package provides the development files.
-
 Package: android-libext4-utils
 Section: libs
 Architecture: i386 amd64 armel armhf arm64 mips mipsel mips64el
@@ -640,19 +380,6 @@ Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Android ext4 utility library
  Android ext4 filesystem utility library, which is only used by fastboot
  currently.
-
-Package: android-libext4-utils-dev
-Section: libdevel
-Architecture: all
-Depends:
- android-libext4-utils (>= ${binary:Version}),
- android-libext4-utils (<< ${binary:Version}.1~),
- ${misc:Depends}
-Description: Android ext4 utility library - Development files
- Android ext4 filesystem utility library header files, which is only
- used by fastboot currently.
- .
- This package contains the development files.
 
 Package: android-libfec
 Section: libs
@@ -664,20 +391,6 @@ Description: Android libfec library
  up I/O and improve error correction effectiveness.
  .
  This is only used by fastboot currently.
-
-Package: android-libfec-dev
-Section: libdevel
-Architecture: all
-Depends:
- android-libfec (>= ${binary:Version}),
- android-libfec (<< ${binary:Version}.1~),
- ${misc:Depends}
-Description: Android libfec library - Development files
- Android libfec library, which read files or partitions with
- error-correcting codes appended to them. Uses verity metadata to speed
- up I/O and improve error correction effectiveness.
- .
- This package contains the development files.
 
 Package: hprof-conv
 Architecture: any

@@ -1,4 +1,0 @@
-#!/usr/bin/dh-exec
-
-debian/out/frameworks/native/libETC1.so          usr/lib/${DEB_HOST_MULTIARCH}/android
-frameworks/native/opengl/include/ETC1 usr/include/android
