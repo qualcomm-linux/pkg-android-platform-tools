@@ -26,14 +26,13 @@
 #include <android-base/macros.h>
 
 #include "adb_trace.h"
-#include "fdevent.h"
+#include "fdevent/fdevent.h"
 #include "socket.h"
 #include "types.h"
 #include "usb.h"
 
 constexpr size_t MAX_PAYLOAD_V1 = 4 * 1024;
 constexpr size_t MAX_PAYLOAD = 1024 * 1024;
-constexpr size_t MAX_FRAMEWORK_PAYLOAD = 64 * 1024;
 
 constexpr size_t LINUX_MAX_SOCKET_SIZE = 4194304;
 

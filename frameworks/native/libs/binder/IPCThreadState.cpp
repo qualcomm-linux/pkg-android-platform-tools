@@ -31,8 +31,8 @@
 #include <utils/threads.h>
 
 #include <private/binder/binder_module.h>
-#include <private/binder/Static.h>
 
+#include <atomic>
 #include <errno.h>
 #include <inttypes.h>
 #include <pthread.h>
@@ -42,6 +42,8 @@
 #include <sys/ioctl.h>
 #include <sys/resource.h>
 #include <unistd.h>
+
+#include "Static.h"
 
 #if LOG_NDEBUG
 
@@ -112,11 +114,9 @@ static const char *kCommandStrings[] = {
     "BC_DEAD_BINDER_DONE"
 };
 
-static const int64_t kWorkSourcePropagatedBitIndex = 32;
-
 static const char* getReturnString(uint32_t cmd)
 {
-    size_t idx = cmd & 0xff;
+    size_t idx = cmd & _IOC_NRMASK;
     if (idx < sizeof(kReturnStrings) / sizeof(kReturnStrings[0]))
         return kReturnStrings[idx];
     else
@@ -278,14 +278,14 @@ static const void* printCommand(TextOutput& out, const void* _cmd)
 }
 
 static pthread_mutex_t gTLSMutex = PTHREAD_MUTEX_INITIALIZER;
-static bool gHaveTLS = false;
+static std::atomic<bool> gHaveTLS(false);
 static pthread_key_t gTLS = 0;
-static bool gShutdown = false;
-static bool gDisableBackgroundScheduling = false;
+static std::atomic<bool> gShutdown = false;
+static std::atomic<bool> gDisableBackgroundScheduling = false;
 
 IPCThreadState* IPCThreadState::self()
 {
-    if (gHaveTLS) {
+    if (gHaveTLS.load(std::memory_order_acquire)) {
 restart:
         const pthread_key_t k = gTLS;
         IPCThreadState* st = (IPCThreadState*)pthread_getspecific(k);
@@ -293,13 +293,14 @@ restart:
         return new IPCThreadState;
     }
 
-    if (gShutdown) {
+    // Racey, heuristic test for simultaneous shutdown.
+    if (gShutdown.load(std::memory_order_relaxed)) {
         ALOGW("Calling IPCThreadState::self() during shutdown is dangerous, expect a crash.\n");
         return nullptr;
     }
 
     pthread_mutex_lock(&gTLSMutex);
-    if (!gHaveTLS) {
+    if (!gHaveTLS.load(std::memory_order_relaxed)) {
         int key_create_value = pthread_key_create(&gTLS, threadDestructor);
         if (key_create_value != 0) {
             pthread_mutex_unlock(&gTLSMutex);
@@ -307,7 +308,7 @@ restart:
                     strerror(key_create_value));
             return nullptr;
         }
-        gHaveTLS = true;
+        gHaveTLS.store(true, std::memory_order_release);
     }
     pthread_mutex_unlock(&gTLSMutex);
     goto restart;
@@ -315,7 +316,7 @@ restart:
 
 IPCThreadState* IPCThreadState::selfOrNull()
 {
-    if (gHaveTLS) {
+    if (gHaveTLS.load(std::memory_order_acquire)) {
         const pthread_key_t k = gTLS;
         IPCThreadState* st = (IPCThreadState*)pthread_getspecific(k);
         return st;
@@ -325,9 +326,9 @@ IPCThreadState* IPCThreadState::selfOrNull()
 
 void IPCThreadState::shutdown()
 {
-    gShutdown = true;
+    gShutdown.store(true, std::memory_order_relaxed);
 
-    if (gHaveTLS) {
+    if (gHaveTLS.load(std::memory_order_acquire)) {
         // XXX Need to wait for all thread pool threads to exit!
         IPCThreadState* st = (IPCThreadState*)pthread_getspecific(gTLS);
         if (st) {
@@ -335,18 +336,18 @@ void IPCThreadState::shutdown()
             pthread_setspecific(gTLS, nullptr);
         }
         pthread_key_delete(gTLS);
-        gHaveTLS = false;
+        gHaveTLS.store(false, std::memory_order_release);
     }
 }
 
 void IPCThreadState::disableBackgroundScheduling(bool disable)
 {
-    gDisableBackgroundScheduling = disable;
+    gDisableBackgroundScheduling.store(disable, std::memory_order_relaxed);
 }
 
 bool IPCThreadState::backgroundSchedulingDisabled()
 {
-    return gDisableBackgroundScheduling;
+    return gDisableBackgroundScheduling.load(std::memory_order_relaxed);
 }
 
 sp<ProcessState> IPCThreadState::process()
@@ -394,48 +395,6 @@ int32_t IPCThreadState::getStrictModePolicy() const
     return mStrictModePolicy;
 }
 
-int64_t IPCThreadState::setCallingWorkSourceUid(uid_t uid)
-{
-    int64_t token = setCallingWorkSourceUidWithoutPropagation(uid);
-    mPropagateWorkSource = true;
-    return token;
-}
-
-int64_t IPCThreadState::setCallingWorkSourceUidWithoutPropagation(uid_t uid)
-{
-    const int64_t propagatedBit = ((int64_t)mPropagateWorkSource) << kWorkSourcePropagatedBitIndex;
-    int64_t token = propagatedBit | mWorkSource;
-    mWorkSource = uid;
-    return token;
-}
-
-void IPCThreadState::clearPropagateWorkSource()
-{
-    mPropagateWorkSource = false;
-}
-
-bool IPCThreadState::shouldPropagateWorkSource() const
-{
-    return mPropagateWorkSource;
-}
-
-uid_t IPCThreadState::getCallingWorkSourceUid() const
-{
-    return mWorkSource;
-}
-
-int64_t IPCThreadState::clearCallingWorkSource()
-{
-    return setCallingWorkSourceUid(kUnsetWorkSource);
-}
-
-void IPCThreadState::restoreCallingWorkSource(int64_t token)
-{
-    uid_t uid = (int)token;
-    setCallingWorkSourceUidWithoutPropagation(uid);
-    mPropagateWorkSource = ((token >> kWorkSourcePropagatedBitIndex) & 1) == 1;
-}
-
 void IPCThreadState::setLastTransactionBinderFlags(int32_t flags)
 {
     mLastTransactionBinderFlags = flags;
@@ -462,7 +421,7 @@ void IPCThreadState::clearCaller()
 
 void IPCThreadState::flushCommands()
 {
-    if (mProcess->mDriverFD <= 0)
+    if (mProcess->mDriverFD < 0)
         return;
     talkWithDriver(false);
     // The flush could have caused post-write refcount decrements to have
@@ -615,7 +574,7 @@ void IPCThreadState::joinThreadPool(bool isMain)
 
 int IPCThreadState::setupPolling(int* fd)
 {
-    if (mProcess->mDriverFD <= 0) {
+    if (mProcess->mDriverFD < 0) {
         return -EBADF;
     }
 
@@ -674,11 +633,11 @@ status_t IPCThreadState::transact(int32_t handle,
     if ((flags & TF_ONE_WAY) == 0) {
         if (UNLIKELY(mCallRestriction != ProcessState::CallRestriction::NONE)) {
             if (mCallRestriction == ProcessState::CallRestriction::ERROR_IF_NOT_ONEWAY) {
-                ALOGE("Process making non-oneway call but is restricted.");
+                ALOGE("Process making non-oneway call (code: %u) but is restricted.", code);
                 CallStack::logStack("non-oneway call", CallStack::getCurrent(10).get(),
                     ANDROID_LOG_ERROR);
             } else /* FATAL_IF_NOT_ONEWAY */ {
-                LOG_ALWAYS_FATAL("Process may not make oneway calls.");
+                LOG_ALWAYS_FATAL("Process may not make oneway calls (code: %u).", code);
             }
         }
 
@@ -801,8 +760,6 @@ status_t IPCThreadState::clearDeathNotification(int32_t handle, BpBinder* proxy)
 
 IPCThreadState::IPCThreadState()
     : mProcess(ProcessState::self()),
-      mWorkSource(kUnsetWorkSource),
-      mPropagateWorkSource(false),
       mStrictModePolicy(0),
       mLastTransactionBinderFlags(0),
       mCallRestriction(mProcess->mCallRestriction)
@@ -921,7 +878,7 @@ finish:
 
 status_t IPCThreadState::talkWithDriver(bool doReceive)
 {
-    if (mProcess->mDriverFD <= 0) {
+    if (mProcess->mDriverFD < 0) {
         return -EBADF;
     }
 
@@ -979,7 +936,7 @@ status_t IPCThreadState::talkWithDriver(bool doReceive)
 #else
         err = INVALID_OPERATION;
 #endif
-        if (mProcess->mDriverFD <= 0) {
+        if (mProcess->mDriverFD < 0) {
             err = -EBADF;
         }
         IF_LOG_COMMANDS() {
@@ -996,7 +953,7 @@ status_t IPCThreadState::talkWithDriver(bool doReceive)
     if (err >= NO_ERROR) {
         if (bwr.write_consumed > 0) {
             if (bwr.write_consumed < mOut.dataSize())
-                mOut.remove(0, bwr.write_consumed);
+                LOG_ALWAYS_FATAL("Driver did not consume write buffer");
             else {
                 mOut.setDataSize(0);
                 processPostWriteDerefs();
@@ -1176,13 +1133,6 @@ status_t IPCThreadState::executeCommand(int32_t cmd)
             const uid_t origUid = mCallingUid;
             const int32_t origStrictModePolicy = mStrictModePolicy;
             const int32_t origTransactionBinderFlags = mLastTransactionBinderFlags;
-            const int32_t origWorkSource = mWorkSource;
-            const bool origPropagateWorkSet = mPropagateWorkSource;
-            // Calling work source will be set by Parcel#enforceInterface. Parcel#enforceInterface
-            // is only guaranteed to be called for AIDL-generated stubs so we reset the work source
-            // here to never propagate it.
-            clearCallingWorkSource();
-            clearPropagateWorkSource();
 
             mCallingPid = tr.sender_pid;
             mCallingSid = reinterpret_cast<const char*>(tr_secctx.secctx);
@@ -1238,8 +1188,6 @@ status_t IPCThreadState::executeCommand(int32_t cmd)
             mCallingUid = origUid;
             mStrictModePolicy = origStrictModePolicy;
             mLastTransactionBinderFlags = origTransactionBinderFlags;
-            mWorkSource = origWorkSource;
-            mPropagateWorkSource = origPropagateWorkSet;
 
             IF_LOG_TRANSACTIONS() {
                 TextOutput::Bundle _b(alog);
@@ -1298,7 +1246,7 @@ void IPCThreadState::threadDestructor(void *st)
         if (self) {
                 self->flushCommands();
 #if defined(__ANDROID__)
-        if (self->mProcess->mDriverFD > 0) {
+        if (self->mProcess->mDriverFD >= 0) {
             ioctl(self->mProcess->mDriverFD, BINDER_THREAD_EXIT, 0);
         }
 #endif

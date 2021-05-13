@@ -1,5 +1,6 @@
 cc_library_shared {
     name: "liblayers_proto",
+    vendor_available: true,
     export_include_dirs: ["include"],
 
     srcs: [
@@ -10,7 +11,6 @@ cc_library_shared {
 
     shared_libs: [
         "android.hardware.graphics.common@1.1",
-        "libgui",
         "libui",
         "libprotobuf-cpp-lite",
         "libbase",
@@ -43,7 +43,7 @@ java_library_static {
         type: "nano",
     },
     srcs: ["*.proto"],
-    no_framework_libs: true,
+    sdk_version: "core_platform",
     target: {
         android: {
             jarjar_rules: "jarjar-rules.txt",

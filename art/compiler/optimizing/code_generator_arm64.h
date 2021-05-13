@@ -435,10 +435,14 @@ class CodeGeneratorARM64 : public CodeGenerator {
     return kArm64WordSize;
   }
 
-  size_t GetFloatingPointSpillSlotSize() const override {
+  size_t GetSlowPathFPWidth() const override {
     return GetGraph()->HasSIMD()
-        ? 2 * kArm64WordSize   // 16 bytes == 2 arm64 words for each spill
-        : 1 * kArm64WordSize;  //  8 bytes == 1 arm64 words for each spill
+        ? vixl::aarch64::kQRegSizeInBytes
+        : vixl::aarch64::kDRegSizeInBytes;
+  }
+
+  size_t GetCalleePreservedFPWidth() const override {
+    return vixl::aarch64::kDRegSizeInBytes;
   }
 
   uintptr_t GetAddressOf(HBasicBlock* block) override {
@@ -628,6 +632,9 @@ class CodeGeneratorARM64 : public CodeGenerator {
   vixl::aarch64::Label* NewStringBssEntryPatch(const DexFile& dex_file,
                                                dex::StringIndex string_index,
                                                vixl::aarch64::Label* adrp_label = nullptr);
+
+  // Emit the BL instruction for entrypoint thunk call and record the associated patch for AOT.
+  void EmitEntrypointThunkCall(ThreadOffset64 entrypoint_offset);
 
   // Emit the CBNZ instruction for baker read barrier and record
   // the associated patch for AOT or slow path for JIT.
@@ -887,12 +894,7 @@ class CodeGeneratorARM64 : public CodeGenerator {
   ParallelMoveResolverARM64 move_resolver_;
   Arm64Assembler assembler_;
 
-  // Deduplication map for 32-bit literals, used for non-patchable boot image addresses.
-  Uint32ToLiteralMap uint32_literals_;
-  // Deduplication map for 64-bit literals, used for non-patchable method address or method code.
-  Uint64ToLiteralMap uint64_literals_;
-  // PC-relative method patch info for kBootImageLinkTimePcRelative/BootImageRelRo.
-  // Also used for type/string patches for kBootImageRelRo (same linker patch as for methods).
+  // PC-relative method patch info for kBootImageLinkTimePcRelative.
   ArenaDeque<PcRelativePatchInfo> boot_image_method_patches_;
   // PC-relative method patch info for kBssEntry.
   ArenaDeque<PcRelativePatchInfo> method_bss_entry_patches_;
@@ -904,11 +906,18 @@ class CodeGeneratorARM64 : public CodeGenerator {
   ArenaDeque<PcRelativePatchInfo> boot_image_string_patches_;
   // PC-relative String patch info for kBssEntry.
   ArenaDeque<PcRelativePatchInfo> string_bss_entry_patches_;
-  // PC-relative patch info for IntrinsicObjects.
-  ArenaDeque<PcRelativePatchInfo> boot_image_intrinsic_patches_;
+  // PC-relative patch info for IntrinsicObjects for the boot image,
+  // and for method/type/string patches for kBootImageRelRo otherwise.
+  ArenaDeque<PcRelativePatchInfo> boot_image_other_patches_;
+  // Patch info for calls to entrypoint dispatch thunks. Used for slow paths.
+  ArenaDeque<PatchInfo<vixl::aarch64::Label>> call_entrypoint_patches_;
   // Baker read barrier patch info.
   ArenaDeque<BakerReadBarrierPatchInfo> baker_read_barrier_patches_;
 
+  // Deduplication map for 32-bit literals, used for JIT for boot image addresses.
+  Uint32ToLiteralMap uint32_literals_;
+  // Deduplication map for 64-bit literals, used for JIT for method address or method code.
+  Uint64ToLiteralMap uint64_literals_;
   // Patches for string literals in JIT compiled code.
   StringToLiteralMap jit_string_patches_;
   // Patches for class literals in JIT compiled code.

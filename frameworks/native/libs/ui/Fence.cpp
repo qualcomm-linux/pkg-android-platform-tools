@@ -110,7 +110,7 @@ nsecs_t Fence::getSignalTime() const {
     }
 
     struct sync_file_info* finfo = sync_file_info(mFenceFd);
-    if (finfo == nullptr) {
+    if (finfo == NULL) {
         ALOGE("sync_file_info returned NULL for fd %d", mFenceFd.get());
         return SIGNAL_TIME_INVALID;
     }

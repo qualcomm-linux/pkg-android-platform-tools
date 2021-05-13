@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-#define ATRACE_TAG ATRACE_TAG_GRAPHICS
-
 #include <malloc.h>
 #include <stdlib.h>
 #include <string.h>
@@ -33,8 +31,6 @@
 #include <configstore/Utils.h>
 #include <cutils/properties.h>
 #include <graphicsenv/GraphicsEnv.h>
-#include <utils/Timers.h>
-#include <utils/Trace.h>
 #include <utils/Vector.h>
 
 #include "android-base/properties.h"
@@ -154,8 +150,6 @@ Hal Hal::hal_;
 void* LoadLibrary(const android_dlextinfo& dlextinfo,
                   const char* subname,
                   int subname_len) {
-    ATRACE_CALL();
-
     const char kLibFormat[] = "vulkan.%*s.so";
     char* name = static_cast<char*>(
         alloca(sizeof(kLibFormat) + static_cast<size_t>(subname_len)));
@@ -170,8 +164,6 @@ const std::array<const char*, 2> HAL_SUBNAME_KEY_PROPERTIES = {{
 
 int LoadDriver(android_namespace_t* library_namespace,
                const hwvulkan_module_t** module) {
-    ATRACE_CALL();
-
     const android_dlextinfo dlextinfo = {
         .flags = ANDROID_DLEXT_USE_NAMESPACE,
         .library_namespace = library_namespace,
@@ -206,32 +198,20 @@ int LoadDriver(android_namespace_t* library_namespace,
 }
 
 int LoadBuiltinDriver(const hwvulkan_module_t** module) {
-    ATRACE_CALL();
-
     auto ns = android_get_exported_namespace("sphal");
     if (!ns)
         return -ENOENT;
-    android::GraphicsEnv::getInstance().setDriverToLoad(
-        android::GraphicsEnv::Driver::VULKAN);
     return LoadDriver(ns, module);
 }
 
 int LoadUpdatedDriver(const hwvulkan_module_t** module) {
-    ATRACE_CALL();
-
     auto ns = android::GraphicsEnv::getInstance().getDriverNamespace();
     if (!ns)
         return -ENOENT;
-    android::GraphicsEnv::getInstance().setDriverToLoad(
-        android::GraphicsEnv::Driver::VULKAN_UPDATED);
     return LoadDriver(ns, module);
 }
 
 bool Hal::Open() {
-    ATRACE_CALL();
-
-    const nsecs_t openTime = systemTime();
-
     ALOG_ASSERT(!hal_.dev_, "OpenHAL called more than once");
 
     // Use a stub device unless we successfully open a real HAL device.
@@ -257,22 +237,15 @@ bool Hal::Open() {
         }
     }
     if (result != 0) {
-        android::GraphicsEnv::getInstance().setDriverLoaded(
-            android::GraphicsEnv::Api::API_VK, false, systemTime() - openTime);
         ALOGV("unable to load Vulkan HAL, using stub HAL (result=%d)", result);
         return true;
     }
 
-
     hwvulkan_device_t* device;
-    ATRACE_BEGIN("hwvulkan module open");
     result =
         module->common.methods->open(&module->common, HWVULKAN_DEVICE_0,
                                      reinterpret_cast<hw_device_t**>(&device));
-    ATRACE_END();
     if (result != 0) {
-        android::GraphicsEnv::getInstance().setDriverLoaded(
-            android::GraphicsEnv::Api::API_VK, false, systemTime() - openTime);
         // Any device with a Vulkan HAL should be able to open the device.
         ALOGE("failed to open Vulkan HAL device: %s (%d)", strerror(-result),
               result);
@@ -283,15 +256,10 @@ bool Hal::Open() {
 
     hal_.InitDebugReportIndex();
 
-    android::GraphicsEnv::getInstance().setDriverLoaded(
-        android::GraphicsEnv::Api::API_VK, true, systemTime() - openTime);
-
     return true;
 }
 
 bool Hal::InitDebugReportIndex() {
-    ATRACE_CALL();
-
     uint32_t count;
     if (dev_->EnumerateInstanceExtensionProperties(nullptr, &count, nullptr) !=
         VK_SUCCESS) {
@@ -537,7 +505,6 @@ void CreateInfoWrapper::FilterExtension(const char* name) {
                 // Extensions we don't need to do anything about at this level
                 break;
 
-            case ProcHook::KHR_bind_memory2:
             case ProcHook::KHR_incremental_present:
             case ProcHook::KHR_shared_presentable_image:
             case ProcHook::KHR_swapchain:
@@ -578,7 +545,6 @@ void CreateInfoWrapper::FilterExtension(const char* name) {
                 // return now as these extensions do not require HAL support
                 return;
             case ProcHook::EXT_hdr_metadata:
-            case ProcHook::KHR_bind_memory2:
                 hook_extensions_.set(ext_bit);
                 break;
             case ProcHook::ANDROID_external_memory_android_hardware_buffer:
@@ -855,10 +821,8 @@ VkResult EnumerateInstanceExtensionProperties(
         }
     }
 
-    ATRACE_BEGIN("driver.EnumerateInstanceExtensionProperties");
     VkResult result = Hal::Device().EnumerateInstanceExtensionProperties(
         pLayerName, pPropertyCount, pProperties);
-    ATRACE_END();
 
     if (!pLayerName && (result == VK_SUCCESS || result == VK_INCOMPLETE)) {
         int idx = Hal::Get().GetDebugReportIndex();
@@ -967,10 +931,8 @@ VkResult EnumerateDeviceExtensionProperties(
         *pPropertyCount -= count;
     }
 
-    ATRACE_BEGIN("driver.EnumerateDeviceExtensionProperties");
     VkResult result = data.driver.EnumerateDeviceExtensionProperties(
         physicalDevice, pLayerName, pPropertyCount, pProperties);
-    ATRACE_END();
 
     if (pProperties) {
         // map VK_ANDROID_native_buffer to VK_KHR_swapchain
@@ -983,12 +945,9 @@ VkResult EnumerateDeviceExtensionProperties(
 
             memcpy(prop.extensionName, VK_KHR_SWAPCHAIN_EXTENSION_NAME,
                    sizeof(VK_KHR_SWAPCHAIN_EXTENSION_NAME));
-
-            if (prop.specVersion >= 8) {
-                prop.specVersion = VK_KHR_SWAPCHAIN_SPEC_VERSION;
-            } else {
-                prop.specVersion = 68;
-            }
+            // b/130182551 VK_KHR_SWAPCHAIN_SPEC_VERSION > 68 has structs the
+            // loader doesn't handle properly. So drop the spec version to 68.
+            prop.specVersion = 68;
         }
     }
 
@@ -1011,15 +970,12 @@ VkResult CreateInstance(const VkInstanceCreateInfo* pCreateInfo,
     if (result != VK_SUCCESS)
         return result;
 
-    ATRACE_BEGIN("AllocateInstanceData");
     InstanceData* data = AllocateInstanceData(data_allocator);
-    ATRACE_END();
     if (!data)
         return VK_ERROR_OUT_OF_HOST_MEMORY;
 
     data->hook_extensions |= wrapper.GetHookExtensions();
 
-    ATRACE_BEGIN("autoDowngradeApiVersion");
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wold-style-cast"
     uint32_t api_version = ((pCreateInfo->pApplicationInfo)
@@ -1030,14 +986,12 @@ VkResult CreateInstance(const VkInstanceCreateInfo* pCreateInfo,
     uint32_t icd_api_version;
     PFN_vkEnumerateInstanceVersion pfn_enumerate_instance_version =
         reinterpret_cast<PFN_vkEnumerateInstanceVersion>(
-            Hal::Device().GetInstanceProcAddr(nullptr,
+            Hal::Device().GetInstanceProcAddr(NULL,
                                               "vkEnumerateInstanceVersion"));
     if (!pfn_enumerate_instance_version) {
         icd_api_version = VK_API_VERSION_1_0;
     } else {
-        ATRACE_BEGIN("pfn_enumerate_instance_version");
         result = (*pfn_enumerate_instance_version)(&icd_api_version);
-        ATRACE_END();
     }
     uint32_t icd_api_major_version = VK_VERSION_MAJOR(icd_api_version);
     uint32_t icd_api_minor_version = VK_VERSION_MINOR(icd_api_version);
@@ -1048,15 +1002,12 @@ VkResult CreateInstance(const VkInstanceCreateInfo* pCreateInfo,
         wrapper.DowngradeApiVersion();
     }
 #pragma clang diagnostic pop
-    ATRACE_END();
 
     // call into the driver
     VkInstance instance;
-    ATRACE_BEGIN("driver.CreateInstance");
     result = Hal::Device().CreateInstance(
         static_cast<const VkInstanceCreateInfo*>(wrapper), pAllocator,
         &instance);
-    ATRACE_END();
     if (result != VK_SUCCESS) {
         FreeInstanceData(data, data_allocator);
         return result;
@@ -1117,10 +1068,8 @@ VkResult CreateDevice(VkPhysicalDevice physicalDevice,
     if (result != VK_SUCCESS)
         return result;
 
-    ATRACE_BEGIN("AllocateDeviceData");
     DeviceData* data = AllocateDeviceData(data_allocator,
                                           instance_data.debug_report_callbacks);
-    ATRACE_END();
     if (!data)
         return VK_ERROR_OUT_OF_HOST_MEMORY;
 
@@ -1128,11 +1077,9 @@ VkResult CreateDevice(VkPhysicalDevice physicalDevice,
 
     // call into the driver
     VkDevice dev;
-    ATRACE_BEGIN("driver.CreateDevice");
     result = instance_data.driver.CreateDevice(
         physicalDevice, static_cast<const VkDeviceCreateInfo*>(wrapper),
         pAllocator, &dev);
-    ATRACE_END();
     if (result != VK_SUCCESS) {
         FreeDeviceData(data, data_allocator);
         return result;
@@ -1169,16 +1116,8 @@ VkResult CreateDevice(VkPhysicalDevice physicalDevice,
     }
 
     VkPhysicalDeviceProperties properties;
-    ATRACE_BEGIN("driver.GetPhysicalDeviceProperties");
     instance_data.driver.GetPhysicalDeviceProperties(physicalDevice,
                                                      &properties);
-    ATRACE_END();
-
-    if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU) {
-        // Log that the app is hitting software Vulkan implementation
-        android::GraphicsEnv::getInstance().setTargetStats(
-            android::GraphicsEnv::Stats::CPU_VULKAN_IN_USE);
-    }
 
     data->driver_device = dev;
     data->driver_version = properties.driverVersion;
@@ -1204,8 +1143,6 @@ void DestroyDevice(VkDevice device, const VkAllocationCallbacks* pAllocator) {
 VkResult EnumeratePhysicalDevices(VkInstance instance,
                                   uint32_t* pPhysicalDeviceCount,
                                   VkPhysicalDevice* pPhysicalDevices) {
-    ATRACE_CALL();
-
     const auto& data = GetData(instance);
 
     VkResult result = data.driver.EnumeratePhysicalDevices(
@@ -1222,8 +1159,6 @@ VkResult EnumeratePhysicalDeviceGroups(
     VkInstance instance,
     uint32_t* pPhysicalDeviceGroupCount,
     VkPhysicalDeviceGroupProperties* pPhysicalDeviceGroupProperties) {
-    ATRACE_CALL();
-
     VkResult result = VK_SUCCESS;
     const auto& data = GetData(instance);
 
@@ -1284,8 +1219,6 @@ void GetDeviceQueue(VkDevice device,
                     uint32_t queueFamilyIndex,
                     uint32_t queueIndex,
                     VkQueue* pQueue) {
-    ATRACE_CALL();
-
     const auto& data = GetData(device);
 
     data.driver.GetDeviceQueue(device, queueFamilyIndex, queueIndex, pQueue);
@@ -1295,8 +1228,6 @@ void GetDeviceQueue(VkDevice device,
 void GetDeviceQueue2(VkDevice device,
                      const VkDeviceQueueInfo2* pQueueInfo,
                      VkQueue* pQueue) {
-    ATRACE_CALL();
-
     const auto& data = GetData(device);
 
     data.driver.GetDeviceQueue2(device, pQueueInfo, pQueue);
@@ -1307,8 +1238,6 @@ VKAPI_ATTR VkResult
 AllocateCommandBuffers(VkDevice device,
                        const VkCommandBufferAllocateInfo* pAllocateInfo,
                        VkCommandBuffer* pCommandBuffers) {
-    ATRACE_CALL();
-
     const auto& data = GetData(device);
 
     VkResult result = data.driver.AllocateCommandBuffers(device, pAllocateInfo,

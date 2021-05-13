@@ -66,13 +66,10 @@ enum BinderLibTestTranscationCode {
     BINDER_LIB_TEST_LINK_DEATH_TRANSACTION,
     BINDER_LIB_TEST_WRITE_FILE_TRANSACTION,
     BINDER_LIB_TEST_WRITE_PARCEL_FILE_DESCRIPTOR_TRANSACTION,
-    BINDER_LIB_TEST_PROMOTE_WEAK_REF_TRANSACTION,
     BINDER_LIB_TEST_EXIT_TRANSACTION,
     BINDER_LIB_TEST_DELAYED_EXIT_TRANSACTION,
     BINDER_LIB_TEST_GET_PTR_SIZE_TRANSACTION,
     BINDER_LIB_TEST_CREATE_BINDER_TRANSACTION,
-    BINDER_LIB_TEST_GET_WORK_SOURCE_TRANSACTION,
-    BINDER_LIB_TEST_ECHO_VECTOR,
 };
 
 pid_t start_server_process(int arg2, bool usePoll = false)
@@ -181,7 +178,6 @@ class BinderLibTest : public ::testing::Test {
     public:
         virtual void SetUp() {
             m_server = static_cast<BinderLibTestEnv *>(binder_env)->getServer();
-            IPCThreadState::self()->restoreCallingWorkSource(0); 
         }
         virtual void TearDown() {
         }
@@ -553,50 +549,6 @@ TEST_F(BinderLibTest, AddServer)
     ASSERT_TRUE(server != nullptr);
 }
 
-TEST_F(BinderLibTest, DeathNotificationNoRefs)
-{
-    status_t ret;
-
-    sp<TestDeathRecipient> testDeathRecipient = new TestDeathRecipient();
-
-    {
-        sp<IBinder> binder = addServer();
-        ASSERT_TRUE(binder != nullptr);
-        ret = binder->linkToDeath(testDeathRecipient);
-        EXPECT_EQ(NO_ERROR, ret);
-    }
-    IPCThreadState::self()->flushCommands();
-    ret = testDeathRecipient->waitEvent(5);
-    EXPECT_EQ(NO_ERROR, ret);
-#if 0 /* Is there an unlink api that does not require a strong reference? */
-    ret = binder->unlinkToDeath(testDeathRecipient);
-    EXPECT_EQ(NO_ERROR, ret);
-#endif
-}
-
-TEST_F(BinderLibTest, DeathNotificationWeakRef)
-{
-    status_t ret;
-    wp<IBinder> wbinder;
-
-    sp<TestDeathRecipient> testDeathRecipient = new TestDeathRecipient();
-
-    {
-        sp<IBinder> binder = addServer();
-        ASSERT_TRUE(binder != nullptr);
-        ret = binder->linkToDeath(testDeathRecipient);
-        EXPECT_EQ(NO_ERROR, ret);
-        wbinder = binder;
-    }
-    IPCThreadState::self()->flushCommands();
-    ret = testDeathRecipient->waitEvent(5);
-    EXPECT_EQ(NO_ERROR, ret);
-#if 0 /* Is there an unlink api that does not require a strong reference? */
-    ret = binder->unlinkToDeath(testDeathRecipient);
-    EXPECT_EQ(NO_ERROR, ret);
-#endif
-}
-
 TEST_F(BinderLibTest, DeathNotificationStrongRef)
 {
     status_t ret;
@@ -814,22 +766,6 @@ TEST_F(BinderLibTest, PromoteLocal) {
     EXPECT_TRUE(strong_from_weak == nullptr);
 }
 
-TEST_F(BinderLibTest, PromoteRemote) {
-    int ret;
-    Parcel data, reply;
-    sp<IBinder> strong = new BBinder();
-    sp<IBinder> server = addServer();
-
-    ASSERT_TRUE(server != nullptr);
-    ASSERT_TRUE(strong != nullptr);
-
-    ret = data.writeWeakBinder(strong);
-    EXPECT_EQ(NO_ERROR, ret);
-
-    ret = server->transact(BINDER_LIB_TEST_PROMOTE_WEAK_REF_TRANSACTION, data, &reply);
-    EXPECT_GE(ret, 0);
-}
-
 TEST_F(BinderLibTest, CheckHandleZeroBinderHighBitsZeroCookie) {
     status_t ret;
     Parcel data, reply;
@@ -855,7 +791,6 @@ TEST_F(BinderLibTest, FreedBinder) {
     wp<IBinder> keepFreedBinder;
     {
         Parcel data, reply;
-        data.writeBool(false); /* request weak reference */
         ret = server->transact(BINDER_LIB_TEST_CREATE_BINDER_TRANSACTION, data, &reply);
         ASSERT_EQ(NO_ERROR, ret);
         struct flat_binder_object *freed = (struct flat_binder_object *)(reply.data());
@@ -864,8 +799,9 @@ TEST_F(BinderLibTest, FreedBinder) {
          * delete its reference to it - otherwise the transaction
          * fails regardless of whether the driver is fixed.
          */
-        keepFreedBinder = reply.readWeakBinder();
+        keepFreedBinder = reply.readStrongBinder();
     }
+    IPCThreadState::self()->flushCommands();
     {
         Parcel data, reply;
         data.writeStrongBinder(server);
@@ -941,141 +877,6 @@ TEST_F(BinderLibTest, OnewayQueueing)
     EXPECT_EQ(NO_ERROR, ret);
 }
 
-TEST_F(BinderLibTest, WorkSourceUnsetByDefault)
-{
-    status_t ret;
-    Parcel data, reply;
-    data.writeInterfaceToken(binderLibTestServiceName);
-    ret = m_server->transact(BINDER_LIB_TEST_GET_WORK_SOURCE_TRANSACTION, data, &reply);
-    EXPECT_EQ(-1, reply.readInt32());
-    EXPECT_EQ(NO_ERROR, ret);
-}
-
-TEST_F(BinderLibTest, WorkSourceSet)
-{
-    status_t ret;
-    Parcel data, reply;
-    IPCThreadState::self()->clearCallingWorkSource();
-    int64_t previousWorkSource = IPCThreadState::self()->setCallingWorkSourceUid(100);
-    data.writeInterfaceToken(binderLibTestServiceName);
-    ret = m_server->transact(BINDER_LIB_TEST_GET_WORK_SOURCE_TRANSACTION, data, &reply);
-    EXPECT_EQ(100, reply.readInt32());
-    EXPECT_EQ(-1, previousWorkSource);
-    EXPECT_EQ(true, IPCThreadState::self()->shouldPropagateWorkSource());
-    EXPECT_EQ(NO_ERROR, ret);
-}
-
-TEST_F(BinderLibTest, WorkSourceSetWithoutPropagation)
-{
-    status_t ret;
-    Parcel data, reply;
-
-    IPCThreadState::self()->setCallingWorkSourceUidWithoutPropagation(100);
-    EXPECT_EQ(false, IPCThreadState::self()->shouldPropagateWorkSource());
-
-    data.writeInterfaceToken(binderLibTestServiceName);
-    ret = m_server->transact(BINDER_LIB_TEST_GET_WORK_SOURCE_TRANSACTION, data, &reply);
-    EXPECT_EQ(-1, reply.readInt32());
-    EXPECT_EQ(false, IPCThreadState::self()->shouldPropagateWorkSource());
-    EXPECT_EQ(NO_ERROR, ret);
-}
-
-TEST_F(BinderLibTest, WorkSourceCleared)
-{
-    status_t ret;
-    Parcel data, reply;
-
-    IPCThreadState::self()->setCallingWorkSourceUid(100);
-    int64_t token = IPCThreadState::self()->clearCallingWorkSource();
-    int32_t previousWorkSource = (int32_t)token;
-    data.writeInterfaceToken(binderLibTestServiceName);
-    ret = m_server->transact(BINDER_LIB_TEST_GET_WORK_SOURCE_TRANSACTION, data, &reply);
-
-    EXPECT_EQ(-1, reply.readInt32());
-    EXPECT_EQ(100, previousWorkSource);
-    EXPECT_EQ(NO_ERROR, ret);
-}
-
-TEST_F(BinderLibTest, WorkSourceRestored)
-{
-    status_t ret;
-    Parcel data, reply;
-
-    IPCThreadState::self()->setCallingWorkSourceUid(100);
-    int64_t token = IPCThreadState::self()->clearCallingWorkSource();
-    IPCThreadState::self()->restoreCallingWorkSource(token);
-
-    data.writeInterfaceToken(binderLibTestServiceName);
-    ret = m_server->transact(BINDER_LIB_TEST_GET_WORK_SOURCE_TRANSACTION, data, &reply);
-
-    EXPECT_EQ(100, reply.readInt32());
-    EXPECT_EQ(true, IPCThreadState::self()->shouldPropagateWorkSource());
-    EXPECT_EQ(NO_ERROR, ret);
-}
-
-TEST_F(BinderLibTest, PropagateFlagSet)
-{
-    status_t ret;
-    Parcel data, reply;
-
-    IPCThreadState::self()->clearPropagateWorkSource();
-    IPCThreadState::self()->setCallingWorkSourceUid(100);
-    EXPECT_EQ(true, IPCThreadState::self()->shouldPropagateWorkSource());
-}
-
-TEST_F(BinderLibTest, PropagateFlagCleared)
-{
-    status_t ret;
-    Parcel data, reply;
-
-    IPCThreadState::self()->setCallingWorkSourceUid(100);
-    IPCThreadState::self()->clearPropagateWorkSource();
-    EXPECT_EQ(false, IPCThreadState::self()->shouldPropagateWorkSource());
-}
-
-TEST_F(BinderLibTest, PropagateFlagRestored)
-{
-    status_t ret;
-    Parcel data, reply;
-
-    int token = IPCThreadState::self()->setCallingWorkSourceUid(100);
-    IPCThreadState::self()->restoreCallingWorkSource(token);
-
-    EXPECT_EQ(false, IPCThreadState::self()->shouldPropagateWorkSource());
-}
-
-TEST_F(BinderLibTest, WorkSourcePropagatedForAllFollowingBinderCalls)
-{
-    IPCThreadState::self()->setCallingWorkSourceUid(100);
-
-    Parcel data, reply;
-    status_t ret;
-    data.writeInterfaceToken(binderLibTestServiceName);
-    ret = m_server->transact(BINDER_LIB_TEST_GET_WORK_SOURCE_TRANSACTION, data, &reply);
-
-    Parcel data2, reply2;
-    status_t ret2;
-    data2.writeInterfaceToken(binderLibTestServiceName);
-    ret2 = m_server->transact(BINDER_LIB_TEST_GET_WORK_SOURCE_TRANSACTION, data2, &reply2);
-    EXPECT_EQ(100, reply2.readInt32());
-    EXPECT_EQ(NO_ERROR, ret2);
-}
-
-TEST_F(BinderLibTest, VectorSent) {
-    Parcel data, reply;
-    sp<IBinder> server = addServer();
-    ASSERT_TRUE(server != nullptr);
-
-    std::vector<uint64_t> const testValue = { std::numeric_limits<uint64_t>::max(), 0, 200 };
-    data.writeUint64Vector(testValue);
-
-    status_t ret = server->transact(BINDER_LIB_TEST_ECHO_VECTOR, data, &reply);
-    EXPECT_EQ(NO_ERROR, ret);
-    std::vector<uint64_t> readValue;
-    ret = reply.readUint64Vector(&readValue);
-    EXPECT_EQ(readValue, testValue);
-}
-
 class BinderLibTestService : public BBinder
 {
     public:
@@ -1136,7 +937,6 @@ class BinderLibTestService : public BBinder
             case BINDER_LIB_TEST_ADD_POLL_SERVER:
             case BINDER_LIB_TEST_ADD_SERVER: {
                 int ret;
-                uint8_t buf[1] = { 0 };
                 int serverid;
 
                 if (m_id != 0) {
@@ -1334,29 +1134,6 @@ class BinderLibTestService : public BBinder
                 if (ret != size) return UNKNOWN_ERROR;
                 return NO_ERROR;
             }
-            case BINDER_LIB_TEST_PROMOTE_WEAK_REF_TRANSACTION: {
-                int ret;
-                wp<IBinder> weak;
-                sp<IBinder> strong;
-                Parcel data2, reply2;
-                sp<IServiceManager> sm = defaultServiceManager();
-                sp<IBinder> server = sm->getService(binderLibTestServiceName);
-
-                weak = data.readWeakBinder();
-                if (weak == nullptr) {
-                    return BAD_VALUE;
-                }
-                strong = weak.promote();
-
-                ret = server->transact(BINDER_LIB_TEST_NOP_TRANSACTION, data2, &reply2);
-                if (ret != NO_ERROR)
-                    exit(EXIT_FAILURE);
-
-                if (strong == nullptr) {
-                    reply->setError(1);
-                }
-                return NO_ERROR;
-            }
             case BINDER_LIB_TEST_DELAYED_EXIT_TRANSACTION:
                 alarm(10);
                 return NO_ERROR;
@@ -1365,26 +1142,8 @@ class BinderLibTestService : public BBinder
                     ;
                 exit(EXIT_SUCCESS);
             case BINDER_LIB_TEST_CREATE_BINDER_TRANSACTION: {
-                bool strongRef = data.readBool();
                 sp<IBinder> binder = new BBinder();
-                if (strongRef) {
-                    reply->writeStrongBinder(binder);
-                } else {
-                    reply->writeWeakBinder(binder);
-                }
-                return NO_ERROR;
-            }
-            case BINDER_LIB_TEST_GET_WORK_SOURCE_TRANSACTION: {
-                data.enforceInterface(binderLibTestServiceName);
-                reply->writeInt32(IPCThreadState::self()->getCallingWorkSourceUid());
-                return NO_ERROR;
-            }
-            case BINDER_LIB_TEST_ECHO_VECTOR: {
-                std::vector<uint64_t> vector;
-                auto err = data.readUint64Vector(&vector);
-                if (err != NO_ERROR)
-                    return err;
-                reply->writeUint64Vector(vector);
+                reply->writeStrongBinder(binder);
                 return NO_ERROR;
             }
             default:
@@ -1399,7 +1158,6 @@ class BinderLibTestService : public BBinder
         bool m_serverStartRequested;
         sp<IBinder> m_serverStarted;
         sp<IBinder> m_strongRef;
-        bool m_callbackPending;
         sp<IBinder> m_callback;
 };
 
@@ -1461,7 +1219,7 @@ int run_server(int index, int readypipefd, bool usePoll)
               * We simulate a single-threaded process using the binder poll
               * interface; besides handling binder commands, it can also
               * issue outgoing transactions, by storing a callback in
-              * m_callback and setting m_callbackPending.
+              * m_callback.
               *
               * processPendingCall() will then issue that transaction.
               */
@@ -1488,8 +1246,6 @@ int run_server(int index, int readypipefd, bool usePoll)
 }
 
 int main(int argc, char **argv) {
-    int ret;
-
     if (argc == 4 && !strcmp(argv[1], "--servername")) {
         binderservername = argv[2];
     } else {

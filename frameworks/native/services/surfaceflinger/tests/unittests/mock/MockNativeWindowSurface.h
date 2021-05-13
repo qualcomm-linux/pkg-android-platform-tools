@@ -20,17 +20,19 @@
 
 #include <system/window.h> // for ANativeWindow
 
-#include "NativeWindowSurface.h"
+#include "SurfaceFlinger.h" // for base NativeWindowSurface
 
-namespace android::surfaceflinger::mock {
+namespace android {
+namespace mock {
 
-class NativeWindowSurface : public surfaceflinger::NativeWindowSurface {
+class NativeWindowSurface : public android::NativeWindowSurface {
 public:
     NativeWindowSurface();
-    ~NativeWindowSurface() override;
+    ~NativeWindowSurface();
 
     MOCK_CONST_METHOD0(getNativeWindow, sp<ANativeWindow>());
     MOCK_METHOD0(preallocateBuffers, void());
 };
 
-} // namespace android::surfaceflinger::mock
+} // namespace mock
+} // namespace android

@@ -65,7 +65,6 @@ BufferQueueCore::BufferQueueCore() :
     mConnectedApi(NO_CONNECTED_API),
     mLinkedToDeath(),
     mConnectedProducerListener(),
-    mBufferReleasedCbEnabled(false),
     mSlots(),
     mQueue(),
     mFreeSlots(),
@@ -74,8 +73,6 @@ BufferQueueCore::BufferQueueCore() :
     mActiveBuffers(),
     mDequeueCondition(),
     mDequeueBufferCannotBlock(false),
-    mQueueBufferCanDrop(false),
-    mLegacyBufferDrop(true),
     mDefaultBufferFormat(PIXEL_FORMAT_RGBA_8888),
     mDefaultWidth(1),
     mDefaultHeight(1),
@@ -113,15 +110,13 @@ BufferQueueCore::BufferQueueCore() :
 BufferQueueCore::~BufferQueueCore() {}
 
 void BufferQueueCore::dumpState(const String8& prefix, String8* outResult) const {
-    std::lock_guard<std::mutex> lock(mMutex);
+    Mutex::Autolock lock(mMutex);
 
     outResult->appendFormat("%s- BufferQueue ", prefix.string());
     outResult->appendFormat("mMaxAcquiredBufferCount=%d mMaxDequeuedBufferCount=%d\n",
                             mMaxAcquiredBufferCount, mMaxDequeuedBufferCount);
     outResult->appendFormat("%s  mDequeueBufferCannotBlock=%d mAsyncMode=%d\n", prefix.string(),
                             mDequeueBufferCannotBlock, mAsyncMode);
-    outResult->appendFormat("%s  mQueueBufferCanDrop=%d mLegacyBufferDrop=%d\n", prefix.string(),
-                            mQueueBufferCanDrop, mLegacyBufferDrop);
     outResult->appendFormat("%s  default-size=[%dx%d] default-format=%d ", prefix.string(),
                             mDefaultWidth, mDefaultHeight, mDefaultBufferFormat);
     outResult->appendFormat("transform-hint=%02x frame-counter=%" PRIu64, mTransformHint,
@@ -261,12 +256,6 @@ void BufferQueueCore::freeAllBuffersLocked() {
 }
 
 void BufferQueueCore::discardFreeBuffersLocked() {
-    // Notify producer about the discarded buffers.
-    if (mConnectedProducerListener != nullptr && mFreeBuffers.size() > 0) {
-        std::vector<int32_t> freeBuffers(mFreeBuffers.begin(), mFreeBuffers.end());
-        mConnectedProducerListener->onBuffersDiscarded(freeBuffers);
-    }
-
     for (int s : mFreeBuffers) {
         mFreeSlots.insert(s);
         clearBufferSlotLocked(s);
@@ -317,10 +306,10 @@ bool BufferQueueCore::adjustAvailableSlotsLocked(int delta) {
     return true;
 }
 
-void BufferQueueCore::waitWhileAllocatingLocked(std::unique_lock<std::mutex>& lock) const {
+void BufferQueueCore::waitWhileAllocatingLocked() const {
     ATRACE_CALL();
     while (mIsAllocating) {
-        mIsAllocatingCondition.wait(lock);
+        mIsAllocatingCondition.wait(mMutex);
     }
 }
 
@@ -360,7 +349,7 @@ void BufferQueueCore::validateConsistencyLocked() const {
                 BQ_LOGE("Slot %d is in mUnusedSlots but is not FREE", slot);
                 usleep(PAUSE_TIME);
             }
-            if (mSlots[slot].mGraphicBuffer != nullptr) {
+            if (mSlots[slot].mGraphicBuffer != NULL) {
                 BQ_LOGE("Slot %d is in mUnusedSluts but has an active buffer",
                         slot);
                 usleep(PAUSE_TIME);
@@ -382,7 +371,7 @@ void BufferQueueCore::validateConsistencyLocked() const {
                 BQ_LOGE("Slot %d is in mFreeSlots but is not FREE", slot);
                 usleep(PAUSE_TIME);
             }
-            if (mSlots[slot].mGraphicBuffer != nullptr) {
+            if (mSlots[slot].mGraphicBuffer != NULL) {
                 BQ_LOGE("Slot %d is in mFreeSlots but has a buffer",
                         slot);
                 usleep(PAUSE_TIME);
@@ -405,7 +394,7 @@ void BufferQueueCore::validateConsistencyLocked() const {
                 BQ_LOGE("Slot %d is in mFreeBuffers but is not FREE", slot);
                 usleep(PAUSE_TIME);
             }
-            if (mSlots[slot].mGraphicBuffer == nullptr) {
+            if (mSlots[slot].mGraphicBuffer == NULL) {
                 BQ_LOGE("Slot %d is in mFreeBuffers but has no buffer", slot);
                 usleep(PAUSE_TIME);
             }
@@ -429,7 +418,7 @@ void BufferQueueCore::validateConsistencyLocked() const {
                 BQ_LOGE("Slot %d is in mActiveBuffers but is FREE", slot);
                 usleep(PAUSE_TIME);
             }
-            if (mSlots[slot].mGraphicBuffer == nullptr && !mIsAllocating) {
+            if (mSlots[slot].mGraphicBuffer == NULL && !mIsAllocating) {
                 BQ_LOGE("Slot %d is in mActiveBuffers but has no buffer", slot);
                 usleep(PAUSE_TIME);
             }

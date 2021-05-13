@@ -102,6 +102,15 @@ static constexpr int kVerityPageSize = 4096;
 static constexpr size_t kSha256Size = 32;
 static constexpr const char* kPropApkVerityMode = "ro.apk_verity.mode";
 
+// NOTE: keep in sync with Installer
+static constexpr int FLAG_CLEAR_CACHE_ONLY = 1 << 8;
+static constexpr int FLAG_CLEAR_CODE_CACHE_ONLY = 1 << 9;
+static constexpr int FLAG_USE_QUOTA = 1 << 12;
+static constexpr int FLAG_FREE_CACHE_V2 = 1 << 13;
+static constexpr int FLAG_FREE_CACHE_V2_DEFY_QUOTA = 1 << 14;
+static constexpr int FLAG_FREE_CACHE_NOOP = 1 << 15;
+static constexpr int FLAG_FORCE = 1 << 16;
+
 namespace {
 
 constexpr const char* kDump = "android.permission.DUMP";
@@ -588,41 +597,6 @@ binder::Status InstalldNativeService::clearAppData(const std::unique_ptr<std::st
             }
         }
     }
-    if (flags & FLAG_STORAGE_EXTERNAL) {
-        std::lock_guard<std::recursive_mutex> lock(mMountsLock);
-        for (const auto& n : mStorageMounts) {
-            auto extPath = n.second;
-            if (n.first.compare(0, 14, "/mnt/media_rw/") != 0) {
-                extPath += StringPrintf("/%d", userId);
-            } else if (userId != 0) {
-                // TODO: support devices mounted under secondary users
-                continue;
-            }
-            if (flags & FLAG_CLEAR_CACHE_ONLY) {
-                // Clear only cached data from shared storage
-                auto path = StringPrintf("%s/Android/data/%s/cache", extPath.c_str(), pkgname);
-                if (delete_dir_contents(path, true) != 0) {
-                    res = error("Failed to delete contents of " + path);
-                }
-            } else if (flags & FLAG_CLEAR_CODE_CACHE_ONLY) {
-                // No code cache on shared storage
-            } else {
-                // Clear everything on shared storage
-                auto path = StringPrintf("%s/Android/data/%s", extPath.c_str(), pkgname);
-                if (delete_dir_contents(path, true) != 0) {
-                    res = error("Failed to delete contents of " + path);
-                }
-                path = StringPrintf("%s/Android/media/%s", extPath.c_str(), pkgname);
-                if (delete_dir_contents(path, true) != 0) {
-                    res = error("Failed to delete contents of " + path);
-                }
-                path = StringPrintf("%s/Android/obb/%s", extPath.c_str(), pkgname);
-                if (delete_dir_contents(path, true) != 0) {
-                    res = error("Failed to delete contents of " + path);
-                }
-            }
-        }
-    }
     return res;
 }
 
@@ -683,30 +657,6 @@ binder::Status InstalldNativeService::destroyAppData(const std::unique_ptr<std::
         // beneficial to keep the reference profile around.
         // Verify if it's ok to do that.
         destroy_app_reference_profile(packageName);
-    }
-    if (flags & FLAG_STORAGE_EXTERNAL) {
-        std::lock_guard<std::recursive_mutex> lock(mMountsLock);
-        for (const auto& n : mStorageMounts) {
-            auto extPath = n.second;
-            if (n.first.compare(0, 14, "/mnt/media_rw/") != 0) {
-                extPath += StringPrintf("/%d", userId);
-            } else if (userId != 0) {
-                // TODO: support devices mounted under secondary users
-                continue;
-            }
-            auto path = StringPrintf("%s/Android/data/%s", extPath.c_str(), pkgname);
-            if (delete_dir_contents_and_dir(path, true) != 0) {
-                res = error("Failed to delete contents of " + path);
-            }
-            path = StringPrintf("%s/Android/media/%s", extPath.c_str(), pkgname);
-            if (delete_dir_contents_and_dir(path, true) != 0) {
-                res = error("Failed to delete contents of " + path);
-            }
-            path = StringPrintf("%s/Android/obb/%s", extPath.c_str(), pkgname);
-            if (delete_dir_contents_and_dir(path, true) != 0) {
-                res = error("Failed to delete contents of " + path);
-            }
-        }
     }
     return res;
 }
@@ -1660,8 +1610,7 @@ binder::Status InstalldNativeService::getAppSize(const std::unique_ptr<std::stri
 
     ATRACE_BEGIN("obb");
     for (const auto& packageName : packageNames) {
-        auto obbCodePath = create_data_media_package_path(uuid_, userId,
-                "obb", packageName.c_str());
+        auto obbCodePath = create_data_media_obb_path(uuid_, packageName.c_str());
         calculate_tree_size(obbCodePath, &extStats.codeSize);
     }
     ATRACE_END();
@@ -1993,8 +1942,7 @@ binder::Status InstalldNativeService::getExternalSize(const std::unique_ptr<std:
         ATRACE_END();
 
         ATRACE_BEGIN("obb");
-        auto obbPath = StringPrintf("%s/Android/obb",
-                create_data_media_path(uuid_, userId).c_str());
+        auto obbPath = create_data_media_obb_path(uuid_, "");
         calculate_tree_size(obbPath, &obbSize);
         ATRACE_END();
     }
@@ -2107,10 +2055,15 @@ binder::Status InstalldNativeService::dexopt(const std::string& apkPath, int32_t
     CHECK_ARGUMENT_PATH(dexMetadataPath);
     std::lock_guard<std::recursive_mutex> lock(mLock);
 
+    const char* oat_dir = getCStr(outputPath);
+    const char* instruction_set = instructionSet.c_str();
+    if (oat_dir != nullptr && !createOatDir(oat_dir, instruction_set).isOk()) {
+        // Can't create oat dir - let dexopt use cache dir.
+        oat_dir = nullptr;
+    }
+
     const char* apk_path = apkPath.c_str();
     const char* pkgname = getCStr(packageName, "*");
-    const char* instruction_set = instructionSet.c_str();
-    const char* oat_dir = getCStr(outputPath);
     const char* compiler_filter = compilerFilter.c_str();
     const char* volume_uuid = getCStr(uuid);
     const char* class_loader_context = getCStr(classLoaderContext);
@@ -2514,7 +2467,7 @@ binder::Status InstalldNativeService::rmPackageDir(const std::string& packageDir
     if (validate_apk_path(packageDir.c_str())) {
         return error("Invalid path " + packageDir);
     }
-    if (rm_package_dir(packageDir) != 0) {
+    if (delete_dir_contents_and_dir(packageDir) != 0) {
         return error("Failed to delete " + packageDir);
     }
     return ok();
@@ -2813,17 +2766,6 @@ binder::Status InstalldNativeService::prepareAppProfile(const std::string& packa
 
     *_aidl_return = prepare_app_profile(packageName, userId, appId, profileName, codePath,
         dexMetadata);
-    return ok();
-}
-
-binder::Status InstalldNativeService::migrateLegacyObbData() {
-    ENFORCE_UID(AID_SYSTEM);
-    // NOTE: The lint warning doesn't apply to the use of system(3) with
-    // absolute parse and no command line arguments.
-    if (system("/system/bin/migrate_legacy_obb_data.sh") != 0) { // NOLINT(cert-env33-c)
-        LOG(ERROR) << "Unable to migrate legacy obb data";
-    }
-
     return ok();
 }
 

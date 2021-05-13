@@ -20,7 +20,6 @@
 #include <gui/BufferQueueDefs.h>
 #include <gui/HdrMetadata.h>
 #include <gui/IGraphicBufferProducer.h>
-#include <gui/IProducerListener.h>
 
 #include <ui/ANativeObjectBase.h>
 #include <ui/GraphicTypes.h>
@@ -35,21 +34,6 @@
 namespace android {
 
 class ISurfaceComposer;
-
-/* This is the same as ProducerListener except that onBuffersDiscarded is
- * called with a vector of graphic buffers instead of buffer slots.
- */
-class SurfaceListener : public virtual RefBase
-{
-public:
-    SurfaceListener() = default;
-    virtual ~SurfaceListener() = default;
-
-    virtual void onBufferReleased() = 0;
-    virtual bool needsReleaseNotify() = 0;
-
-    virtual void onBuffersDiscarded(const std::vector<sp<GraphicBuffer>>& buffers) = 0;
-};
 
 /*
  * An implementation of ANativeWindow that feeds graphics buffers into a
@@ -96,7 +80,7 @@ public:
     /* convenience function to check that the given surface is non NULL as
      * well as its IGraphicBufferProducer */
     static bool isValid(const sp<Surface>& surface) {
-        return surface != nullptr && surface->getIGraphicBufferProducer() != nullptr;
+        return surface != NULL && surface->getIGraphicBufferProducer() != NULL;
     }
 
     /* Attaches a sideband buffer stream to the Surface's IGraphicBufferProducer.
@@ -234,7 +218,6 @@ private:
     int dispatchSetBuffersDataSpace(va_list args);
     int dispatchSetBuffersSmpte2086Metadata(va_list args);
     int dispatchSetBuffersCta8613Metadata(va_list args);
-    int dispatchSetBuffersHdr10PlusMetadata(va_list args);
     int dispatchSetSurfaceDamage(va_list args);
     int dispatchSetSharedBufferMode(va_list args);
     int dispatchSetAutoRefresh(va_list args);
@@ -246,7 +229,6 @@ private:
     int dispatchGetWideColorSupport(va_list args);
     int dispatchGetHdrSupport(va_list args);
     int dispatchGetConsumerUsage64(va_list args);
-    bool transformToDisplayInverse();
 
 protected:
     virtual int dequeueBuffer(ANativeWindowBuffer** buffer, int* fenceFd);
@@ -267,7 +249,6 @@ protected:
     virtual int setBuffersDataSpace(ui::Dataspace dataSpace);
     virtual int setBuffersSmpte2086Metadata(const android_smpte2086_metadata* metadata);
     virtual int setBuffersCta8613Metadata(const android_cta861_3_metadata* metadata);
-    virtual int setBuffersHdr10PlusMetadata(const size_t size, const uint8_t* metadata);
     virtual int setCrop(Rect const* rect);
     virtual int setUsage(uint64_t reqUsage);
     virtual void setSurfaceDamage(android_native_rect_t* rects, size_t numRects);
@@ -299,10 +280,6 @@ public:
             sp<Fence>* outFence);
     virtual int attachBuffer(ANativeWindowBuffer*);
 
-    virtual int connect(
-            int api, bool reportBufferRemoval,
-            const sp<SurfaceListener>& sListener);
-
     // When client connects to Surface with reportBufferRemoval set to true, any buffers removed
     // from this Surface will be collected and returned here. Once this method returns, these
     // buffers will no longer be referenced by this Surface unless they are attached to this
@@ -312,32 +289,11 @@ public:
 
     ui::Dataspace getBuffersDataSpace();
 
-    static status_t attachAndQueueBufferWithDataspace(Surface* surface, sp<GraphicBuffer> buffer,
-                                                      ui::Dataspace dataspace);
+    static status_t attachAndQueueBuffer(Surface* surface, sp<GraphicBuffer> buffer);
 
 protected:
     enum { NUM_BUFFER_SLOTS = BufferQueueDefs::NUM_BUFFER_SLOTS };
     enum { DEFAULT_FORMAT = PIXEL_FORMAT_RGBA_8888 };
-
-    class ProducerListenerProxy : public BnProducerListener {
-    public:
-        ProducerListenerProxy(wp<Surface> parent, sp<SurfaceListener> listener)
-               : mParent(parent), mSurfaceListener(listener) {}
-        virtual ~ProducerListenerProxy() {}
-
-        virtual void onBufferReleased() {
-            mSurfaceListener->onBufferReleased();
-        }
-
-        virtual bool needsReleaseNotify() {
-            return mSurfaceListener->needsReleaseNotify();
-        }
-
-        virtual void onBuffersDiscarded(const std::vector<int32_t>& slots);
-    private:
-        wp<Surface> mParent;
-        sp<SurfaceListener> mSurfaceListener;
-    };
 
     void querySupportedTimestampsLocked() const;
 
@@ -506,10 +462,6 @@ protected:
 
     bool mReportRemovedBuffers = false;
     std::vector<sp<GraphicBuffer>> mRemovedBuffers;
-
-    sp<IProducerListener> mListenerProxy;
-    status_t getAndFlushBuffersFromSlots(const std::vector<int32_t>& slots,
-            std::vector<sp<GraphicBuffer>>* outBuffers);
 };
 
 } // namespace android

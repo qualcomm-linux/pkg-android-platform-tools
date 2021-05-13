@@ -19,13 +19,6 @@
     },
     {
         "tests": "080-oom-fragmentation",
-        "description": ["Disable 080-oom-fragmentation for GSS GC due to lack of",
-                        "support for allocations larger than 32MB."],
-        "env_vars": {"ART_DEFAULT_GC_TYPE": "GSS"},
-        "bug": "http://b/33795328"
-    },
-    {
-        "tests": "080-oom-fragmentation",
         "description": ["Disable 080-oom-fragmentation for CC collector in debug mode",
                         "because of potential fragmentation caused by the region space's",
                         "cyclic region allocation (which is enabled in debug mode)."],
@@ -745,9 +738,11 @@
     },
     {
         "tests": "660-clinit",
-        "variant": "no-image | no-prebuild | jvmti-stress | redefine-stress",
+        "variant": "no-image | no-prebuild | jvmti-stress | redefine-stress | interp-ac | debuggable",
         "description": ["Tests <clinit> for app images, which --no-image, --no-prebuild, ",
-                        "and --redefine-stress do not create"]
+                        "and --redefine-stress do not create. Also avoid for ",
+                        "verify-soft-fail (interp-ac) and debuggable since they prevent ",
+                        "initialization."]
     },
     {
         "tests": ["961-default-iface-resolution-gen",
@@ -782,6 +777,18 @@
         "tests": "674-HelloWorld-Dm",
         "variant": "target",
         "description": ["Requires zip, which isn't available on device"]
+    },
+    {
+        "tests": [
+          "1965-get-set-local-primitive-no-tables",
+          "1966-get-set-local-objects-no-table"
+        ],
+        "variant": "jvm",
+        "bug": "133241695",
+        "description": [
+          "The RI is wildly inconsistent about how it handles Get/SetLocalVariable when classes ",
+          "lack debug info."
+        ]
     },
     {
         "tests": ["683-clinit-inline-static-invoke"],
@@ -867,6 +874,7 @@
           "167-visit-locks",
           "168-vmstack-annotated",
           "172-app-image-twice",
+          "177-visibly-initialized-deadlock",
           "201-built-in-except-detail-messages",
           "203-multi-checkpoint",
           "304-method-tracing",
@@ -1107,7 +1115,11 @@
                   "1001-app-image-regions",
                   "1339-dead-reference-safe",
                   "1951-monitor-enter-no-suspend",
-                  "1957-error-ext"],
+                  "1957-error-ext",
+                  "1972-jni-id-swap-indices",
+                  "1973-jni-id-swap-pointer",
+                  "1974-resize-array"
+                ],
         "variant": "jvm",
         "description": ["Doesn't run on RI."]
     },
@@ -1191,15 +1203,6 @@
         "description": ["Timeout with ASan and interp-ac on 32-bit host (x86)."]
     },
     {
-        "tests": ["980-redefine-object"],
-        "description": ["This test appears to be unusally flaky on no-image + jit. The cause of ",
-                        "this flakiness is unknown but appears to be related to the ",
-                        "jit-compilation of JNI bridges. Until more investigation is done we skip ",
-                        "this test."],
-        "bug": "http://b/73333076",
-        "variant": "no-image & jit"
-    },
-    {
         "tests": ["454-get-vreg", "457-regs"],
         "variant": "baseline",
         "description": ["Tests are expected to fail with baseline."]
@@ -1231,17 +1234,5 @@
                   "575-checker-string-init-alias"],
         "variant": "baseline",
         "description": [ "Working as intended tests that don't pass with baseline." ]
-    },
-    {
-        "tests": ["1004-checker-volatile-ref-load"],
-        "env_vars": {"ART_USE_READ_BARRIER": "false"},
-        "bug": "b/140507091",
-        "description": ["Test containing Checker assertions expecting Baker read barriers."]
-    },
-    {
-        "tests": ["1004-checker-volatile-ref-load"],
-        "env_vars": {"ART_READ_BARRIER_TYPE": "TABLELOOKUP"},
-        "bug": "b/140507091",
-        "description": ["Test containing Checker assertions expecting Baker read barriers."]
     }
 ]

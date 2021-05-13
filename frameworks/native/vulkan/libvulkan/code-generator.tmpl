@@ -703,7 +703,6 @@ VK_KHR_get_surface_capabilities2
 {{Macro "driver.InterceptedExtensions"}}
 VK_KHR_get_physical_device_properties2
 VK_ANDROID_external_memory_android_hardware_buffer
-VK_KHR_bind_memory2
 {{end}}
 
 
@@ -751,9 +750,6 @@ VK_KHR_bind_memory2
     {{else if eq $.Name "vkGetInstanceProcAddr"}}true
     {{else if eq $.Name "vkGetDeviceProcAddr"}}true
 
-    {{/* VK_KHR_swapchain v69 requirement */}}
-    {{else if eq $.Name "vkBindImageMemory2"}}true
-    {{else if eq $.Name "vkBindImageMemory2KHR"}}true
     {{end}}
 
     {{$ext := GetAnnotation $ "extension"}}
@@ -989,10 +985,6 @@ VK_KHR_bind_memory2
     {{else if eq $.Name "vkGetPhysicalDeviceProperties"}}true
     {{else if eq $.Name "vkGetPhysicalDeviceProperties2"}}true
     {{else if eq $.Name "vkGetPhysicalDeviceProperties2KHR"}}true
-
-    {{/* VK_KHR_swapchain v69 requirement */}}
-    {{else if eq $.Name "vkBindImageMemory2"}}true
-    {{else if eq $.Name "vkBindImageMemory2KHR"}}true
     {{end}}
 
     {{$ext := GetAnnotation $ "extension"}}

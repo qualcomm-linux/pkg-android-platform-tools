@@ -64,7 +64,7 @@ EventQueue::EventQueue(
               mInternalQueue(internalQueue) {
 
     mLooper->addFd(internalQueue->getFd(), ALOOPER_POLL_CALLBACK, ALOOPER_EVENT_INPUT,
-            new EventQueueLooperCallback(internalQueue, callback), nullptr /* data */);
+            new EventQueueLooperCallback(internalQueue, callback), NULL /* data */);
 }
 
 void EventQueue::onLastStrongRef(const void *id) {

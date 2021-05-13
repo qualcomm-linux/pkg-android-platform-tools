@@ -31,10 +31,15 @@ bool sortLayers(LayerProtoParser::Layer* lhs, const LayerProtoParser::Layer* rhs
     int32_t lz = lhs->z;
     int32_t rz = rhs->z;
     if (lz != rz) {
-        return lz < rz;
+        return (lz > rz) ? 1 : -1;
     }
 
     return lhs->id < rhs->id;
+}
+
+bool sortLayerUniquePtrs(const std::unique_ptr<LayerProtoParser::Layer>& lhs,
+                   const std::unique_ptr<LayerProtoParser::Layer>& rhs) {
+    return sortLayers(lhs.get(), rhs.get());
 }
 
 const LayerProtoParser::LayerGlobal LayerProtoParser::generateLayerGlobalInfo(
@@ -47,91 +52,84 @@ const LayerProtoParser::LayerGlobal LayerProtoParser::generateLayerGlobalInfo(
     return layerGlobal;
 }
 
-LayerProtoParser::LayerTree LayerProtoParser::generateLayerTree(const LayersProto& layersProto) {
-    LayerTree layerTree;
-    layerTree.allLayers = generateLayerList(layersProto);
+std::vector<std::unique_ptr<LayerProtoParser::Layer>> LayerProtoParser::generateLayerTree(
+        const LayersProto& layersProto) {
+    std::unordered_map<int32_t, LayerProtoParser::Layer*> layerMap = generateMap(layersProto);
+    std::vector<std::unique_ptr<LayerProtoParser::Layer>> layers;
 
-    // find and sort the top-level layers
-    for (Layer& layer : layerTree.allLayers) {
-        if (layer.parent == nullptr) {
-            layerTree.topLevelLayers.push_back(&layer);
+    for (std::pair<int32_t, Layer*> kv : layerMap) {
+        if (kv.second->parent == nullptr) {
+            // Make unique_ptr for top level layers since they are not children. This ensures there
+            // will only be one unique_ptr made for each layer.
+            layers.push_back(std::unique_ptr<Layer>(kv.second));
         }
     }
-    std::sort(layerTree.topLevelLayers.begin(), layerTree.topLevelLayers.end(), sortLayers);
 
-    return layerTree;
+    std::sort(layers.begin(), layers.end(), sortLayerUniquePtrs);
+    return layers;
 }
 
-std::vector<LayerProtoParser::Layer> LayerProtoParser::generateLayerList(
+std::unordered_map<int32_t, LayerProtoParser::Layer*> LayerProtoParser::generateMap(
         const LayersProto& layersProto) {
-    std::vector<Layer> layerList;
     std::unordered_map<int32_t, Layer*> layerMap;
 
-    // build the layer list and the layer map
-    layerList.reserve(layersProto.layers_size());
-    layerMap.reserve(layersProto.layers_size());
     for (int i = 0; i < layersProto.layers_size(); i++) {
-        layerList.emplace_back(generateLayer(layersProto.layers(i)));
-        // this works because layerList never changes capacity
-        layerMap[layerList.back().id] = &layerList.back();
+        const LayerProto& layerProto = layersProto.layers(i);
+        layerMap[layerProto.id()] = generateLayer(layerProto);
     }
 
-    // fix up children and relatives
     for (int i = 0; i < layersProto.layers_size(); i++) {
-        updateChildrenAndRelative(layersProto.layers(i), layerMap);
+        const LayerProto& layerProto = layersProto.layers(i);
+        updateChildrenAndRelative(layerProto, layerMap);
     }
 
-    return layerList;
+    return layerMap;
 }
 
-LayerProtoParser::Layer LayerProtoParser::generateLayer(const LayerProto& layerProto) {
-    Layer layer;
-    layer.id = layerProto.id();
-    layer.name = layerProto.name();
-    layer.type = layerProto.type();
-    layer.transparentRegion = generateRegion(layerProto.transparent_region());
-    layer.visibleRegion = generateRegion(layerProto.visible_region());
-    layer.damageRegion = generateRegion(layerProto.damage_region());
-    layer.layerStack = layerProto.layer_stack();
-    layer.z = layerProto.z();
-    layer.position = {layerProto.position().x(), layerProto.position().y()};
-    layer.requestedPosition = {layerProto.requested_position().x(),
+LayerProtoParser::Layer* LayerProtoParser::generateLayer(const LayerProto& layerProto) {
+    Layer* layer = new Layer();
+    layer->id = layerProto.id();
+    layer->name = layerProto.name();
+    layer->type = layerProto.type();
+    layer->transparentRegion = generateRegion(layerProto.transparent_region());
+    layer->visibleRegion = generateRegion(layerProto.visible_region());
+    layer->damageRegion = generateRegion(layerProto.damage_region());
+    layer->layerStack = layerProto.layer_stack();
+    layer->z = layerProto.z();
+    layer->position = {layerProto.position().x(), layerProto.position().y()};
+    layer->requestedPosition = {layerProto.requested_position().x(),
                                 layerProto.requested_position().y()};
-    layer.size = {layerProto.size().w(), layerProto.size().h()};
-    layer.crop = generateRect(layerProto.crop());
-    layer.isOpaque = layerProto.is_opaque();
-    layer.invalidate = layerProto.invalidate();
-    layer.dataspace = layerProto.dataspace();
-    layer.pixelFormat = layerProto.pixel_format();
-    layer.color = {layerProto.color().r(), layerProto.color().g(), layerProto.color().b(),
+    layer->size = {layerProto.size().w(), layerProto.size().h()};
+    layer->crop = generateRect(layerProto.crop());
+    layer->finalCrop = generateRect(layerProto.final_crop());
+    layer->isOpaque = layerProto.is_opaque();
+    layer->invalidate = layerProto.invalidate();
+    layer->dataspace = layerProto.dataspace();
+    layer->pixelFormat = layerProto.pixel_format();
+    layer->color = {layerProto.color().r(), layerProto.color().g(), layerProto.color().b(),
                     layerProto.color().a()};
-    layer.requestedColor = {layerProto.requested_color().r(), layerProto.requested_color().g(),
+    layer->requestedColor = {layerProto.requested_color().r(), layerProto.requested_color().g(),
                              layerProto.requested_color().b(), layerProto.requested_color().a()};
-    layer.flags = layerProto.flags();
-    layer.transform = generateTransform(layerProto.transform());
-    layer.requestedTransform = generateTransform(layerProto.requested_transform());
-    layer.activeBuffer = generateActiveBuffer(layerProto.active_buffer());
-    layer.bufferTransform = generateTransform(layerProto.buffer_transform());
-    layer.queuedFrames = layerProto.queued_frames();
-    layer.refreshPending = layerProto.refresh_pending();
-    layer.hwcFrame = generateRect(layerProto.hwc_frame());
-    layer.hwcCrop = generateFloatRect(layerProto.hwc_crop());
-    layer.hwcTransform = layerProto.hwc_transform();
-    layer.hwcCompositionType = layerProto.hwc_composition_type();
-    layer.isProtected = layerProto.is_protected();
-    layer.cornerRadius = layerProto.corner_radius();
-    for (const auto& entry : layerProto.metadata()) {
-        const std::string& dataStr = entry.second;
-        std::vector<uint8_t>& outData = layer.metadata.mMap[entry.first];
-        outData.resize(dataStr.size());
-        memcpy(outData.data(), dataStr.data(), dataStr.size());
-    }
+    layer->flags = layerProto.flags();
+    layer->transform = generateTransform(layerProto.transform());
+    layer->requestedTransform = generateTransform(layerProto.requested_transform());
+    layer->activeBuffer = generateActiveBuffer(layerProto.active_buffer());
+    layer->queuedFrames = layerProto.queued_frames();
+    layer->refreshPending = layerProto.refresh_pending();
+    layer->hwcFrame = generateRect(layerProto.hwc_frame());
+    layer->hwcCrop = generateFloatRect(layerProto.hwc_crop());
+    layer->hwcTransform = layerProto.hwc_transform();
+    layer->windowType = layerProto.window_type();
+    layer->appId = layerProto.app_id();
+    layer->hwcCompositionType = layerProto.hwc_composition_type();
+    layer->isProtected = layerProto.is_protected();
 
     return layer;
 }
 
 LayerProtoParser::Region LayerProtoParser::generateRegion(const RegionProto& regionProto) {
     LayerProtoParser::Region region;
+    region.id = regionProto.id();
     for (int i = 0; i < regionProto.rect_size(); i++) {
         const RectProto& rectProto = regionProto.rect(i);
         region.rects.push_back(generateRect(rectProto));
@@ -188,7 +186,9 @@ void LayerProtoParser::updateChildrenAndRelative(const LayerProto& layerProto,
 
     for (int i = 0; i < layerProto.children_size(); i++) {
         if (layerMap.count(layerProto.children(i)) > 0) {
-            currLayer->children.push_back(layerMap[layerProto.children(i)]);
+            // Only make unique_ptrs for children since they are guaranteed to be unique, only one
+            // parent per child. This ensures there will only be one unique_ptr made for each layer.
+            currLayer->children.push_back(std::unique_ptr<Layer>(layerMap[layerProto.children(i)]));
         }
     }
 
@@ -198,41 +198,42 @@ void LayerProtoParser::updateChildrenAndRelative(const LayerProto& layerProto,
         }
     }
 
-    if (layerProto.parent() != -1) {
+    if (layerProto.has_parent()) {
         if (layerMap.count(layerProto.parent()) > 0) {
             currLayer->parent = layerMap[layerProto.parent()];
         }
     }
 
-    if (layerProto.z_order_relative_of() != -1) {
+    if (layerProto.has_z_order_relative_of()) {
         if (layerMap.count(layerProto.z_order_relative_of()) > 0) {
             currLayer->zOrderRelativeOf = layerMap[layerProto.z_order_relative_of()];
         }
     }
 }
 
-std::string LayerProtoParser::layerTreeToString(const LayerTree& layerTree) {
+std::string LayerProtoParser::layersToString(
+        std::vector<std::unique_ptr<LayerProtoParser::Layer>> layers) {
     std::string result;
-    for (const LayerProtoParser::Layer* layer : layerTree.topLevelLayers) {
+    for (std::unique_ptr<LayerProtoParser::Layer>& layer : layers) {
         if (layer->zOrderRelativeOf != nullptr) {
             continue;
         }
-        result.append(layerToString(layer));
+        result.append(layerToString(layer.get()).c_str());
     }
 
     return result;
 }
 
-std::string LayerProtoParser::layerToString(const LayerProtoParser::Layer* layer) {
+std::string LayerProtoParser::layerToString(LayerProtoParser::Layer* layer) {
     std::string result;
 
     std::vector<Layer*> traverse(layer->relatives);
-    for (LayerProtoParser::Layer* child : layer->children) {
+    for (std::unique_ptr<LayerProtoParser::Layer>& child : layer->children) {
         if (child->zOrderRelativeOf != nullptr) {
             continue;
         }
 
-        traverse.push_back(child);
+        traverse.push_back(child.get());
     }
 
     std::sort(traverse.begin(), traverse.end(), sortLayers);
@@ -243,13 +244,13 @@ std::string LayerProtoParser::layerToString(const LayerProtoParser::Layer* layer
         if (relative->z >= 0) {
             break;
         }
-        result.append(layerToString(relative));
+        result.append(layerToString(relative).c_str());
     }
-    result.append(layer->to_string());
+    result.append(layer->to_string().c_str());
     result.append("\n");
     for (; i < traverse.size(); i++) {
         auto& relative = traverse[i];
-        result.append(layerToString(relative));
+        result.append(layerToString(relative).c_str());
     }
 
     return result;
@@ -297,9 +298,8 @@ std::string LayerProtoParser::Layer::to_string() const {
                   z, static_cast<double>(position.x), static_cast<double>(position.y), size.x,
                   size.y);
 
-    StringAppendF(&result, "crop=%s, ", crop.to_string().c_str());
-    StringAppendF(&result, "cornerRadius=%f, ", cornerRadius);
-    StringAppendF(&result, "isProtected=%1d, ", isProtected);
+    StringAppendF(&result, "crop=%s, finalCrop=%s, ", crop.to_string().c_str(),
+                  finalCrop.to_string().c_str());
     StringAppendF(&result, "isOpaque=%1d, invalidate=%1d, ", isOpaque, invalidate);
     StringAppendF(&result, "dataspace=%s, ", dataspace.c_str());
     StringAppendF(&result, "defaultPixelFormat=%s, ", pixelFormat.c_str());
@@ -312,16 +312,8 @@ std::string LayerProtoParser::Layer::to_string() const {
     StringAppendF(&result, "      zOrderRelativeOf=%s\n",
                   zOrderRelativeOf == nullptr ? "none" : zOrderRelativeOf->name.c_str());
     StringAppendF(&result, "      activeBuffer=%s,", activeBuffer.to_string().c_str());
-    StringAppendF(&result, " tr=%s", bufferTransform.to_string().c_str());
     StringAppendF(&result, " queued-frames=%d, mRefreshPending=%d,", queuedFrames, refreshPending);
-    StringAppendF(&result, " metadata={");
-    bool first = true;
-    for (const auto& entry : metadata.mMap) {
-        if (!first) result.append(", ");
-        first = false;
-        result.append(metadata.itemToString(entry.first, ":"));
-    }
-    result.append("}");
+    StringAppendF(&result, " windowType=%d, appId=%d", windowType, appId);
 
     return result;
 }

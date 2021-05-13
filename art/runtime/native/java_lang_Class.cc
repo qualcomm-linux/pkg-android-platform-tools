@@ -220,7 +220,11 @@ static jobjectArray Class_getInterfacesInternal(JNIEnv* env, jobject javaThis) {
   Handle<mirror::Class> klass = hs.NewHandle(DecodeClass(soa, javaThis));
 
   if (klass->IsProxyClass()) {
-    return soa.AddLocalReference<jobjectArray>(klass->GetProxyInterfaces()->Clone(soa.Self()));
+    StackHandleScope<1> hs2(soa.Self());
+    Handle<mirror::ObjectArray<mirror::Class>> interfaces =
+        hs2.NewHandle(klass->GetProxyInterfaces());
+    return soa.AddLocalReference<jobjectArray>(
+        mirror::ObjectArray<mirror::Class>::Clone(interfaces, soa.Self()));
   }
 
   const dex::TypeList* iface_list = klass->GetInterfaceTypeList();
@@ -823,7 +827,7 @@ static jobject Class_newInstance(JNIEnv* env, jobject javaThis) {
   // Invoke the string allocator to return an empty string for the string class.
   if (klass->IsStringClass()) {
     gc::AllocatorType allocator_type = Runtime::Current()->GetHeap()->GetCurrentAllocator();
-    ObjPtr<mirror::Object> obj = mirror::String::AllocEmptyString<true>(soa.Self(), allocator_type);
+    ObjPtr<mirror::Object> obj = mirror::String::AllocEmptyString(soa.Self(), allocator_type);
     if (UNLIKELY(soa.Self()->IsExceptionPending())) {
       return nullptr;
     } else {

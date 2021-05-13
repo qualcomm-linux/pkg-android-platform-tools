@@ -62,7 +62,7 @@ SensorManager& SensorManager::getInstanceForPackage(const String16& packageName)
         // to the wrong package and stats based on app ops may be slightly off.
         if (opPackageName.size() <= 0) {
             sp<IBinder> binder = defaultServiceManager()->getService(String16("permission"));
-            if (binder != nullptr) {
+            if (binder != 0) {
                 const uid_t uid = IPCThreadState::self()->getCallingUid();
                 Vector<String16> packages;
                 interface_cast<IPermissionController>(binder)->getPackagesForUid(uid, packages);
@@ -93,8 +93,8 @@ SensorManager& SensorManager::getInstanceForPackage(const String16& packageName)
 }
 
 SensorManager::SensorManager(const String16& opPackageName)
-    : mSensorList(nullptr), mOpPackageName(opPackageName), mDirectConnectionHandle(1) {
-    Mutex::Autolock _l(mLock);
+    : mSensorList(0), mOpPackageName(opPackageName), mDirectConnectionHandle(1) {
+    // okay we're not locked here, but it's not needed during construction
     assertStateLocked();
 }
 
@@ -128,13 +128,13 @@ void SensorManager::sensorManagerDied() {
     Mutex::Autolock _l(mLock);
     mSensorServer.clear();
     free(mSensorList);
-    mSensorList = nullptr;
+    mSensorList = NULL;
     mSensors.clear();
 }
 
 status_t SensorManager::assertStateLocked() {
     bool initSensorManager = false;
-    if (mSensorServer == nullptr) {
+    if (mSensorServer == NULL) {
         initSensorManager = true;
     } else {
         // Ping binder to check if sensorservice is alive.
@@ -164,7 +164,7 @@ status_t SensorManager::assertStateLocked() {
         size_t count = mSensors.size();
         mSensorList =
                 static_cast<Sensor const**>(malloc(count * sizeof(Sensor*)));
-        LOG_ALWAYS_FATAL_IF(mSensorList == nullptr, "mSensorList NULL");
+        LOG_ALWAYS_FATAL_IF(mSensorList == NULL, "mSensorList NULL");
 
         for (size_t i=0 ; i<count ; i++) {
             mSensorList[i] = mSensors.array() + i;
@@ -222,7 +222,7 @@ Sensor const* SensorManager::getDefaultSensor(int type)
             }
         }
     }
-    return nullptr;
+    return NULL;
 }
 
 sp<SensorEventQueue> SensorManager::createEventQueue(String8 packageName, int mode) {
@@ -232,10 +232,10 @@ sp<SensorEventQueue> SensorManager::createEventQueue(String8 packageName, int mo
     while (assertStateLocked() == NO_ERROR) {
         sp<ISensorEventConnection> connection =
                 mSensorServer->createSensorEventConnection(packageName, mode, mOpPackageName);
-        if (connection == nullptr) {
+        if (connection == NULL) {
             // SensorService just died or the app doesn't have required permissions.
             ALOGE("createEventQueue: connection is NULL.");
-            return nullptr;
+            return NULL;
         }
         queue = new SensorEventQueue(connection);
         break;

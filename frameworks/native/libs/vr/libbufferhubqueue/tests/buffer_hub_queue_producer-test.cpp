@@ -108,8 +108,8 @@ class BufferHubQueueProducerTest : public ::testing::Test {
   void ConnectProducer() {
     IGraphicBufferProducer::QueueBufferOutput output;
     // Can connect the first time.
-    ASSERT_EQ(OK, mProducer->connect(kDummyListener, kTestApi,
-                                     kTestControlledByApp, &output));
+    ASSERT_EQ(NO_ERROR, mProducer->connect(kDummyListener, kTestApi,
+                                           kTestControlledByApp, &output));
   }
 
   // Dequeue a buffer in a 'correct' fashion.
@@ -170,7 +170,7 @@ TEST_F(BufferHubQueueProducerTest, ConnectAgain_ReturnsError) {
 TEST_F(BufferHubQueueProducerTest, Disconnect_Succeeds) {
   ASSERT_NO_FATAL_FAILURE(ConnectProducer());
 
-  ASSERT_EQ(OK, mProducer->disconnect(kTestApi));
+  ASSERT_EQ(NO_ERROR, mProducer->disconnect(kTestApi));
 }
 
 TEST_F(BufferHubQueueProducerTest, Disconnect_ReturnsError) {
@@ -186,24 +186,26 @@ TEST_F(BufferHubQueueProducerTest, Query_Succeeds) {
   ASSERT_NO_FATAL_FAILURE(ConnectProducer());
 
   int32_t value = -1;
-  EXPECT_EQ(OK, mProducer->query(NATIVE_WINDOW_WIDTH, &value));
+  EXPECT_EQ(NO_ERROR, mProducer->query(NATIVE_WINDOW_WIDTH, &value));
   EXPECT_EQ(kDefaultWidth, static_cast<uint32_t>(value));
 
-  EXPECT_EQ(OK, mProducer->query(NATIVE_WINDOW_HEIGHT, &value));
+  EXPECT_EQ(NO_ERROR, mProducer->query(NATIVE_WINDOW_HEIGHT, &value));
   EXPECT_EQ(kDefaultHeight, static_cast<uint32_t>(value));
 
-  EXPECT_EQ(OK, mProducer->query(NATIVE_WINDOW_FORMAT, &value));
+  EXPECT_EQ(NO_ERROR, mProducer->query(NATIVE_WINDOW_FORMAT, &value));
   EXPECT_EQ(kDefaultFormat, value);
 
-  EXPECT_EQ(OK, mProducer->query(NATIVE_WINDOW_MIN_UNDEQUEUED_BUFFERS, &value));
+  EXPECT_EQ(NO_ERROR,
+            mProducer->query(NATIVE_WINDOW_MIN_UNDEQUEUED_BUFFERS, &value));
   EXPECT_LE(0, value);
   EXPECT_GE(BufferQueueDefs::NUM_BUFFER_SLOTS, value);
 
-  EXPECT_EQ(OK,
+  EXPECT_EQ(NO_ERROR,
             mProducer->query(NATIVE_WINDOW_CONSUMER_RUNNING_BEHIND, &value));
   EXPECT_FALSE(value);  // Can't run behind when we haven't touched the queue
 
-  EXPECT_EQ(OK, mProducer->query(NATIVE_WINDOW_CONSUMER_USAGE_BITS, &value));
+  EXPECT_EQ(NO_ERROR,
+            mProducer->query(NATIVE_WINDOW_CONSUMER_USAGE_BITS, &value));
   EXPECT_EQ(kDefaultConsumerUsageBits, value);
 }
 
@@ -241,14 +243,14 @@ TEST_F(BufferHubQueueProducerTest, Queue_Succeeds) {
 
   // Request the buffer (pre-requisite for queueing)
   sp<GraphicBuffer> buffer;
-  ASSERT_EQ(OK, mProducer->requestBuffer(slot, &buffer));
+  ASSERT_EQ(NO_ERROR, mProducer->requestBuffer(slot, &buffer));
 
   // A generic "valid" input
   IGraphicBufferProducer::QueueBufferInput input = CreateBufferInput();
   IGraphicBufferProducer::QueueBufferOutput output;
 
   // Queue the buffer back into the BQ
-  ASSERT_EQ(OK, mProducer->queueBuffer(slot, input, &output));
+  ASSERT_EQ(NO_ERROR, mProducer->queueBuffer(slot, input, &output));
 
   EXPECT_EQ(kDefaultWidth, output.width);
   EXPECT_EQ(kDefaultHeight, output.height);
@@ -311,7 +313,7 @@ TEST_F(BufferHubQueueProducerTest, QueueNoFence_ReturnsError) {
   ASSERT_NO_FATAL_FAILURE(DequeueBuffer(&slot));
 
   sp<GraphicBuffer> buffer;
-  ASSERT_EQ(OK, mProducer->requestBuffer(slot, &buffer));
+  ASSERT_EQ(NO_ERROR, mProducer->requestBuffer(slot, &buffer));
 
   sp<Fence> nullFence = NULL;
 
@@ -330,7 +332,7 @@ TEST_F(BufferHubQueueProducerTest, QueueTestInvalidScalingMode_ReturnsError) {
   ASSERT_NO_FATAL_FAILURE(DequeueBuffer(&slot));
 
   sp<GraphicBuffer> buffer;
-  ASSERT_EQ(OK, mProducer->requestBuffer(slot, &buffer));
+  ASSERT_EQ(NO_ERROR, mProducer->requestBuffer(slot, &buffer));
 
   IGraphicBufferProducer::QueueBufferInput input =
       QueueBufferInputBuilder().setScalingMode(-1).build();
@@ -351,7 +353,7 @@ TEST_F(BufferHubQueueProducerTest, QueueCropOutOfBounds_ReturnsError) {
   ASSERT_NO_FATAL_FAILURE(DequeueBuffer(&slot));
 
   sp<GraphicBuffer> buffer;
-  ASSERT_EQ(OK, mProducer->requestBuffer(slot, &buffer));
+  ASSERT_EQ(NO_ERROR, mProducer->requestBuffer(slot, &buffer));
 
   IGraphicBufferProducer::QueueBufferInput input =
       QueueBufferInputBuilder()
@@ -370,7 +372,7 @@ TEST_F(BufferHubQueueProducerTest, CancelBuffer_Succeeds) {
   ASSERT_NO_FATAL_FAILURE(DequeueBuffer(&slot, &fence));
 
   // Should be able to cancel buffer after a dequeue.
-  EXPECT_EQ(OK, mProducer->cancelBuffer(slot, fence));
+  EXPECT_EQ(NO_ERROR, mProducer->cancelBuffer(slot, fence));
 }
 
 TEST_F(BufferHubQueueProducerTest, SetMaxDequeuedBufferCount_Succeeds) {
@@ -378,15 +380,16 @@ TEST_F(BufferHubQueueProducerTest, SetMaxDequeuedBufferCount_Succeeds) {
   ASSERT_NO_FATAL_FAILURE(ConnectProducer());
 
   int minUndequeuedBuffers;
-  ASSERT_EQ(OK, mProducer->query(NATIVE_WINDOW_MIN_UNDEQUEUED_BUFFERS,
-                                 &minUndequeuedBuffers));
+  ASSERT_EQ(NO_ERROR, mProducer->query(NATIVE_WINDOW_MIN_UNDEQUEUED_BUFFERS,
+                                       &minUndequeuedBuffers));
 
   const int minBuffers = 1;
   const int maxBuffers =
       BufferQueueDefs::NUM_BUFFER_SLOTS - minUndequeuedBuffers;
 
-  ASSERT_EQ(OK, mProducer->setAsyncMode(false)) << "async mode: " << false;
-  ASSERT_EQ(OK, mProducer->setMaxDequeuedBufferCount(minBuffers))
+  ASSERT_EQ(NO_ERROR, mProducer->setAsyncMode(false))
+      << "async mode: " << false;
+  ASSERT_EQ(NO_ERROR, mProducer->setMaxDequeuedBufferCount(minBuffers))
       << "bufferCount: " << minBuffers;
 
   // Should now be able to dequeue up to minBuffers times
@@ -396,14 +399,14 @@ TEST_F(BufferHubQueueProducerTest, SetMaxDequeuedBufferCount_Succeeds) {
     ASSERT_NO_FATAL_FAILURE(DequeueBuffer(&slot));
   }
 
-  ASSERT_EQ(OK, mProducer->setMaxDequeuedBufferCount(maxBuffers));
+  ASSERT_EQ(NO_ERROR, mProducer->setMaxDequeuedBufferCount(maxBuffers));
 
   // queue the first buffer to enable max dequeued buffer count checking
   IGraphicBufferProducer::QueueBufferInput input = CreateBufferInput();
   IGraphicBufferProducer::QueueBufferOutput output;
   sp<GraphicBuffer> buffer;
-  ASSERT_EQ(OK, mProducer->requestBuffer(slot, &buffer));
-  ASSERT_EQ(OK, mProducer->queueBuffer(slot, input, &output));
+  ASSERT_EQ(NO_ERROR, mProducer->requestBuffer(slot, &buffer));
+  ASSERT_EQ(NO_ERROR, mProducer->queueBuffer(slot, input, &output));
 
   sp<Fence> fence;
   for (int i = 0; i < maxBuffers; ++i) {
@@ -411,24 +414,25 @@ TEST_F(BufferHubQueueProducerTest, SetMaxDequeuedBufferCount_Succeeds) {
   }
 
   // Cancel a buffer, so we can decrease the buffer count
-  ASSERT_EQ(OK, mProducer->cancelBuffer(slot, fence));
+  ASSERT_EQ(NO_ERROR, mProducer->cancelBuffer(slot, fence));
 
   // Should now be able to decrease the max dequeued count by 1
-  ASSERT_EQ(OK, mProducer->setMaxDequeuedBufferCount(maxBuffers - 1));
+  ASSERT_EQ(NO_ERROR, mProducer->setMaxDequeuedBufferCount(maxBuffers - 1));
 }
 
 TEST_F(BufferHubQueueProducerTest, SetMaxDequeuedBufferCount_Fails) {
   ASSERT_NO_FATAL_FAILURE(ConnectProducer());
 
   int minUndequeuedBuffers;
-  ASSERT_EQ(OK, mProducer->query(NATIVE_WINDOW_MIN_UNDEQUEUED_BUFFERS,
-                                 &minUndequeuedBuffers));
+  ASSERT_EQ(NO_ERROR, mProducer->query(NATIVE_WINDOW_MIN_UNDEQUEUED_BUFFERS,
+                                       &minUndequeuedBuffers));
 
   const int minBuffers = 1;
   const int maxBuffers =
       BufferQueueDefs::NUM_BUFFER_SLOTS - minUndequeuedBuffers;
 
-  ASSERT_EQ(OK, mProducer->setAsyncMode(false)) << "async mode: " << false;
+  ASSERT_EQ(NO_ERROR, mProducer->setAsyncMode(false))
+      << "async mode: " << false;
   // Buffer count was out of range
   EXPECT_EQ(BAD_VALUE, mProducer->setMaxDequeuedBufferCount(0))
       << "bufferCount: " << 0;
@@ -436,7 +440,7 @@ TEST_F(BufferHubQueueProducerTest, SetMaxDequeuedBufferCount_Fails) {
       << "bufferCount: " << maxBuffers + 1;
 
   // Set max dequeue count to 2
-  ASSERT_EQ(OK, mProducer->setMaxDequeuedBufferCount(2));
+  ASSERT_EQ(NO_ERROR, mProducer->setMaxDequeuedBufferCount(2));
   // Dequeue 2 buffers
   int slot = -1;
   sp<Fence> fence;
@@ -474,7 +478,7 @@ TEST_F(BufferHubQueueProducerTest,
   ASSERT_NO_FATAL_FAILURE(DequeueBuffer(&slot));
 
   // Shouldn't be able to request buffer after disconnect.
-  ASSERT_EQ(OK, mProducer->disconnect(kTestApi));
+  ASSERT_EQ(NO_ERROR, mProducer->disconnect(kTestApi));
   ASSERT_EQ(NO_INIT, mProducer->requestBuffer(slot, &buffer));
 }
 
@@ -485,14 +489,14 @@ TEST_F(BufferHubQueueProducerTest,
 
   ASSERT_NO_FATAL_FAILURE(ConnectProducer());
   ASSERT_NO_FATAL_FAILURE(DequeueBuffer(&slot));
-  ASSERT_EQ(OK, mProducer->requestBuffer(slot, &buffer));
+  ASSERT_EQ(NO_ERROR, mProducer->requestBuffer(slot, &buffer));
 
   // A generic "valid" input
   IGraphicBufferProducer::QueueBufferInput input = CreateBufferInput();
   IGraphicBufferProducer::QueueBufferOutput output;
 
   // Shouldn't be able to queue buffer after disconnect.
-  ASSERT_EQ(OK, mProducer->disconnect(kTestApi));
+  ASSERT_EQ(NO_ERROR, mProducer->disconnect(kTestApi));
   ASSERT_EQ(NO_INIT, mProducer->queueBuffer(slot, input, &output));
 }
 
@@ -503,10 +507,10 @@ TEST_F(BufferHubQueueProducerTest,
 
   ASSERT_NO_FATAL_FAILURE(ConnectProducer());
   ASSERT_NO_FATAL_FAILURE(DequeueBuffer(&slot));
-  ASSERT_EQ(OK, mProducer->requestBuffer(slot, &buffer));
+  ASSERT_EQ(NO_ERROR, mProducer->requestBuffer(slot, &buffer));
 
   // Shouldn't be able to cancel buffer after disconnect.
-  ASSERT_EQ(OK, mProducer->disconnect(kTestApi));
+  ASSERT_EQ(NO_ERROR, mProducer->disconnect(kTestApi));
   ASSERT_EQ(NO_INIT, mProducer->cancelBuffer(slot, Fence::NO_FENCE));
 }
 
@@ -520,32 +524,32 @@ TEST_F(BufferHubQueueProducerTest, ConnectDisconnectReconnect) {
 
   constexpr int maxDequeuedBuffers = 1;
   int minUndequeuedBuffers;
-  EXPECT_EQ(OK, mProducer->query(NATIVE_WINDOW_MIN_UNDEQUEUED_BUFFERS,
-                                 &minUndequeuedBuffers));
-  EXPECT_EQ(OK, mProducer->setAsyncMode(false));
-  EXPECT_EQ(OK, mProducer->setMaxDequeuedBufferCount(maxDequeuedBuffers));
+  EXPECT_EQ(NO_ERROR, mProducer->query(NATIVE_WINDOW_MIN_UNDEQUEUED_BUFFERS,
+                                       &minUndequeuedBuffers));
+  EXPECT_EQ(NO_ERROR, mProducer->setAsyncMode(false));
+  EXPECT_EQ(NO_ERROR, mProducer->setMaxDequeuedBufferCount(maxDequeuedBuffers));
 
   int maxCapacity = maxDequeuedBuffers + minUndequeuedBuffers;
 
   // Dequeue, request, and queue all buffers.
   for (int i = 0; i < maxCapacity; i++) {
     EXPECT_NO_FATAL_FAILURE(DequeueBuffer(&slot));
-    EXPECT_EQ(OK, mProducer->requestBuffer(slot, &buffer));
-    EXPECT_EQ(OK, mProducer->queueBuffer(slot, input, &output));
+    EXPECT_EQ(NO_ERROR, mProducer->requestBuffer(slot, &buffer));
+    EXPECT_EQ(NO_ERROR, mProducer->queueBuffer(slot, input, &output));
   }
 
   // Disconnect then reconnect.
-  EXPECT_EQ(OK, mProducer->disconnect(kTestApi));
+  EXPECT_EQ(NO_ERROR, mProducer->disconnect(kTestApi));
   EXPECT_NO_FATAL_FAILURE(ConnectProducer());
 
   // Dequeue, request, and queue all buffers.
   for (int i = 0; i < maxCapacity; i++) {
     EXPECT_NO_FATAL_FAILURE(DequeueBuffer(&slot));
-    EXPECT_EQ(OK, mProducer->requestBuffer(slot, &buffer));
-    EXPECT_EQ(OK, mProducer->queueBuffer(slot, input, &output));
+    EXPECT_EQ(NO_ERROR, mProducer->requestBuffer(slot, &buffer));
+    EXPECT_EQ(NO_ERROR, mProducer->queueBuffer(slot, input, &output));
   }
 
-  EXPECT_EQ(OK, mProducer->disconnect(kTestApi));
+  EXPECT_EQ(NO_ERROR, mProducer->disconnect(kTestApi));
 }
 
 TEST_F(BufferHubQueueProducerTest, TakeAsParcelable) {
@@ -564,21 +568,21 @@ TEST_F(BufferHubQueueProducerTest, TakeAsParcelable) {
   EXPECT_TRUE(dummy_producer_parcelable.IsValid());
 
   // Disconnect producer can be taken out, but only to an invalid parcelable.
-  ASSERT_EQ(mProducer->disconnect(kTestApi), OK);
+  ASSERT_EQ(mProducer->disconnect(kTestApi), NO_ERROR);
   EXPECT_EQ(mProducer->TakeAsParcelable(&dummy_producer_parcelable), BAD_VALUE);
   EXPECT_FALSE(producer_parcelable.IsValid());
-  EXPECT_EQ(mProducer->TakeAsParcelable(&producer_parcelable), OK);
+  EXPECT_EQ(mProducer->TakeAsParcelable(&producer_parcelable), NO_ERROR);
   EXPECT_TRUE(producer_parcelable.IsValid());
 
   // Should still be able to query buffer dimension after disconnect.
   int32_t value = -1;
-  EXPECT_EQ(OK, mProducer->query(NATIVE_WINDOW_WIDTH, &value));
+  EXPECT_EQ(NO_ERROR, mProducer->query(NATIVE_WINDOW_WIDTH, &value));
   EXPECT_EQ(static_cast<uint32_t>(value), kDefaultWidth);
 
-  EXPECT_EQ(mProducer->query(NATIVE_WINDOW_HEIGHT, &value), OK);
+  EXPECT_EQ(mProducer->query(NATIVE_WINDOW_HEIGHT, &value), NO_ERROR);
   EXPECT_EQ(static_cast<uint32_t>(value), kDefaultHeight);
 
-  EXPECT_EQ(mProducer->query(NATIVE_WINDOW_FORMAT, &value), OK);
+  EXPECT_EQ(mProducer->query(NATIVE_WINDOW_FORMAT, &value), NO_ERROR);
   EXPECT_EQ(value, kDefaultFormat);
 
   // But connect to API will fail.
@@ -594,7 +598,7 @@ TEST_F(BufferHubQueueProducerTest, TakeAsParcelable) {
   ASSERT_TRUE(new_producer != nullptr);
   EXPECT_EQ(new_producer->connect(kDummyListener, kTestApi,
                                   kTestControlledByApp, &output),
-            OK);
+            NO_ERROR);
 }
 
 }  // namespace

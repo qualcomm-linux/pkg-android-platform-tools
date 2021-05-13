@@ -93,11 +93,11 @@ void produceOneRGBA8Frame(const sp<ANativeWindow>& anw) {
     android_native_buffer_t* anb;
     ASSERT_EQ(NO_ERROR, native_window_dequeue_buffer_and_wait(anw.get(),
             &anb));
-    ASSERT_TRUE(anb != nullptr);
+    ASSERT_TRUE(anb != NULL);
 
     sp<GraphicBuffer> buf(GraphicBuffer::from(anb));
 
-    uint8_t* img = nullptr;
+    uint8_t* img = NULL;
     ASSERT_EQ(NO_ERROR, buf->lock(GRALLOC_USAGE_SW_WRITE_OFTEN,
             (void**)(&img)));
     fillRGBA8Buffer(img, buf->getWidth(), buf->getHeight(), buf->getStride());

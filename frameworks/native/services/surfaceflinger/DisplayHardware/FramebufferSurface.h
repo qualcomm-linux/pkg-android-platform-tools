@@ -17,14 +17,13 @@
 #ifndef ANDROID_SF_FRAMEBUFFER_SURFACE_H
 #define ANDROID_SF_FRAMEBUFFER_SURFACE_H
 
+#include "DisplaySurface.h"
+#include "HWComposerBufferCache.h"
+
 #include <stdint.h>
 #include <sys/types.h>
 
-#include <compositionengine/DisplaySurface.h>
-#include <compositionengine/impl/HwcBufferCache.h>
 #include <gui/ConsumerBase.h>
-
-#include "DisplayIdentification.h"
 
 // ---------------------------------------------------------------------------
 namespace android {
@@ -36,10 +35,10 @@ class HWComposer;
 
 // ---------------------------------------------------------------------------
 
-class FramebufferSurface : public ConsumerBase, public compositionengine::DisplaySurface {
+class FramebufferSurface : public ConsumerBase,
+                           public DisplaySurface {
 public:
-    FramebufferSurface(HWComposer& hwc, DisplayId displayId,
-                       const sp<IGraphicBufferConsumer>& consumer);
+    FramebufferSurface(HWComposer& hwc, int disp, const sp<IGraphicBufferConsumer>& consumer);
 
     virtual status_t beginFrame(bool mustRecompose);
     virtual status_t prepareFrame(CompositionType compositionType);
@@ -64,7 +63,8 @@ private:
     status_t nextBuffer(uint32_t& outSlot, sp<GraphicBuffer>& outBuffer,
             sp<Fence>& outFence, ui::Dataspace& outDataspace);
 
-    const DisplayId mDisplayId;
+    // mDisplayType must match one of the HWC display types
+    int mDisplayType;
 
     // mCurrentBufferIndex is the slot index of the current buffer or
     // INVALID_BUFFER_SLOT to indicate that either there is no current buffer
@@ -88,7 +88,7 @@ private:
     // Hardware composer, owned by SurfaceFlinger.
     HWComposer& mHwc;
 
-    compositionengine::impl::HwcBufferCache mHwcBufferCache;
+    HWComposerBufferCache mHwcBufferCache;
 
     // Previous buffer to release after getting an updated retire fence
     bool mHasPendingRelease;

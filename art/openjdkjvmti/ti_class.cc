@@ -39,6 +39,7 @@
 
 #include "art_jvmti.h"
 #include "base/array_ref.h"
+#include "base/logging.h"
 #include "base/macros.h"
 #include "base/utils.h"
 #include "class_linker.h"
@@ -208,11 +209,12 @@ struct ClassCallback : public art::ClassLoadCallback {
         event_handler, self, &def);
 
     if (def.IsModified()) {
-      LOG(WARNING) << "Changing class " << descriptor;
+      VLOG(class_linker) << "Changing class " << descriptor;
       art::StackHandleScope<2> hs(self);
       // Save the results of all the non-retransformable agents.
       // First allocate the ClassExt
-      art::Handle<art::mirror::ClassExt> ext(hs.NewHandle(klass->EnsureExtDataPresent(self)));
+      art::Handle<art::mirror::ClassExt> ext =
+          hs.NewHandle(art::mirror::Class::EnsureExtDataPresent(klass, self));
       // Make sure we have a ClassExt. This is fine even though we are a temporary since it will
       // get copied.
       if (ext.IsNull()) {

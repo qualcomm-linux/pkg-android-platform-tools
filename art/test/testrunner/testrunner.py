@@ -46,7 +46,9 @@ In the end, the script will print the failed and skipped tests if any.
 """
 import argparse
 import collections
+import concurrent.futures
 import contextlib
+import datetime
 import fnmatch
 import itertools
 import json
@@ -58,8 +60,6 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import threading
-import time
 
 import env
 from target_config import target_config
@@ -89,27 +89,15 @@ COLOR_PASS = '\033[92m'
 COLOR_SKIP = '\033[93m'
 COLOR_NORMAL = '\033[0m'
 
-# The mutex object is used by the threads for exclusive access of test_count
-# to make any changes in its value.
-test_count_mutex = threading.Lock()
-
 # The set contains the list of all the possible run tests that are in art/test
 # directory.
 RUN_TEST_SET = set()
 
-# The semaphore object is used by the testrunner to limit the number of
-# threads to the user requested concurrency value.
-semaphore = threading.Semaphore(1)
-
-# The mutex object is used to provide exclusive access to a thread to print
-# its output.
-print_mutex = threading.Lock()
 failed_tests = []
 skipped_tests = []
 
 # Flags
 n_thread = -1
-test_count = 0
 total_test_count = 0
 verbose = False
 dry_run = False
@@ -121,7 +109,6 @@ runtime_option = ''
 with_agent = []
 zipapex_loc = None
 run_test_option = []
-stop_testrunner = False
 dex2oat_jobs = -1   # -1 corresponds to default threads for dex2oat
 run_all_configs = False
 
@@ -236,9 +223,6 @@ def setup_test_env():
   for target in _user_input_variants['target']:
     extra_arguments[target] = find_extra_device_arguments(target)
 
-  global semaphore
-  semaphore = threading.Semaphore(n_thread)
-
   if not sys.stdout.isatty():
     global COLOR_ERROR
     global COLOR_PASS
@@ -277,15 +261,7 @@ def get_device_name():
     return "UNKNOWN_TARGET"
 
 def run_tests(tests):
-  """Creates thread workers to run the tests.
-
-  The method generates command and thread worker to run the tests. Depending on
-  the user input for the number of threads to be used, the method uses a
-  semaphore object to keep a count in control for the thread workers. When a new
-  worker is created, it acquires the semaphore object, and when the number of
-  workers reaches the maximum allowed concurrency, the method wait for an
-  existing thread worker to release the semaphore object. Worker releases the
-  semaphore object when they finish printing the output.
+  """This method generates variants of the tests to be run and executes them.
 
   Args:
     tests: The set of tests to be run.
@@ -362,18 +338,10 @@ def run_tests(tests):
       'debuggable': [''], 'jvmti': [''],
       'cdex_level': ['']})
 
-  def start_combination(config_tuple, global_options, address_size):
+  def start_combination(executor, config_tuple, global_options, address_size):
       test, target, run, prebuild, compiler, relocate, trace, gc, \
       jni, image, debuggable, jvmti, cdex_level = config_tuple
 
-      if stop_testrunner:
-        # When ART_TEST_KEEP_GOING is set to false, then as soon as a test
-        # fails, stop_testrunner is set to True. When this happens, the method
-        # stops creating any any thread and wait for all the exising threads
-        # to end.
-        while threading.active_count() > 2:
-          time.sleep(0.1)
-          return
       # NB The order of components here should match the order of
       # components in the regex parser in parse_test_name.
       test_name = 'test-art-'
@@ -403,12 +371,14 @@ def run_tests(tests):
         options_test += ' --jvm'
 
       # Honor ART_TEST_CHROOT, ART_TEST_ANDROID_ROOT, ART_TEST_ANDROID_RUNTIME_ROOT,
-      # and ART_TEST_ANDROID_TZDATA_ROOT but only for target tests.
+      # ART_TEST_ANDROID_I18N_ROOT, and ART_TEST_ANDROID_TZDATA_ROOT but only for target tests.
       if target == 'target':
         if env.ART_TEST_CHROOT:
           options_test += ' --chroot ' + env.ART_TEST_CHROOT
         if env.ART_TEST_ANDROID_ROOT:
           options_test += ' --android-root ' + env.ART_TEST_ANDROID_ROOT
+        if env.ART_TEST_ANDROID_I18N_ROOT:
+            options_test += ' --android-i18n-root ' + env.ART_TEST_ANDROID_I18N_ROOT
         if env.ART_TEST_ANDROID_RUNTIME_ROOT:
           options_test += ' --android-runtime-root ' + env.ART_TEST_ANDROID_RUNTIME_ROOT
         if env.ART_TEST_ANDROID_TZDATA_ROOT:
@@ -467,7 +437,7 @@ def run_tests(tests):
         options_test += ' --no-image'
 
       if debuggable == 'debuggable':
-        options_test += ' --debuggable'
+        options_test += ' --debuggable --runtime-option -Xopaque-jni-ids:true'
 
       if jvmti == 'jvmti-stress':
         options_test += ' --jvmti-trace-stress --jvmti-redefine-stress --jvmti-field-stress'
@@ -498,25 +468,32 @@ def run_tests(tests):
 
       run_test_sh = env.ANDROID_BUILD_TOP + '/art/test/run-test'
       command = ' '.join((run_test_sh, options_test, ' '.join(extra_arguments[target]), test))
-
-      semaphore.acquire()
-      worker = threading.Thread(target=run_test, args=(command, test, variant_set, test_name))
-      worker.daemon = True
-      worker.start()
+      return executor.submit(run_test, command, test, variant_set, test_name)
 
   #  Use a context-manager to handle cleaning up the extracted zipapex if needed.
   with handle_zipapex(zipapex_loc) as zipapex_opt:
     options_all += zipapex_opt
-    for config_tuple in config:
-      target = config_tuple[1]
-      for address_size in _user_input_variants['address_sizes_target'][target]:
-        start_combination(config_tuple, options_all, address_size)
+    global n_thread
+    with concurrent.futures.ThreadPoolExecutor(max_workers=n_thread) as executor:
+      test_futures = []
+      for config_tuple in config:
+        target = config_tuple[1]
+        for address_size in _user_input_variants['address_sizes_target'][target]:
+          test_futures.append(start_combination(executor, config_tuple, options_all, address_size))
 
-    for config_tuple in uncombinated_config:
-        start_combination(config_tuple, options_all, "")  # no address size
+        for config_tuple in uncombinated_config:
+          test_futures.append(start_combination(executor, config_tuple, options_all, ""))  # no address size
 
-    while threading.active_count() > 2:
-      time.sleep(0.1)
+      tests_done = 0
+      for test_future in concurrent.futures.as_completed(test_futures):
+        (test, status, failure_info, test_time) = test_future.result()
+        tests_done += 1
+        print_test_info(tests_done, test, status, failure_info, test_time)
+        if failure_info and not env.ART_TEST_KEEP_GOING:
+          for f in test_futures:
+            f.cancel()
+          break
+      executor.shutdown(True)
 
 @contextlib.contextmanager
 def handle_zipapex(ziploc):
@@ -543,22 +520,23 @@ def run_test(command, test, test_variant, test_name):
   passed, otherwise, put it in the list of failed test. Before actually running
   the test, it also checks if the test is placed in the list of disabled tests,
   and if yes, it skips running it, and adds the test in the list of skipped
-  tests. The method uses print_text method to actually print the output. After
-  successfully running and capturing the output for the test, it releases the
-  semaphore object.
+  tests.
 
   Args:
     command: The command to be used to invoke the script
     test: The name of the test without the variant information.
     test_variant: The set of variant for the test.
     test_name: The name of the test along with the variants.
+
+  Returns: a tuple of testname, status, and optional failure info.
   """
-  global stop_testrunner
   try:
     if is_test_disabled(test, test_variant):
       test_skipped = True
+      test_time = datetime.timedelta()
     else:
       test_skipped = False
+      test_start_time = datetime.datetime.now()
       if gdb:
         proc = subprocess.Popen(command.split(), stderr=subprocess.STDOUT, universal_newlines=True)
       else:
@@ -566,34 +544,32 @@ def run_test(command, test, test_variant, test_name):
                                 universal_newlines=True)
       script_output = proc.communicate(timeout=timeout)[0]
       test_passed = not proc.wait()
+      test_end_time = datetime.datetime.now()
+      test_time = test_end_time - test_start_time
 
     if not test_skipped:
       if test_passed:
-        print_test_info(test_name, 'PASS')
+        return (test_name, 'PASS', None, test_time)
       else:
         failed_tests.append((test_name, str(command) + "\n" + script_output))
-        if not env.ART_TEST_KEEP_GOING:
-          stop_testrunner = True
-        print_test_info(test_name, 'FAIL', ('%s\n%s') % (
-          command, script_output))
+        return (test_name, 'FAIL', ('%s\n%s') % (command, script_output), test_time)
     elif not dry_run:
-      print_test_info(test_name, 'SKIP')
       skipped_tests.append(test_name)
+      return (test_name, 'SKIP', None, test_time)
     else:
-      print_test_info(test_name, '')
+      return (test_name, 'PASS', None, test_time)
   except subprocess.TimeoutExpired as e:
     failed_tests.append((test_name, 'Timed out in %d seconds' % timeout))
-    print_test_info(test_name, 'TIMEOUT', 'Timed out in %d seconds\n%s' % (
-        timeout, command))
+    return (test_name,
+            'TIMEOUT',
+            'Timed out in %d seconds\n%s' % (timeout, command),
+            datetime.timedelta(seconds=timeout))
   except Exception as e:
     failed_tests.append((test_name, str(e)))
-    print_test_info(test_name, 'FAIL',
-    ('%s\n%s\n\n') % (command, str(e)))
-  finally:
-    semaphore.release()
+    return (test_name, 'FAIL', ('%s\n%s\n\n') % (command, str(e)), datetime.timedelta())
 
-
-def print_test_info(test_name, result, failed_test_info=""):
+def print_test_info(test_count, test_name, result, failed_test_info="",
+                    test_time=datetime.timedelta()):
   """Print the continous test information
 
   If verbose is set to True, it continuously prints test status information
@@ -608,7 +584,6 @@ def print_test_info(test_name, result, failed_test_info=""):
   test information in either of the cases.
   """
 
-  global test_count
   info = ''
   if not verbose:
     # Without --verbose, the testrunner erases passing test info. It
@@ -617,13 +592,14 @@ def print_test_info(test_name, result, failed_test_info=""):
     console_width = int(os.popen('stty size', 'r').read().split()[1])
     info = '\r' + ' ' * console_width + '\r'
   try:
-    print_mutex.acquire()
-    test_count += 1
     percent = (test_count * 100) / total_test_count
     progress_info = ('[ %d%% %d/%d ]') % (
       percent,
       test_count,
       total_test_count)
+    if test_time.total_seconds() != 0 and verbose:
+      info += '(%s)' % str(test_time)
+
 
     if result == 'FAIL' or result == 'TIMEOUT':
       if not verbose:
@@ -666,8 +642,6 @@ def print_test_info(test_name, result, failed_test_info=""):
   except Exception as e:
     print_text(('%s\n%s\n') % (test_name, str(e)))
     failed_tests.append(test_name)
-  finally:
-    print_mutex.release()
 
 def verify_knownfailure_entry(entry):
   supported_field = {
@@ -836,7 +810,7 @@ def parse_test_name(test_name):
   It supports two types of test_name:
   1) Like 001-HelloWorld. In this case, it will just verify if the test actually
   exists and if it does, it returns the testname.
-  2) Like test-art-host-run-test-debug-prebuild-interpreter-no-relocate-ntrace-cms-checkjni-picimage-ndebuggable-001-HelloWorld32
+  2) Like test-art-host-run-test-debug-prebuild-interpreter-no-relocate-ntrace-cms-checkjni-pointer-ids-picimage-ndebuggable-001-HelloWorld32
   In this case, it will parse all the variants and check if they are placed
   correctly. If yes, it will set the various VARIANT_TYPES to use the
   variants required to run the test. Again, it returns the test_name
@@ -1050,28 +1024,16 @@ def main():
       if env.DIST_DIR:
         shutil.copyfile(env.SOONG_OUT_DIR + '/build.ninja', env.DIST_DIR + '/soong.ninja')
       sys.exit(1)
+
   if user_requested_tests:
-    test_runner_thread = threading.Thread(target=run_tests, args=(user_requested_tests,))
+    run_tests(user_requested_tests)
   else:
-    test_runner_thread = threading.Thread(target=run_tests, args=(RUN_TEST_SET,))
-  test_runner_thread.daemon = True
-  try:
-    test_runner_thread.start()
-    # This loops waits for all the threads to finish, unless
-    # stop_testrunner is set to True. When ART_TEST_KEEP_GOING
-    # is set to false, stop_testrunner is set to True as soon as
-    # a test fails to signal the parent thread  to stop
-    # the execution of the testrunner.
-    while threading.active_count() > 1 and not stop_testrunner:
-      time.sleep(0.1)
-    print_analysis()
-  except Exception as e:
-    print_analysis()
-    print_text(str(e))
-    sys.exit(1)
-  if failed_tests:
-    sys.exit(1)
-  sys.exit(0)
+    run_tests(RUN_TEST_SET)
+
+  print_analysis()
+
+  exit_code = 0 if len(failed_tests) == 0 else 1
+  sys.exit(exit_code)
 
 if __name__ == '__main__':
   main()

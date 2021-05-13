@@ -31,6 +31,7 @@ import android.os.RemoteException;
 import android.os.ServiceManager;
 import android.os.StrictMode;
 import android.os.SystemClock;
+import android.os.UserHandle;
 import android.view.IWindowManager;
 import android.view.Surface;
 
@@ -297,8 +298,7 @@ public class Monkey {
                     && categories.contains(Intent.CATEGORY_HOME)) {
                 try {
                     final ResolveInfo resolveInfo =
-                            mPm.resolveIntent(intent, intent.getType(), 0,
-                                    ActivityManager.getCurrentUser());
+                            mPm.resolveIntent(intent, intent.getType(), 0, UserHandle.myUserId());
                     final String launcherPackage = resolveInfo.activityInfo.packageName;
                     if (pkg.equals(launcherPackage)) {
                         return true;
@@ -1056,7 +1056,7 @@ public class Monkey {
                     intent.addCategory(category);
                 }
                 List<ResolveInfo> mainApps = mPm.queryIntentActivities(intent, null, 0,
-                        ActivityManager.getCurrentUser()).getList();
+                        UserHandle.myUserId()).getList();
                 if (mainApps == null || mainApps.size() == 0) {
                     Logger.err.println("// Warning: no activities found for category " + category);
                     continue;

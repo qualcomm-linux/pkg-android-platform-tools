@@ -72,16 +72,14 @@ class OatDumpTest : public CommonRuntimeTest {
 
   // Returns path to the oatdump/dex2oat/dexdump binary.
   std::string GetExecutableFilePath(const char* name, bool is_debug, bool is_static) {
-    std::string root = GetTestAndroidRoot();
-    root += "/bin/";
-    root += name;
+    std::string path = GetAndroidRuntimeBinDir() + '/' + name;
     if (is_debug) {
-      root += "d";
+      path += 'd';
     }
     if (is_static) {
-      root += "s";
+      path += 's';
     }
-    return root;
+    return path;
   }
 
   std::string GetExecutableFilePath(Flavor flavor, const char* name) {
@@ -109,8 +107,15 @@ class OatDumpTest : public CommonRuntimeTest {
     return "ProfileTestMultiDex";
   }
 
+  void SetAppImageName(const std::string& name) {
+    app_image_name_ = name;
+  }
+
   std::string GetAppImageName() {
-    return tmp_dir_ + "/" + GetAppBaseName() + ".art";
+    if (app_image_name_.empty()) {
+      app_image_name_ =  tmp_dir_ + "/" + GetAppBaseName() + ".art";
+    }
+    return app_image_name_;
   }
 
   std::string GetAppOdexName() {
@@ -160,7 +165,8 @@ class OatDumpTest : public CommonRuntimeTest {
   ::testing::AssertionResult Exec(Flavor flavor,
                                   Mode mode,
                                   const std::vector<std::string>& args,
-                                  Display display) {
+                                  Display display,
+                                  bool expect_failure = false) {
     std::string file_path = GetExecutableFilePath(flavor, "oatdump");
 
     if (!OS::FileExists(file_path.c_str())) {
@@ -181,7 +187,7 @@ class OatDumpTest : public CommonRuntimeTest {
         // Code and dex code do not show up if list only.
         expected_prefixes.push_back("DEX CODE:");
         expected_prefixes.push_back("CODE:");
-        expected_prefixes.push_back("InlineInfo");
+        expected_prefixes.push_back("StackMap");
       }
       if (mode == kModeArt) {
         exec_argv.push_back("--runtime-arg");
@@ -324,8 +330,17 @@ class OatDumpTest : public CommonRuntimeTest {
     if (res.stage != ForkAndExecResult::kFinished) {
       return ::testing::AssertionFailure() << strerror(errno);
     }
+    error_buf.push_back(0);  // Make data a C string.
+
     if (!res.StandardSuccess()) {
-      return ::testing::AssertionFailure() << "Did not terminate successfully: " << res.status_code;
+      if (expect_failure && WIFEXITED(res.status_code)) {
+        // Avoid crash as valid exit.
+        return ::testing::AssertionSuccess();
+      }
+      return ::testing::AssertionFailure() << "Did not terminate successfully: " << res.status_code
+          << " " << error_buf.data();
+    } else if (expect_failure) {
+      return ::testing::AssertionFailure() << "Expected failure";
     }
 
     if (mode == kModeSymbolize) {
@@ -344,7 +359,6 @@ class OatDumpTest : public CommonRuntimeTest {
     }
     if (!result) {
       oss << "Processed bytes " << total << ":" << std::endl;
-      error_buf.push_back(0);  // Make data a C string.
     }
 
     return result ? ::testing::AssertionSuccess()
@@ -352,6 +366,7 @@ class OatDumpTest : public CommonRuntimeTest {
   }
 
   std::string tmp_dir_;
+  std::string app_image_name_;
 
  private:
   std::string core_art_location_;

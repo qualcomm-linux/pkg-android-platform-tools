@@ -39,12 +39,12 @@ TEST_F(SurfaceTextureFBOTest, BlitFromCpuFilledBufferToFbo) {
     android_native_buffer_t* anb;
     ASSERT_EQ(NO_ERROR, native_window_dequeue_buffer_and_wait(mANW.get(),
             &anb));
-    ASSERT_TRUE(anb != nullptr);
+    ASSERT_TRUE(anb != NULL);
 
     sp<GraphicBuffer> buf(GraphicBuffer::from(anb));
 
     // Fill the buffer with green
-    uint8_t* img = nullptr;
+    uint8_t* img = NULL;
     buf->lock(GRALLOC_USAGE_SW_WRITE_OFTEN, (void**)(&img));
     fillRGBA8BufferSolid(img, texWidth, texHeight, buf->getStride(), 0, 255,
             0, 255);
@@ -63,7 +63,7 @@ TEST_F(SurfaceTextureFBOTest, BlitFromCpuFilledBufferToFbo) {
 
         ASSERT_EQ(NO_ERROR, native_window_dequeue_buffer_and_wait(mANW.get(),
                 &anb));
-        ASSERT_TRUE(anb != nullptr);
+        ASSERT_TRUE(anb != NULL);
 
         buf = GraphicBuffer::from(anb);
 

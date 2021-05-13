@@ -79,8 +79,6 @@ namespace init {
 
 namespace {
 
-selabel_handle* sehandle = nullptr;
-
 enum EnforcingStatus { SELINUX_PERMISSIVE, SELINUX_ENFORCING };
 
 EnforcingStatus StatusFromCmdline() {
@@ -330,6 +328,12 @@ bool LoadSplitPolicy() {
     }
     std::string plat_mapping_file("/system/etc/selinux/mapping/" + vend_plat_vers + ".cil");
 
+    std::string plat_compat_cil_file("/system/etc/selinux/mapping/" + vend_plat_vers +
+                                     ".compat.cil");
+    if (access(plat_compat_cil_file.c_str(), F_OK) == -1) {
+        plat_compat_cil_file.clear();
+    }
+
     std::string product_policy_cil_file("/product/etc/selinux/product_sepolicy.cil");
     if (access(product_policy_cil_file.c_str(), F_OK) == -1) {
         product_policy_cil_file.clear();
@@ -375,6 +379,9 @@ bool LoadSplitPolicy() {
     };
     // clang-format on
 
+    if (!plat_compat_cil_file.empty()) {
+        compile_args.push_back(plat_compat_cil_file.c_str());
+    }
     if (!product_policy_cil_file.empty()) {
         compile_args.push_back(product_policy_cil_file.c_str());
     }
@@ -421,8 +428,6 @@ bool LoadPolicy() {
 }
 
 void SelinuxInitialize() {
-    Timer t;
-
     LOG(INFO) << "Loading SELinux policy";
     if (!LoadPolicy()) {
         LOG(FATAL) << "Unable to load SELinux policy";
@@ -439,9 +444,6 @@ void SelinuxInitialize() {
     if (auto result = WriteFile("/sys/fs/selinux/checkreqprot", "0"); !result) {
         LOG(FATAL) << "Unable to write to /sys/fs/selinux/checkreqprot: " << result.error();
     }
-
-    // init's first stage can't set properties, so pass the time to the second stage.
-    setenv("INIT_SELINUX_TOOK", std::to_string(t.duration().count()).c_str(), 1);
 }
 
 }  // namespace
@@ -495,24 +497,28 @@ void SelinuxSetupKernelLogging() {
 // This function returns the Android version with which the vendor SEPolicy was compiled.
 // It is used for version checks such as whether or not vendor_init should be used
 int SelinuxGetVendorAndroidVersion() {
-    if (!IsSplitPolicyDevice()) {
-        // If this device does not split sepolicy files, it's not a Treble device and therefore,
-        // we assume it's always on the latest platform.
-        return __ANDROID_API_FUTURE__;
-    }
+    static int vendor_android_version = [] {
+        if (!IsSplitPolicyDevice()) {
+            // If this device does not split sepolicy files, it's not a Treble device and therefore,
+            // we assume it's always on the latest platform.
+            return __ANDROID_API_FUTURE__;
+        }
 
-    std::string version;
-    if (!GetVendorMappingVersion(&version)) {
-        LOG(FATAL) << "Could not read vendor SELinux version";
-    }
+        std::string version;
+        if (!GetVendorMappingVersion(&version)) {
+            LOG(FATAL) << "Could not read vendor SELinux version";
+        }
 
-    int major_version;
-    std::string major_version_str(version, 0, version.find('.'));
-    if (!ParseInt(major_version_str, &major_version)) {
-        PLOG(FATAL) << "Failed to parse the vendor sepolicy major version " << major_version_str;
-    }
+        int major_version;
+        std::string major_version_str(version, 0, version.find('.'));
+        if (!ParseInt(major_version_str, &major_version)) {
+            PLOG(FATAL) << "Failed to parse the vendor sepolicy major version "
+                        << major_version_str;
+        }
 
-    return major_version;
+        return major_version;
+    }();
+    return vendor_android_version;
 }
 
 // This function initializes SELinux then execs init to run in the init SELinux context.
@@ -522,6 +528,8 @@ int SetupSelinux(char** argv) {
     if (REBOOT_BOOTLOADER_ON_PANIC) {
         InstallRebootSignalHandlers();
     }
+
+    boot_clock::time_point start_time = boot_clock::now();
 
     // Set up SELinux, loading the SELinux policy.
     SelinuxSetupKernelLogging();
@@ -535,6 +543,8 @@ int SetupSelinux(char** argv) {
         PLOG(FATAL) << "restorecon failed of /system/bin/init failed";
     }
 
+    setenv(kEnvSelinuxStartedAt, std::to_string(start_time.time_since_epoch().count()).c_str(), 1);
+
     const char* path = "/system/bin/init";
     const char* args[] = {path, "second_stage", nullptr};
     execv(path, const_cast<char**>(args));
@@ -544,55 +554,6 @@ int SetupSelinux(char** argv) {
     PLOG(FATAL) << "execv(\"" << path << "\") failed";
 
     return 1;
-}
-
-// selinux_android_file_context_handle() takes on the order of 10+ms to run, so we want to cache
-// its value.  selinux_android_restorecon() also needs an sehandle for file context look up.  It
-// will create and store its own copy, but selinux_android_set_sehandle() can be used to provide
-// one, thus eliminating an extra call to selinux_android_file_context_handle().
-void SelabelInitialize() {
-    sehandle = selinux_android_file_context_handle();
-    selinux_android_set_sehandle(sehandle);
-}
-
-// A C++ wrapper around selabel_lookup() using the cached sehandle.
-// If sehandle is null, this returns success with an empty context.
-bool SelabelLookupFileContext(const std::string& key, int type, std::string* result) {
-    result->clear();
-
-    if (!sehandle) return true;
-
-    char* context;
-    if (selabel_lookup(sehandle, &context, key.c_str(), type) != 0) {
-        return false;
-    }
-    *result = context;
-    free(context);
-    return true;
-}
-
-// A C++ wrapper around selabel_lookup_best_match() using the cached sehandle.
-// If sehandle is null, this returns success with an empty context.
-bool SelabelLookupFileContextBestMatch(const std::string& key,
-                                       const std::vector<std::string>& aliases, int type,
-                                       std::string* result) {
-    result->clear();
-
-    if (!sehandle) return true;
-
-    std::vector<const char*> c_aliases;
-    for (const auto& alias : aliases) {
-        c_aliases.emplace_back(alias.c_str());
-    }
-    c_aliases.emplace_back(nullptr);
-
-    char* context;
-    if (selabel_lookup_best_match(sehandle, &context, key.c_str(), &c_aliases[0], type) != 0) {
-        return false;
-    }
-    *result = context;
-    free(context);
-    return true;
 }
 
 }  // namespace init

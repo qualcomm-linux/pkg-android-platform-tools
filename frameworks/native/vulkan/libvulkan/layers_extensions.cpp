@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-#define ATRACE_TAG ATRACE_TAG_GRAPHICS
-
 #include "layers_extensions.h"
 
 #include <alloca.h>
@@ -35,7 +33,6 @@
 #include <log/log.h>
 #include <nativebridge/native_bridge.h>
 #include <nativeloader/native_loader.h>
-#include <utils/Trace.h>
 #include <ziparchive/zip_archive.h>
 
 // TODO(jessehall): The whole way we deal with extensions is pretty hokey, and
@@ -388,9 +385,8 @@ void ForEachFileInZip(const std::string& zipname,
         return;
     }
     std::string prefix(dir_in_zip + "/");
-    const ZipString prefix_str(prefix.c_str());
     void* iter_cookie = nullptr;
-    if ((err = StartIteration(zip, &iter_cookie, &prefix_str, nullptr)) != 0) {
+    if ((err = StartIteration(zip, &iter_cookie, prefix, "")) != 0) {
         ALOGE("failed to iterate entries in apk '%s': %d", zipname.c_str(),
               err);
         CloseArchive(zip);
@@ -399,11 +395,9 @@ void ForEachFileInZip(const std::string& zipname,
     ALOGD("searching for layers in '%s!/%s'", zipname.c_str(),
           dir_in_zip.c_str());
     ZipEntry entry;
-    ZipString name;
+    std::string name;
     while (Next(iter_cookie, &entry, &name) == 0) {
-        std::string filename(
-            reinterpret_cast<const char*>(name.name) + prefix.length(),
-            name.name_length - prefix.length());
+        std::string filename(name.substr(prefix.length()));
         // only enumerate direct entries of the directory, not subdirectories
         if (filename.find('/') != filename.npos)
             continue;
@@ -431,8 +425,6 @@ void ForEachFileInPath(const std::string& path, Functor functor) {
 }
 
 void DiscoverLayersInPathList(const std::string& pathstr) {
-    ATRACE_CALL();
-
     std::vector<std::string> paths = android::base::Split(pathstr, ":");
     for (const auto& path : paths) {
         ForEachFileInPath(path, [&](const std::string& filename) {
@@ -482,8 +474,6 @@ void* GetLayerGetProcAddr(const Layer& layer,
 }  // anonymous namespace
 
 void DiscoverLayers() {
-    ATRACE_CALL();
-
     if (property_get_bool("ro.debuggable", false) &&
         prctl(PR_GET_DUMPABLE, 0, 0, 0, 0)) {
         DiscoverLayersInPathList(kSystemLayerLibraryDir);

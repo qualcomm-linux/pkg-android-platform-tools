@@ -35,9 +35,9 @@
 #include <binder/IPCThreadState.h>
 #include <binder/Parcel.h>
 #include <binder/ProcessState.h>
+#include <binder/Stability.h>
 #include <binder/Status.h>
 #include <binder/TextOutput.h>
-#include <binder/Value.h>
 
 #include <cutils/ashmem.h>
 #include <utils/Debug.h>
@@ -48,7 +48,7 @@
 #include <utils/String16.h>
 
 #include <private/binder/binder_module.h>
-#include <private/binder/Static.h>
+#include "Static.h"
 
 #ifndef INT32_MAX
 #define INT32_MAX ((int32_t)(2147483647))
@@ -74,7 +74,7 @@ static size_t pad_size(size_t s) {
 }
 
 // Note: must be kept in sync with android/os/StrictMode.java's PENALTY_GATHER
-#define STRICT_MODE_PENALTY_GATHER (1 << 31)
+#define STRICT_MODE_PENALTY_GATHER (0x40 << 16)
 
 namespace android {
 
@@ -93,7 +93,7 @@ enum {
     BLOB_ASHMEM_MUTABLE = 2,
 };
 
-void acquire_object(const sp<ProcessState>& proc,
+static void acquire_object(const sp<ProcessState>& proc,
     const flat_binder_object& obj, const void* who, size_t* outAshmemSize)
 {
     switch (obj.hdr.type) {
@@ -103,21 +103,12 @@ void acquire_object(const sp<ProcessState>& proc,
                 reinterpret_cast<IBinder*>(obj.cookie)->incStrong(who);
             }
             return;
-        case BINDER_TYPE_WEAK_BINDER:
-            if (obj.binder)
-                reinterpret_cast<RefBase::weakref_type*>(obj.binder)->incWeak(who);
-            return;
         case BINDER_TYPE_HANDLE: {
             const sp<IBinder> b = proc->getStrongProxyForHandle(obj.handle);
             if (b != nullptr) {
                 LOG_REFS("Parcel %p acquiring reference on remote %p", who, b.get());
                 b->incStrong(who);
             }
-            return;
-        }
-        case BINDER_TYPE_WEAK_HANDLE: {
-            const wp<IBinder> b = proc->getWeakProxyForHandle(obj.handle);
-            if (b != nullptr) b.get_refs()->incWeak(who);
             return;
         }
         case BINDER_TYPE_FD: {
@@ -135,12 +126,6 @@ void acquire_object(const sp<ProcessState>& proc,
     ALOGD("Invalid object type 0x%08x", obj.hdr.type);
 }
 
-void acquire_object(const sp<ProcessState>& proc,
-    const flat_binder_object& obj, const void* who)
-{
-    acquire_object(proc, obj, who, nullptr);
-}
-
 static void release_object(const sp<ProcessState>& proc,
     const flat_binder_object& obj, const void* who, size_t* outAshmemSize)
 {
@@ -151,21 +136,12 @@ static void release_object(const sp<ProcessState>& proc,
                 reinterpret_cast<IBinder*>(obj.cookie)->decStrong(who);
             }
             return;
-        case BINDER_TYPE_WEAK_BINDER:
-            if (obj.binder)
-                reinterpret_cast<RefBase::weakref_type*>(obj.binder)->decWeak(who);
-            return;
         case BINDER_TYPE_HANDLE: {
             const sp<IBinder> b = proc->getStrongProxyForHandle(obj.handle);
             if (b != nullptr) {
                 LOG_REFS("Parcel %p releasing reference on remote %p", who, b.get());
                 b->decStrong(who);
             }
-            return;
-        }
-        case BINDER_TYPE_WEAK_HANDLE: {
-            const wp<IBinder> b = proc->getWeakProxyForHandle(obj.handle);
-            if (b != nullptr) b.get_refs()->decWeak(who);
             return;
         }
         case BINDER_TYPE_FD: {
@@ -189,20 +165,34 @@ static void release_object(const sp<ProcessState>& proc,
     ALOGE("Invalid object type 0x%08x", obj.hdr.type);
 }
 
-void release_object(const sp<ProcessState>& proc,
-    const flat_binder_object& obj, const void* who)
+status_t Parcel::finishFlattenBinder(
+    const sp<IBinder>& /*binder*/, const flat_binder_object& flat)
 {
-    release_object(proc, obj, who, nullptr);
+    status_t status = writeObject(flat, false);
+    if (status != OK) return status;
+
+    // internal::Stability::tryMarkCompilationUnit(binder.get());
+    // Cannot change wire protocol w/o SM update
+    // return writeInt32(internal::Stability::get(binder.get()));
+    return OK;
 }
 
-inline static status_t finish_flatten_binder(
-    const sp<IBinder>& /*binder*/, const flat_binder_object& flat, Parcel* out)
+status_t Parcel::finishUnflattenBinder(
+    const sp<IBinder>& binder, sp<IBinder>* out) const
 {
-    return out->writeObject(flat, false);
+    // int32_t stability;
+    // Cannot change wire protocol w/o SM update
+    // status_t status = readInt32(&stability);
+    // if (status != OK) return status;
+
+    // status = internal::Stability::set(binder.get(), stability, true /*log*/);
+    // if (status != OK) return status;
+
+    *out = binder;
+    return OK;
 }
 
-status_t flatten_binder(const sp<ProcessState>& /*proc*/,
-    const sp<IBinder>& binder, Parcel* out)
+status_t Parcel::flattenBinder(const sp<IBinder>& binder)
 {
     flat_binder_object obj;
 
@@ -240,108 +230,24 @@ status_t flatten_binder(const sp<ProcessState>& /*proc*/,
         obj.cookie = 0;
     }
 
-    return finish_flatten_binder(binder, obj, out);
+    return finishFlattenBinder(binder, obj);
 }
 
-status_t flatten_binder(const sp<ProcessState>& /*proc*/,
-    const wp<IBinder>& binder, Parcel* out)
+status_t Parcel::unflattenBinder(sp<IBinder>* out) const
 {
-    flat_binder_object obj;
+    const flat_binder_object* flat = readObject(false);
 
-    obj.flags = 0x7f | FLAT_BINDER_FLAG_ACCEPTS_FDS;
-    if (binder != nullptr) {
-        sp<IBinder> real = binder.promote();
-        if (real != nullptr) {
-            IBinder *local = real->localBinder();
-            if (!local) {
-                BpBinder *proxy = real->remoteBinder();
-                if (proxy == nullptr) {
-                    ALOGE("null proxy");
-                }
-                const int32_t handle = proxy ? proxy->handle() : 0;
-                obj.hdr.type = BINDER_TYPE_WEAK_HANDLE;
-                obj.binder = 0; /* Don't pass uninitialized stack data to a remote process */
-                obj.handle = handle;
-                obj.cookie = 0;
-            } else {
-                obj.hdr.type = BINDER_TYPE_WEAK_BINDER;
-                obj.binder = reinterpret_cast<uintptr_t>(binder.get_refs());
-                obj.cookie = reinterpret_cast<uintptr_t>(binder.unsafe_get());
+    if (flat) {
+        switch (flat->hdr.type) {
+            case BINDER_TYPE_BINDER: {
+                sp<IBinder> binder = reinterpret_cast<IBinder*>(flat->cookie);
+                return finishUnflattenBinder(binder, out);
             }
-            return finish_flatten_binder(real, obj, out);
-        }
-
-        // XXX How to deal?  In order to flatten the given binder,
-        // we need to probe it for information, which requires a primary
-        // reference...  but we don't have one.
-        //
-        // The OpenBinder implementation uses a dynamic_cast<> here,
-        // but we can't do that with the different reference counting
-        // implementation we are using.
-        ALOGE("Unable to unflatten Binder weak reference!");
-        obj.hdr.type = BINDER_TYPE_BINDER;
-        obj.binder = 0;
-        obj.cookie = 0;
-        return finish_flatten_binder(nullptr, obj, out);
-
-    } else {
-        obj.hdr.type = BINDER_TYPE_BINDER;
-        obj.binder = 0;
-        obj.cookie = 0;
-        return finish_flatten_binder(nullptr, obj, out);
-    }
-}
-
-inline static status_t finish_unflatten_binder(
-    BpBinder* /*proxy*/, const flat_binder_object& /*flat*/,
-    const Parcel& /*in*/)
-{
-    return NO_ERROR;
-}
-
-status_t unflatten_binder(const sp<ProcessState>& proc,
-    const Parcel& in, sp<IBinder>* out)
-{
-    const flat_binder_object* flat = in.readObject(false);
-
-    if (flat) {
-        switch (flat->hdr.type) {
-            case BINDER_TYPE_BINDER:
-                *out = reinterpret_cast<IBinder*>(flat->cookie);
-                return finish_unflatten_binder(nullptr, *flat, in);
-            case BINDER_TYPE_HANDLE:
-                *out = proc->getStrongProxyForHandle(flat->handle);
-                return finish_unflatten_binder(
-                    static_cast<BpBinder*>(out->get()), *flat, in);
-        }
-    }
-    return BAD_TYPE;
-}
-
-status_t unflatten_binder(const sp<ProcessState>& proc,
-    const Parcel& in, wp<IBinder>* out)
-{
-    const flat_binder_object* flat = in.readObject(false);
-
-    if (flat) {
-        switch (flat->hdr.type) {
-            case BINDER_TYPE_BINDER:
-                *out = reinterpret_cast<IBinder*>(flat->cookie);
-                return finish_unflatten_binder(nullptr, *flat, in);
-            case BINDER_TYPE_WEAK_BINDER:
-                if (flat->binder != 0) {
-                    out->set_object_and_refs(
-                        reinterpret_cast<IBinder*>(flat->cookie),
-                        reinterpret_cast<RefBase::weakref_type*>(flat->binder));
-                } else {
-                    *out = nullptr;
-                }
-                return finish_unflatten_binder(nullptr, *flat, in);
-            case BINDER_TYPE_HANDLE:
-            case BINDER_TYPE_WEAK_HANDLE:
-                *out = proc->getWeakProxyForHandle(flat->handle);
-                return finish_unflatten_binder(
-                    static_cast<BpBinder*>(out->unsafe_get()), *flat, in);
+            case BINDER_TYPE_HANDLE: {
+                sp<IBinder> binder =
+                    ProcessState::self()->getStrongProxyForHandle(flat->handle);
+                return finishUnflattenBinder(binder, out);
+            }
         }
     }
     return BAD_TYPE;
@@ -594,51 +500,13 @@ bool Parcel::hasFileDescriptors() const
     return mHasFds;
 }
 
-void Parcel::updateWorkSourceRequestHeaderPosition() const {
-    // Only update the request headers once. We only want to point
-    // to the first headers read/written.
-    if (!mRequestHeaderPresent) {
-        mWorkSourceRequestHeaderPosition = dataPosition();
-        mRequestHeaderPresent = true;
-    }
-}
-
 // Write RPC headers.  (previously just the interface token)
 status_t Parcel::writeInterfaceToken(const String16& interface)
 {
-    const IPCThreadState* threadState = IPCThreadState::self();
-    writeInt32(threadState->getStrictModePolicy() | STRICT_MODE_PENALTY_GATHER);
-    updateWorkSourceRequestHeaderPosition();
-    writeInt32(threadState->shouldPropagateWorkSource() ?
-            threadState->getCallingWorkSourceUid() : IPCThreadState::kUnsetWorkSource);
+    writeInt32(IPCThreadState::self()->getStrictModePolicy() |
+               STRICT_MODE_PENALTY_GATHER);
     // currently the interface identification token is just its name as a string
     return writeString16(interface);
-}
-
-bool Parcel::replaceCallingWorkSourceUid(uid_t uid)
-{
-    if (!mRequestHeaderPresent) {
-        return false;
-    }
-
-    const size_t initialPosition = dataPosition();
-    setDataPosition(mWorkSourceRequestHeaderPosition);
-    status_t err = writeInt32(uid);
-    setDataPosition(initialPosition);
-    return err == NO_ERROR;
-}
-
-uid_t Parcel::readCallingWorkSourceUid()
-{
-    if (!mRequestHeaderPresent) {
-        return IPCThreadState::kUnsetWorkSource;
-    }
-
-    const size_t initialPosition = dataPosition();
-    setDataPosition(mWorkSourceRequestHeaderPosition);
-    uid_t uid = readInt32();
-    setDataPosition(initialPosition);
-    return uid;
 }
 
 bool Parcel::checkInterface(IBinder* binder) const
@@ -649,7 +517,6 @@ bool Parcel::checkInterface(IBinder* binder) const
 bool Parcel::enforceInterface(const String16& interface,
                               IPCThreadState* threadState) const
 {
-    // StrictModePolicy.
     int32_t strictPolicy = readInt32();
     if (threadState == nullptr) {
         threadState = IPCThreadState::self();
@@ -664,11 +531,6 @@ bool Parcel::enforceInterface(const String16& interface,
     } else {
       threadState->setStrictModePolicy(strictPolicy);
     }
-    // WorkSource.
-    updateWorkSourceRequestHeaderPosition();
-    int32_t workSource = readInt32();
-    threadState->setCallingWorkSourceUidWithoutPropagation(workSource);
-    // Interface descriptor.
     const String16 str(readString16());
     if (str == interface) {
         return true;
@@ -677,11 +539,6 @@ bool Parcel::enforceInterface(const String16& interface,
                 String8(interface).string(), String8(str).string());
         return false;
     }
-}
-
-const binder_size_t* Parcel::objects() const
-{
-    return mObjects;
 }
 
 size_t Parcel::objectsCount() const
@@ -913,16 +770,6 @@ status_t Parcel::writeInt64Vector(const std::unique_ptr<std::vector<int64_t>>& v
     return writeNullableTypedVector(val, &Parcel::writeInt64);
 }
 
-status_t Parcel::writeUint64Vector(const std::vector<uint64_t>& val)
-{
-    return writeTypedVector(val, &Parcel::writeUint64);
-}
-
-status_t Parcel::writeUint64Vector(const std::unique_ptr<std::vector<uint64_t>>& val)
-{
-    return writeNullableTypedVector(val, &Parcel::writeUint64);
-}
-
 status_t Parcel::writeFloatVector(const std::vector<float>& val)
 {
     return writeTypedVector(val, &Parcel::writeFloat);
@@ -1133,7 +980,7 @@ status_t Parcel::writeString16(const char16_t* str, size_t len)
 
 status_t Parcel::writeStrongBinder(const sp<IBinder>& val)
 {
-    return flatten_binder(ProcessState::self(), val, this);
+    return flattenBinder(val);
 }
 
 status_t Parcel::writeStrongBinderVector(const std::vector<sp<IBinder>>& val)
@@ -1154,11 +1001,6 @@ status_t Parcel::readStrongBinderVector(std::vector<sp<IBinder>>* val) const {
     return readTypedVector(val, &Parcel::readStrongBinder);
 }
 
-status_t Parcel::writeWeakBinder(const wp<IBinder>& val)
-{
-    return flatten_binder(ProcessState::self(), val, this);
-}
-
 status_t Parcel::writeRawNullableParcelable(const Parcelable* parcelable) {
     if (!parcelable) {
         return writeInt32(0);
@@ -1173,10 +1015,6 @@ status_t Parcel::writeParcelable(const Parcelable& parcelable) {
         return status;
     }
     return parcelable.writeToParcel(this);
-}
-
-status_t Parcel::writeValue(const binder::Value& value) {
-    return value.writeToParcel(this);
 }
 
 status_t Parcel::writeNativeHandle(const native_handle* handle)
@@ -1414,125 +1252,6 @@ status_t Parcel::writeNoException()
 {
     binder::Status status;
     return status.writeToParcel(this);
-}
-
-status_t Parcel::writeMap(const ::android::binder::Map& map_in)
-{
-    using ::std::map;
-    using ::android::binder::Value;
-    using ::android::binder::Map;
-
-    Map::const_iterator iter;
-    status_t ret;
-
-    ret = writeInt32(map_in.size());
-
-    if (ret != NO_ERROR) {
-        return ret;
-    }
-
-    for (iter = map_in.begin(); iter != map_in.end(); ++iter) {
-        ret = writeValue(Value(iter->first));
-        if (ret != NO_ERROR) {
-            return ret;
-        }
-
-        ret = writeValue(iter->second);
-        if (ret != NO_ERROR) {
-            return ret;
-        }
-    }
-
-    return ret;
-}
-
-status_t Parcel::writeNullableMap(const std::unique_ptr<binder::Map>& map)
-{
-    if (map == nullptr) {
-        return writeInt32(-1);
-    }
-
-    return writeMap(*map.get());
-}
-
-status_t Parcel::readMap(::android::binder::Map* map_out)const
-{
-    using ::std::map;
-    using ::android::String16;
-    using ::android::String8;
-    using ::android::binder::Value;
-    using ::android::binder::Map;
-
-    status_t ret = NO_ERROR;
-    int32_t count;
-
-    ret = readInt32(&count);
-    if (ret != NO_ERROR) {
-        return ret;
-    }
-
-    if (count < 0) {
-        ALOGE("readMap: Unexpected count: %d", count);
-        return (count == -1)
-            ? UNEXPECTED_NULL
-            : BAD_VALUE;
-    }
-
-    map_out->clear();
-
-    while (count--) {
-        Map::key_type key;
-        Value value;
-
-        ret = readValue(&value);
-        if (ret != NO_ERROR) {
-            return ret;
-        }
-
-        if (!value.getString(&key)) {
-            ALOGE("readMap: Key type not a string (parcelType = %d)", value.parcelType());
-            return BAD_VALUE;
-        }
-
-        ret = readValue(&value);
-        if (ret != NO_ERROR) {
-            return ret;
-        }
-
-        (*map_out)[key] = value;
-    }
-
-    return ret;
-}
-
-status_t Parcel::readNullableMap(std::unique_ptr<binder::Map>* map) const
-{
-    const size_t start = dataPosition();
-    int32_t count;
-    status_t status = readInt32(&count);
-    map->reset();
-
-    if (status != OK || count == -1) {
-        return status;
-    }
-
-    setDataPosition(start);
-    map->reset(new binder::Map());
-
-    status = readMap(map->get());
-
-    if (status != OK) {
-        map->reset();
-    }
-
-    return status;
-}
-
-
-
-void Parcel::remove(size_t /*start*/, size_t /*amt*/)
-{
-    LOG_ALWAYS_FATAL("Parcel::remove() not yet implemented!");
 }
 
 status_t Parcel::validateReadData(size_t upperBound) const
@@ -1782,14 +1501,6 @@ status_t Parcel::readInt64Vector(std::unique_ptr<std::vector<int64_t>>* val) con
 
 status_t Parcel::readInt64Vector(std::vector<int64_t>* val) const {
     return readTypedVector(val, &Parcel::readInt64);
-}
-
-status_t Parcel::readUint64Vector(std::unique_ptr<std::vector<uint64_t>>* val) const {
-    return readNullableTypedVector(val, &Parcel::readUint64);
-}
-
-status_t Parcel::readUint64Vector(std::vector<uint64_t>* val) const {
-    return readTypedVector(val, &Parcel::readUint64);
 }
 
 status_t Parcel::readFloatVector(std::unique_ptr<std::vector<float>>* val) const {
@@ -2086,8 +1797,8 @@ status_t Parcel::readUtf8FromUtf16(std::unique_ptr<std::string>* str) const {
 
 const char* Parcel::readCString() const
 {
-    if (mDataPos < mDataSize) {
-        const size_t avail = mDataSize-mDataPos;
+    const size_t avail = mDataSize-mDataPos;
+    if (avail > 0) {
         const char* str = reinterpret_cast<const char*>(mData+mDataPos);
         // is the string's trailing NUL within the parcel's valid bounds?
         const char* eos = reinterpret_cast<const char*>(memchr(str, 0, avail));
@@ -2207,7 +1918,7 @@ status_t Parcel::readStrongBinder(sp<IBinder>* val) const
 
 status_t Parcel::readNullableStrongBinder(sp<IBinder>* val) const
 {
-    return unflatten_binder(ProcessState::self(), *this, val);
+    return unflattenBinder(val);
 }
 
 sp<IBinder> Parcel::readStrongBinder() const
@@ -2217,13 +1928,6 @@ sp<IBinder> Parcel::readStrongBinder() const
     // method, and that code has historically been ok with getting nullptr
     // back (while ignoring error codes).
     readNullableStrongBinder(&val);
-    return val;
-}
-
-wp<IBinder> Parcel::readWeakBinder() const
-{
-    wp<IBinder> val;
-    unflatten_binder(ProcessState::self(), *this, &val);
     return val;
 }
 
@@ -2237,10 +1941,6 @@ status_t Parcel::readParcelable(Parcelable* parcelable) const {
         return UNEXPECTED_NULL;
     }
     return parcelable->readFromParcel(this);
-}
-
-status_t Parcel::readValue(binder::Value* value) const {
-    return value->readFromParcel(this);
 }
 
 int32_t Parcel::readExceptionCode() const
@@ -2389,15 +2089,6 @@ status_t Parcel::readBlob(size_t len, ReadableBlob* outBlob) const
     int fd = readFileDescriptor();
     if (fd == int(BAD_TYPE)) return BAD_VALUE;
 
-    if (!ashmem_valid(fd)) {
-        ALOGE("invalid fd");
-        return BAD_VALUE;
-    }
-    int size = ashmem_get_size_region(fd);
-    if (size < 0 || size_t(size) < len) {
-        ALOGE("request size %zu does not match fd size %d", len, size);
-        return BAD_VALUE;
-    }
     void* ptr = ::mmap(nullptr, len, isMutable ? PROT_READ | PROT_WRITE : PROT_READ,
             MAP_SHARED, fd, 0);
     if (ptr == MAP_FAILED) return NO_MEMORY;
@@ -2594,7 +2285,7 @@ void Parcel::print(TextOutput& to, uint32_t /*flags*/) const
     } else if (dataSize() > 0) {
         const uint8_t* DATA = data();
         to << indent << HexDump(DATA, dataSize()) << dedent;
-        const binder_size_t* OBJS = objects();
+        const binder_size_t* OBJS = mObjects;
         const size_t N = objectsCount();
         for (size_t i=0; i<N; i++) {
             const flat_binder_object* flat
@@ -2835,18 +2526,10 @@ status_t Parcel::continueWrite(size_t desired)
                 }
                 release_object(proc, *flat, this, &mOpenAshmemSize);
             }
-
-            if (objectsSize == 0) {
-                free(mObjects);
-                mObjects = nullptr;
-                mObjectsCapacity = 0;
-            } else {
-                binder_size_t* objects =
-                    (binder_size_t*)realloc(mObjects, objectsSize*sizeof(binder_size_t));
-                if (objects) {
-                    mObjects = objects;
-                    mObjectsCapacity = objectsSize;
-                }
+            binder_size_t* objects =
+                (binder_size_t*)realloc(mObjects, objectsSize*sizeof(binder_size_t));
+            if (objects) {
+                mObjects = objects;
             }
             mObjectsSize = objectsSize;
             mNextObjectHint = 0;
@@ -2929,8 +2612,6 @@ void Parcel::initState()
     mAllowFds = true;
     mOwner = nullptr;
     mOpenAshmemSize = 0;
-    mWorkSourceRequestHeaderPosition = 0;
-    mRequestHeaderPresent = false;
 
     // racing multiple init leads only to multiple identical write
     if (gMaxFds == 0) {

@@ -187,6 +187,7 @@ class Heap {
        size_t max_free,
        double target_utilization,
        double foreground_heap_growth_multiplier,
+       size_t stop_for_native_allocs,
        size_t capacity,
        size_t non_moving_space_capacity,
        const std::vector<std::string>& boot_class_path,
@@ -222,7 +223,7 @@ class Heap {
   ~Heap();
 
   // Allocates and initializes storage for an object instance.
-  template <bool kInstrumented, typename PreFenceVisitor>
+  template <bool kInstrumented = true, typename PreFenceVisitor>
   mirror::Object* AllocObject(Thread* self,
                               ObjPtr<mirror::Class> klass,
                               size_t num_bytes,
@@ -232,14 +233,14 @@ class Heap {
                !*pending_task_lock_,
                !*backtrace_lock_,
                !Roles::uninterruptible_) {
-    return AllocObjectWithAllocator<kInstrumented, true>(self,
-                                                         klass,
-                                                         num_bytes,
-                                                         GetCurrentAllocator(),
-                                                         pre_fence_visitor);
+    return AllocObjectWithAllocator<kInstrumented>(self,
+                                                   klass,
+                                                   num_bytes,
+                                                   GetCurrentAllocator(),
+                                                   pre_fence_visitor);
   }
 
-  template <bool kInstrumented, typename PreFenceVisitor>
+  template <bool kInstrumented = true, typename PreFenceVisitor>
   mirror::Object* AllocNonMovableObject(Thread* self,
                                         ObjPtr<mirror::Class> klass,
                                         size_t num_bytes,
@@ -249,14 +250,14 @@ class Heap {
                !*pending_task_lock_,
                !*backtrace_lock_,
                !Roles::uninterruptible_) {
-    return AllocObjectWithAllocator<kInstrumented, true>(self,
-                                                         klass,
-                                                         num_bytes,
-                                                         GetCurrentNonMovingAllocator(),
-                                                         pre_fence_visitor);
+    return AllocObjectWithAllocator<kInstrumented>(self,
+                                                   klass,
+                                                   num_bytes,
+                                                   GetCurrentNonMovingAllocator(),
+                                                   pre_fence_visitor);
   }
 
-  template <bool kInstrumented, bool kCheckLargeObject, typename PreFenceVisitor>
+  template <bool kInstrumented = true, bool kCheckLargeObject = true, typename PreFenceVisitor>
   ALWAYS_INLINE mirror::Object* AllocObjectWithAllocator(Thread* self,
                                                          ObjPtr<mirror::Class> klass,
                                                          size_t byte_count,
@@ -307,9 +308,6 @@ class Heap {
   // Change the allocator, updates entrypoints.
   void ChangeAllocator(AllocatorType allocator)
       REQUIRES(Locks::mutator_lock_, !Locks::runtime_shutdown_lock_);
-
-  // Transition the garbage collector during runtime, may copy objects from one space to another.
-  void TransitionCollector(CollectorType collector_type) REQUIRES(!*gc_complete_lock_);
 
   // Change the collector to be one of the possible options (MS, CMS, SS).
   void ChangeCollector(CollectorType collector_type)
@@ -686,13 +684,20 @@ class Heap {
   bool IsInBootImageOatFile(const void* p) const
       REQUIRES_SHARED(Locks::mutator_lock_);
 
-  void GetBootImagesSize(uint32_t* boot_image_begin,
-                         uint32_t* boot_image_end,
-                         uint32_t* boot_oat_begin,
-                         uint32_t* boot_oat_end);
+  // Get the start address of the boot images if any; otherwise returns 0.
+  uint32_t GetBootImagesStartAddress() const {
+    return boot_images_start_address_;
+  }
 
-  // Permenantly disable moving garbage collection.
-  void DisableMovingGc() REQUIRES(!*gc_complete_lock_);
+  // Get the size of all boot images, including the heap and oat areas.
+  uint32_t GetBootImagesSize() const {
+    return boot_images_size_;
+  }
+
+  // Check if a pointer points to a boot image.
+  bool IsBootImageAddress(const void* p) const {
+    return reinterpret_cast<uintptr_t>(p) - boot_images_start_address_ < boot_images_size_;
+  }
 
   space::DlMallocSpace* GetDlMallocSpace() const {
     return dlmalloc_space_;
@@ -956,7 +961,6 @@ class Heap {
     return
         collector_type == kCollectorTypeCC ||
         collector_type == kCollectorTypeSS ||
-        collector_type == kCollectorTypeGSS ||
         collector_type == kCollectorTypeCCBackground ||
         collector_type == kCollectorTypeHomogeneousSpaceCompact;
   }
@@ -1447,6 +1451,13 @@ class Heap {
   // How much more we grow the heap when we are a foreground app instead of background.
   double foreground_heap_growth_multiplier_;
 
+  // The amount of native memory allocation since the last GC required to cause us to wait for a
+  // collection as a result of native allocation. Very large values can cause the device to run
+  // out of memory, due to lack of finalization to reclaim native memory.  Making it too small can
+  // cause jank in apps like launcher that intentionally allocate large amounts of memory in rapid
+  // succession. (b/122099093) 1/4 to 1/3 of physical memory seems to be a good number.
+  const size_t stop_for_native_allocs_;
+
   // Total time which mutators are paused or waiting for GC to complete.
   uint64_t total_wait_time_;
 
@@ -1550,6 +1561,10 @@ class Heap {
 
   // Boot image spaces.
   std::vector<space::ImageSpace*> boot_image_spaces_;
+
+  // Boot image address range. Includes images and oat files.
+  uint32_t boot_images_start_address_;
+  uint32_t boot_images_size_;
 
   // An installed allocation listener.
   Atomic<AllocationListener*> alloc_listener_;

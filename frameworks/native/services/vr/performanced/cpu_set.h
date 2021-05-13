@@ -5,7 +5,6 @@
 
 #include <memory>
 #include <mutex>
-#include <sstream>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -84,7 +83,7 @@ class CpuSetManager {
   // to shield the system from interference from unbound kernel threads.
   void MoveUnboundTasks(const std::string& target_set);
 
-  void DumpState(std::ostringstream& stream) const;
+  std::string DumpState() const;
 
   operator bool() const { return root_set_ != nullptr; }
 

@@ -17,7 +17,6 @@ package com.android.commands.monkey;
 
 import android.content.Context;
 import android.os.IPowerManager;
-import android.os.PowerManager;
 import android.os.RemoteException;
 import android.os.ServiceManager;
 import android.os.SystemClock;
@@ -438,8 +437,7 @@ public class MonkeySourceNetwork implements MonkeyEventSource {
         IPowerManager pm =
                 IPowerManager.Stub.asInterface(ServiceManager.getService(Context.POWER_SERVICE));
         try {
-            pm.wakeUp(SystemClock.uptimeMillis(), PowerManager.WAKE_REASON_UNKNOWN,
-                    "Monkey", null);
+            pm.wakeUp(SystemClock.uptimeMillis(), "Monkey", null);
         } catch (RemoteException e) {
             Log.e(TAG, "Got remote exception", e);
             return false;

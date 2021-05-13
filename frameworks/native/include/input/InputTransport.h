@@ -17,8 +17,6 @@
 #ifndef _LIBINPUT_INPUT_TRANSPORT_H
 #define _LIBINPUT_INPUT_TRANSPORT_H
 
-#pragma GCC system_header
-
 /**
  * Native input transport.
  *
@@ -29,9 +27,6 @@
  * The InputConsumer is used by the application to receive events from the input dispatcher.
  */
 
-#include <string>
-
-#include <binder/IBinder.h>
 #include <input/Input.h>
 #include <utils/Errors.h>
 #include <utils/Timers.h>
@@ -40,7 +35,6 @@
 #include <utils/BitSet.h>
 
 namespace android {
-class Parcel;
 
 /*
  * Intermediate representation used to send input events and related signals.
@@ -105,9 +99,8 @@ struct InputMessage {
             int32_t flags;
             int32_t metaState;
             int32_t buttonState;
-            MotionClassification classification; // base type: uint8_t
-            uint8_t empty2[3];
             int32_t edgeFlags;
+            uint32_t empty2;
             nsecs_t downTime __attribute__((aligned(8)));
             float xOffset;
             float yOffset;
@@ -161,7 +154,6 @@ protected:
     virtual ~InputChannel();
 
 public:
-    InputChannel() = default;
     InputChannel(const std::string& name, int fd);
 
     /* Creates a pair of input channels.
@@ -202,19 +194,9 @@ public:
     /* Returns a new object that has a duplicate of this channel's fd. */
     sp<InputChannel> dup() const;
 
-    status_t write(Parcel& out) const;
-    status_t read(const Parcel& from);
-
-    sp<IBinder> getToken() const;
-    void setToken(const sp<IBinder>& token);
-
 private:
-    void setFd(int fd);
-
     std::string mName;
-    int mFd = -1;
-
-    sp<IBinder> mToken = nullptr;
+    int mFd;
 };
 
 /*
@@ -243,7 +225,6 @@ public:
             uint32_t seq,
             int32_t deviceId,
             int32_t source,
-            int32_t displayId,
             int32_t action,
             int32_t flags,
             int32_t keyCode,
@@ -272,7 +253,6 @@ public:
             int32_t edgeFlags,
             int32_t metaState,
             int32_t buttonState,
-            MotionClassification classification,
             float xOffset,
             float yOffset,
             float xPrecision,
@@ -338,7 +318,7 @@ public:
      * Other errors probably indicate that the channel is broken.
      */
     status_t consume(InputEventFactoryInterface* factory, bool consumeBatches,
-            nsecs_t frameTime, uint32_t* outSeq, InputEvent** outEvent);
+            nsecs_t frameTime, uint32_t* outSeq, InputEvent** outEvent, int32_t* displayId);
 
     /* Sends a finished signal to the publisher to inform it that the message
      * with the specified sequence number has finished being process and whether
@@ -493,9 +473,10 @@ private:
     Vector<SeqChain> mSeqChains;
 
     status_t consumeBatch(InputEventFactoryInterface* factory,
-            nsecs_t frameTime, uint32_t* outSeq, InputEvent** outEvent);
+            nsecs_t frameTime, uint32_t* outSeq, InputEvent** outEvent, int32_t* displayId);
     status_t consumeSamples(InputEventFactoryInterface* factory,
-            Batch& batch, size_t count, uint32_t* outSeq, InputEvent** outEvent);
+            Batch& batch, size_t count, uint32_t* outSeq, InputEvent** outEvent,
+            int32_t* displayId);
 
     void updateTouchState(InputMessage& msg);
     void resampleTouchState(nsecs_t frameTime, MotionEvent* event,

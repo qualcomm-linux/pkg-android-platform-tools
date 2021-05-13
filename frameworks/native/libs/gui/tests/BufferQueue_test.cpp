@@ -61,7 +61,7 @@ protected:
     }
 
     void GetMinUndequeuedBufferCount(int* bufferCount) {
-        ASSERT_TRUE(bufferCount != nullptr);
+        ASSERT_TRUE(bufferCount != NULL);
         ASSERT_EQ(OK, mProducer->query(NATIVE_WINDOW_MIN_UNDEQUEUED_BUFFERS,
                     bufferCount));
         ASSERT_GE(*bufferCount, 0);
@@ -82,7 +82,7 @@ protected:
         sp<Fence> fence;
 
         input.deflate(&timestamp, &isAutoTimestamp, &dataSpace, &crop,
-                &scalingMode, &transform, &fence, nullptr);
+                &scalingMode, &transform, &fence, NULL);
         ASSERT_EQ(timestamp, item.mTimestamp);
         ASSERT_EQ(isAutoTimestamp, item.mIsAutoTimestamp);
         ASSERT_EQ(dataSpace, item.mDataSpace);
@@ -128,17 +128,17 @@ TEST_F(BufferQueueTest, DISABLED_BufferQueueInAnotherProcess) {
     sp<IBinder> binderProducer =
         serviceManager->getService(PRODUCER_NAME);
     mProducer = interface_cast<IGraphicBufferProducer>(binderProducer);
-    EXPECT_TRUE(mProducer != nullptr);
+    EXPECT_TRUE(mProducer != NULL);
     sp<IBinder> binderConsumer =
         serviceManager->getService(CONSUMER_NAME);
     mConsumer = interface_cast<IGraphicBufferConsumer>(binderConsumer);
-    EXPECT_TRUE(mConsumer != nullptr);
+    EXPECT_TRUE(mConsumer != NULL);
 
     sp<DummyConsumer> dc(new DummyConsumer);
     ASSERT_EQ(OK, mConsumer->consumerConnect(dc, false));
     IGraphicBufferProducer::QueueBufferOutput output;
     ASSERT_EQ(OK,
-            mProducer->connect(nullptr, NATIVE_WINDOW_API_CPU, false, &output));
+            mProducer->connect(NULL, NATIVE_WINDOW_API_CPU, false, &output));
 
     int slot;
     sp<Fence> fence;
@@ -353,8 +353,8 @@ TEST_F(BufferQueueTest, DetachAndReattachOnProducerSide) {
     ASSERT_EQ(OK, buffer->unlock());
 
     int newSlot;
-    ASSERT_EQ(BAD_VALUE, mProducer->attachBuffer(nullptr, safeToClobberBuffer));
-    ASSERT_EQ(BAD_VALUE, mProducer->attachBuffer(&newSlot, nullptr));
+    ASSERT_EQ(BAD_VALUE, mProducer->attachBuffer(NULL, safeToClobberBuffer));
+    ASSERT_EQ(BAD_VALUE, mProducer->attachBuffer(&newSlot, NULL));
 
     ASSERT_EQ(OK, mProducer->attachBuffer(&newSlot, buffer));
     IGraphicBufferProducer::QueueBufferInput input(0, false,
@@ -412,8 +412,8 @@ TEST_F(BufferQueueTest, DetachAndReattachOnConsumerSide) {
 
     int newSlot;
     sp<GraphicBuffer> safeToClobberBuffer;
-    ASSERT_EQ(BAD_VALUE, mConsumer->attachBuffer(nullptr, safeToClobberBuffer));
-    ASSERT_EQ(BAD_VALUE, mConsumer->attachBuffer(&newSlot, nullptr));
+    ASSERT_EQ(BAD_VALUE, mConsumer->attachBuffer(NULL, safeToClobberBuffer));
+    ASSERT_EQ(BAD_VALUE, mConsumer->attachBuffer(&newSlot, NULL));
     ASSERT_EQ(OK, mConsumer->attachBuffer(&newSlot, item.mGraphicBuffer));
 
     ASSERT_EQ(OK, mConsumer->releaseBuffer(newSlot, 0, EGL_NO_DISPLAY,
@@ -998,31 +998,12 @@ TEST_F(BufferQueueTest, TestOccupancyHistory) {
     ASSERT_EQ(true, thirdSegment.usedThirdBuffer);
 }
 
-struct BufferDiscardedListener : public BnProducerListener {
-public:
-    BufferDiscardedListener() = default;
-    virtual ~BufferDiscardedListener() = default;
-
-    virtual void onBufferReleased() {}
-    virtual bool needsReleaseNotify() { return false; }
-    virtual void onBuffersDiscarded(const std::vector<int32_t>& slots) {
-        mDiscardedSlots.insert(mDiscardedSlots.end(), slots.begin(), slots.end());
-    }
-
-    const std::vector<int32_t>& getDiscardedSlots() const { return mDiscardedSlots; }
-private:
-    // No need to use lock given the test triggers the listener in the same
-    // thread context.
-    std::vector<int32_t> mDiscardedSlots;
-};
-
 TEST_F(BufferQueueTest, TestDiscardFreeBuffers) {
     createBufferQueue();
     sp<DummyConsumer> dc(new DummyConsumer);
     ASSERT_EQ(OK, mConsumer->consumerConnect(dc, false));
     IGraphicBufferProducer::QueueBufferOutput output;
-    sp<BufferDiscardedListener> pl(new BufferDiscardedListener);
-    ASSERT_EQ(OK, mProducer->connect(pl,
+    ASSERT_EQ(OK, mProducer->connect(new DummyProducerListener,
             NATIVE_WINDOW_API_CPU, false, &output));
 
     int slot = BufferQueue::INVALID_BUFFER_SLOT;
@@ -1063,18 +1044,11 @@ TEST_F(BufferQueueTest, TestDiscardFreeBuffers) {
     ASSERT_EQ(OK, mConsumer->acquireBuffer(&item, 0));
     ASSERT_EQ(OK, mConsumer->releaseBuffer(item.mSlot, item.mFrameNumber,
                     EGL_NO_DISPLAY, EGL_NO_SYNC_KHR, Fence::NO_FENCE));
-    int releasedSlot = item.mSlot;
-
     // Acquire 1 buffer, leaving 1 filled buffer in queue
     ASSERT_EQ(OK, mConsumer->acquireBuffer(&item, 0));
 
     // Now discard the free buffers
     ASSERT_EQ(OK, mConsumer->discardFreeBuffers());
-
-    // Check onBuffersDiscarded is called with correct slots
-    auto buffersDiscarded = pl->getDiscardedSlots();
-    ASSERT_EQ(buffersDiscarded.size(), 1);
-    ASSERT_EQ(buffersDiscarded[0], releasedSlot);
 
     // Check no free buffers in dump
     String8 dumpString;

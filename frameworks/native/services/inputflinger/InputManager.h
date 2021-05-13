@@ -22,23 +22,18 @@
  */
 
 #include "EventHub.h"
-#include "InputReaderBase.h"
-#include "InputClassifier.h"
-#include "InputDispatcher.h"
 #include "InputReader.h"
+#include "InputDispatcher.h"
 
 #include <input/Input.h>
 #include <input/InputTransport.h>
-#include <input/ISetInputWindowsListener.h>
-
-#include <input/IInputFlinger.h>
 #include <utils/Errors.h>
 #include <utils/Vector.h>
 #include <utils/Timers.h>
 #include <utils/RefBase.h>
+#include <utils/String8.h>
 
 namespace android {
-class InputChannel;
 
 /*
  * The input manager is the core of the system event processing.
@@ -78,33 +73,30 @@ public:
     virtual sp<InputDispatcherInterface> getDispatcher() = 0;
 };
 
-class InputManager : public InputManagerInterface, public BnInputFlinger {
+class InputManager : public InputManagerInterface {
 protected:
     virtual ~InputManager();
 
 public:
     InputManager(
+            const sp<EventHubInterface>& eventHub,
             const sp<InputReaderPolicyInterface>& readerPolicy,
             const sp<InputDispatcherPolicyInterface>& dispatcherPolicy);
+
+    // (used for testing purposes)
+    InputManager(
+            const sp<InputReaderInterface>& reader,
+            const sp<InputDispatcherInterface>& dispatcher);
 
     virtual status_t start();
     virtual status_t stop();
 
     virtual sp<InputReaderInterface> getReader();
-    virtual sp<InputClassifierInterface> getClassifier();
     virtual sp<InputDispatcherInterface> getDispatcher();
-
-    virtual void setInputWindows(const std::vector<InputWindowInfo>& handles,
-            const sp<ISetInputWindowsListener>& setInputWindowsListener);
-
-    virtual void registerInputChannel(const sp<InputChannel>& channel);
-    virtual void unregisterInputChannel(const sp<InputChannel>& channel);
 
 private:
     sp<InputReaderInterface> mReader;
     sp<InputReaderThread> mReaderThread;
-
-    sp<InputClassifierInterface> mClassifier;
 
     sp<InputDispatcherInterface> mDispatcher;
     sp<InputDispatcherThread> mDispatcherThread;

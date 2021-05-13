@@ -47,7 +47,6 @@ import android.os.Parcel;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
 import android.os.ServiceManager;
-import android.os.ServiceManagerNative;
 import android.os.SystemClock;
 import android.provider.Settings;
 import android.os.Bundle;
@@ -701,7 +700,7 @@ public class Connectivity extends Activity {
         Log.e(TAG, "LINK STATS:  ");
         try {
             WifiActivityEnergyInfo info =
-                    mWm.getControllerActivityEnergyInfo();
+                    mWm.getControllerActivityEnergyInfo(0);
             if (info != null) {
                 mLinkStatsResults.setText(" power " + info.toString());
             } else {

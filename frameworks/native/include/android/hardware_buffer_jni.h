@@ -15,13 +15,7 @@
  */
 
 /**
- * @addtogroup AHardwareBuffer
- * @{
- */
-
-/**
  * @file hardware_buffer_jni.h
- * @brief JNI glue for native hardware buffers.
  */
 
 #ifndef ANDROID_HARDWARE_BUFFER_JNI_H
@@ -36,25 +30,23 @@
 __BEGIN_DECLS
 
 /**
- * Return the AHardwareBuffer wrapped by a Java HardwareBuffer object.
- *
- * This method does not acquire any additional reference to the AHardwareBuffer
- * that is returned. To keep the AHardwareBuffer live after the Java
- * HardwareBuffer object got garbage collected, be sure to use AHardwareBuffer_acquire()
- * to acquire an additional reference.
+ * Return the AHardwareBuffer associated with a Java HardwareBuffer object,
+ * for interacting with it through native code. This method does not acquire any
+ * additional reference to the AHardwareBuffer that is returned. To keep the
+ * AHardwareBuffer live after the Java HardwareBuffer object got garbage
+ * collected, be sure to use AHardwareBuffer_acquire() to acquire an additional
+ * reference.
  */
 AHardwareBuffer* AHardwareBuffer_fromHardwareBuffer(JNIEnv* env,
-        jobject hardwareBufferObj) __INTRODUCED_IN(26);
+        jobject hardwareBufferObj);
 
 /**
  * Return a new Java HardwareBuffer object that wraps the passed native
  * AHardwareBuffer object.
  */
 jobject AHardwareBuffer_toHardwareBuffer(JNIEnv* env,
-        AHardwareBuffer* hardwareBuffer) __INTRODUCED_IN(26);
+        AHardwareBuffer* hardwareBuffer);
 
 __END_DECLS
 
 #endif // ANDROID_HARDWARE_BUFFER_JNI_H
-
-/** @} */

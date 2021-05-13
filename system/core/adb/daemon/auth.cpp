@@ -19,16 +19,14 @@
 #include "adb.h"
 #include "adb_auth.h"
 #include "adb_io.h"
-#include "fdevent.h"
+#include "fdevent/fdevent.h"
 #include "sysdeps.h"
 #include "transport.h"
 
 #include <resolv.h>
 #include <stdio.h>
 #include <string.h>
-#include <iomanip>
 
-#include <algorithm>
 #include <memory>
 
 #include <android-base/file.h>
@@ -40,24 +38,22 @@
 
 static fdevent* listener_fde = nullptr;
 static fdevent* framework_fde = nullptr;
-static auto& framework_mutex = *new std::mutex();
-static int framework_fd GUARDED_BY(framework_mutex) = -1;
-static auto& connected_keys GUARDED_BY(framework_mutex) = *new std::vector<std::string>;
+static int framework_fd = -1;
 
-static void adb_disconnected(void* unused, atransport* t);
-static struct adisconnect adb_disconnect = {adb_disconnected, nullptr};
-static atransport* adb_transport;
+static void usb_disconnected(void* unused, atransport* t);
+static struct adisconnect usb_disconnect = { usb_disconnected, nullptr};
+static atransport* usb_transport;
 static bool needs_retry = false;
 
 bool auth_required = true;
 
-bool adbd_auth_verify(const char* token, size_t token_size, const std::string& sig,
-                      std::string* auth_key) {
+bool adbd_auth_verify(const char* token, size_t token_size, const std::string& sig) {
     static constexpr const char* key_paths[] = { "/adb_keys", "/data/misc/adb/adb_keys", nullptr };
 
     for (const auto& path : key_paths) {
         if (access(path, R_OK) == 0) {
             LOG(INFO) << "Loading keys from " << path;
+
             std::string content;
             if (!android::base::ReadFileToString(path, &content)) {
                 PLOG(ERROR) << "Couldn't read " << path;
@@ -65,8 +61,6 @@ bool adbd_auth_verify(const char* token, size_t token_size, const std::string& s
             }
 
             for (const auto& line : android::base::Split(content, "\n")) {
-                if (line.empty()) continue;
-                *auth_key = line;
                 // TODO: do we really have to support both ' ' and '\t'?
                 char* sep = strpbrk(const_cast<char*>(line.c_str()), " \t");
                 if (sep) *sep = '\0';
@@ -94,29 +88,7 @@ bool adbd_auth_verify(const char* token, size_t token_size, const std::string& s
             }
         }
     }
-    auth_key->clear();
     return false;
-}
-
-static bool adbd_send_key_message_locked(std::string_view msg_type, std::string_view key)
-        REQUIRES(framework_mutex) {
-    if (framework_fd < 0) {
-        LOG(ERROR) << "Client not connected to send msg_type " << msg_type;
-        return false;
-    }
-    std::string msg = std::string(msg_type) + std::string(key);
-    int msg_len = msg.length();
-    if (msg_len >= static_cast<int>(MAX_FRAMEWORK_PAYLOAD)) {
-        LOG(ERROR) << "Key too long (" << msg_len << ")";
-        return false;
-    }
-
-    LOG(DEBUG) << "Sending '" << msg << "'";
-    if (!WriteFdExactly(framework_fd, msg.c_str(), msg_len)) {
-        PLOG(ERROR) << "Failed to write " << msg_type;
-        return false;
-    }
-    return true;
 }
 
 static bool adbd_auth_generate_token(void* token, size_t token_size) {
@@ -127,28 +99,17 @@ static bool adbd_auth_generate_token(void* token, size_t token_size) {
     return okay;
 }
 
-static void adb_disconnected(void* unused, atransport* t) {
-    LOG(INFO) << "ADB disconnect";
-    adb_transport = nullptr;
+static void usb_disconnected(void* unused, atransport* t) {
+    LOG(INFO) << "USB disconnect";
+    usb_transport = nullptr;
     needs_retry = false;
-    {
-        std::lock_guard<std::mutex> lock(framework_mutex);
-        if (framework_fd >= 0) {
-            adbd_send_key_message_locked("DC", t->auth_key);
-        }
-        connected_keys.erase(std::remove(connected_keys.begin(), connected_keys.end(), t->auth_key),
-                             connected_keys.end());
-    }
 }
 
 static void framework_disconnected() {
     LOG(INFO) << "Framework disconnect";
     if (framework_fde) {
         fdevent_destroy(framework_fde);
-        {
-            std::lock_guard<std::mutex> lock(framework_mutex);
-            framework_fd = -1;
-        }
+        framework_fd = -1;
     }
 }
 
@@ -159,28 +120,41 @@ static void adbd_auth_event(int fd, unsigned events, void*) {
         if (ret <= 0) {
             framework_disconnected();
         } else if (ret == 2 && response[0] == 'O' && response[1] == 'K') {
-            if (adb_transport) {
-                adbd_auth_verified(adb_transport);
+            if (usb_transport) {
+                adbd_auth_verified(usb_transport);
             }
         }
     }
 }
 
-void adbd_auth_confirm_key(atransport* t) {
-    if (!adb_transport) {
-        adb_transport = t;
-        t->AddDisconnect(&adb_disconnect);
+void adbd_auth_confirm_key(const char* key, size_t len, atransport* t) {
+    if (!usb_transport) {
+        usb_transport = t;
+        t->AddDisconnect(&usb_disconnect);
     }
 
-    {
-        std::lock_guard<std::mutex> lock(framework_mutex);
-        if (framework_fd < 0) {
-            LOG(ERROR) << "Client not connected";
-            needs_retry = true;
-            return;
-        }
+    if (framework_fd < 0) {
+        LOG(ERROR) << "Client not connected";
+        needs_retry = true;
+        return;
+    }
 
-        adbd_send_key_message_locked("PK", t->auth_key);
+    if (key[len - 1] != '\0') {
+        LOG(ERROR) << "Key must be a null-terminated string";
+        return;
+    }
+
+    char msg[MAX_PAYLOAD_V1];
+    int msg_len = snprintf(msg, sizeof(msg), "PK%s", key);
+    if (msg_len >= static_cast<int>(sizeof(msg))) {
+        LOG(ERROR) << "Key too long (" << msg_len << ")";
+        return;
+    }
+    LOG(DEBUG) << "Sending '" << msg << "'";
+
+    if (unix_write(framework_fd, msg, msg_len) == -1) {
+        PLOG(ERROR) << "Failed to write PK";
+        return;
     }
 }
 
@@ -191,46 +165,18 @@ static void adbd_auth_listener(int fd, unsigned events, void* data) {
         return;
     }
 
-    {
-        std::lock_guard<std::mutex> lock(framework_mutex);
-        if (framework_fd >= 0) {
-            LOG(WARNING) << "adb received framework auth socket connection again";
-            framework_disconnected();
-        }
-
-        framework_fd = s;
-        framework_fde = fdevent_create(framework_fd, adbd_auth_event, nullptr);
-        fdevent_add(framework_fde, FDE_READ);
-
-        if (needs_retry) {
-            needs_retry = false;
-            send_auth_request(adb_transport);
-        }
-
-        // if a client connected before the framework was available notify the framework of the
-        // connected key now.
-        if (!connected_keys.empty()) {
-            for (const auto& key : connected_keys) {
-                adbd_send_key_message_locked("CK", key);
-            }
-        }
+    if (framework_fd >= 0) {
+        LOG(WARNING) << "adb received framework auth socket connection again";
+        framework_disconnected();
     }
-}
 
-void adbd_notify_framework_connected_key(atransport* t) {
-    if (!adb_transport) {
-        adb_transport = t;
-        t->AddDisconnect(&adb_disconnect);
-    }
-    {
-        std::lock_guard<std::mutex> lock(framework_mutex);
-        if (std::find(connected_keys.begin(), connected_keys.end(), t->auth_key) ==
-            connected_keys.end()) {
-            connected_keys.push_back(t->auth_key);
-        }
-        if (framework_fd >= 0) {
-            adbd_send_key_message_locked("CK", t->auth_key);
-        }
+    framework_fd = s;
+    framework_fde = fdevent_create(framework_fd, adbd_auth_event, nullptr);
+    fdevent_add(framework_fde, FDE_READ);
+
+    if (needs_retry) {
+        needs_retry = false;
+        send_auth_request(usb_transport);
     }
 }
 

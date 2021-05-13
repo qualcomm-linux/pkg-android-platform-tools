@@ -25,7 +25,6 @@
 
 #include <binder/IInterface.h>
 
-#include <ui/BufferQueueDefs.h>
 #include <ui/Fence.h>
 #include <ui/GraphicBuffer.h>
 #include <ui/Rect.h>
@@ -36,7 +35,6 @@
 
 #include <hidl/HybridInterface.h>
 #include <android/hardware/graphics/bufferqueue/1.0/IGraphicBufferProducer.h>
-#include <android/hardware/graphics/bufferqueue/2.0/IGraphicBufferProducer.h>
 
 namespace android {
 // ----------------------------------------------------------------------------
@@ -44,6 +42,8 @@ namespace android {
 class IProducerListener;
 class NativeHandle;
 class Surface;
+typedef ::android::hardware::graphics::bufferqueue::V1_0::IGraphicBufferProducer
+        HGraphicBufferProducer;
 
 /*
  * This class defines the Binder IPC interface for the producer side of
@@ -62,24 +62,15 @@ class Surface;
 class IGraphicBufferProducer : public IInterface
 {
 public:
-    using HGraphicBufferProducerV1_0 =
-            ::android::hardware::graphics::bufferqueue::V1_0::
-            IGraphicBufferProducer;
-    using HGraphicBufferProducerV2_0 =
-            ::android::hardware::graphics::bufferqueue::V2_0::
-            IGraphicBufferProducer;
-
-    DECLARE_HYBRID_META_INTERFACE(GraphicBufferProducer,
-                                  HGraphicBufferProducerV1_0,
-                                  HGraphicBufferProducerV2_0)
+    DECLARE_HYBRID_META_INTERFACE(GraphicBufferProducer, HGraphicBufferProducer)
 
     enum {
         // A flag returned by dequeueBuffer when the client needs to call
         // requestBuffer immediately thereafter.
-        BUFFER_NEEDS_REALLOCATION = BufferQueueDefs::BUFFER_NEEDS_REALLOCATION,
+        BUFFER_NEEDS_REALLOCATION = 0x1,
         // A flag returned by dequeueBuffer when all mirrored slots should be
         // released by the client. This flag should always be processed first.
-        RELEASE_ALL_BUFFERS       = BufferQueueDefs::RELEASE_ALL_BUFFERS,
+        RELEASE_ALL_BUFFERS       = 0x2,
     };
 
     enum {
@@ -354,7 +345,7 @@ public:
             *outScalingMode = scalingMode;
             *outTransform = transform;
             *outFence = fence;
-            if (outStickyTransform != nullptr) {
+            if (outStickyTransform != NULL) {
                 *outStickyTransform = stickyTransform;
             }
             if (outGetFrameTimestamps) {
@@ -375,6 +366,7 @@ public:
         const HdrMetadata& getHdrMetadata() const { return hdrMetadata; }
         void setHdrMetadata(const HdrMetadata& metadata) { hdrMetadata = metadata; }
 
+    private:
         int64_t timestamp{0};
         int isAutoTimestamp{0};
         android_dataspace dataSpace{HAL_DATASPACE_UNKNOWN};
@@ -592,19 +584,11 @@ public:
     // non-blocking mode and its corresponding spare buffer (which is used to
     // ensure a buffer is always available).
     //
-    // Note well: queueBuffer will stop buffer dropping behavior if timeout is
-    // strictly positive. If timeout is zero or negative, previous buffer
-    // dropping behavior will not be changed.
-    //
     // Return of a value other than NO_ERROR means an error has occurred:
     // * BAD_VALUE - Failure to adjust the number of available slots. This can
     //               happen because of trying to allocate/deallocate the async
     //               buffer.
     virtual status_t setDequeueTimeout(nsecs_t timeout) = 0;
-
-    // Used to enable/disable buffer drop behavior of queueBuffer.
-    // If it's not used, legacy drop behavior will be retained.
-    virtual status_t setLegacyBufferDrop(bool drop);
 
     // Returns the last queued buffer along with a fence which must signal
     // before the contents of the buffer are read. If there are no buffers in

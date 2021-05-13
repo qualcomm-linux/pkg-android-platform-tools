@@ -22,7 +22,6 @@
  *
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
  * or visit www.oracle.com if you need additional information or have any
@@ -42,6 +41,7 @@
 #include "ti_heap.h"
 #include "ti_logging.h"
 #include "ti_monitor.h"
+#include "ti_search.h"
 
 #include "thread-inl.h"
 
@@ -323,6 +323,70 @@ jvmtiError ExtensionUtil::GetExtensionFunctions(jvmtiEnv* env,
           { "msg", JVMTI_KIND_ALLOC_BUF, JVMTI_TYPE_CCHAR, false },
       },
       { ERR(NULL_POINTER) });
+  if (error != ERR(NONE)) {
+    return error;
+  }
+
+  // AddToDexClassLoader
+  error = add_extension(
+      reinterpret_cast<jvmtiExtensionFunction>(SearchUtil::AddToDexClassLoader),
+      "com.android.art.classloader.add_to_dex_class_loader",
+      "Adds a dexfile to a given dalvik.system.BaseDexClassLoader in a manner similar to"
+      " AddToSystemClassLoader.",
+      {
+        { "classloader", JVMTI_KIND_IN, JVMTI_TYPE_JOBJECT, false },
+        { "segment", JVMTI_KIND_IN_PTR, JVMTI_TYPE_CCHAR, false },
+      },
+      {
+         ERR(NULL_POINTER),
+         ERR(CLASS_LOADER_UNSUPPORTED),
+         ERR(ILLEGAL_ARGUMENT),
+         ERR(WRONG_PHASE),
+      });
+  if (error != ERR(NONE)) {
+    return error;
+  }
+
+  // AddToDexClassLoaderInMemory
+  error = add_extension(
+      reinterpret_cast<jvmtiExtensionFunction>(SearchUtil::AddToDexClassLoaderInMemory),
+      "com.android.art.classloader.add_to_dex_class_loader_in_memory",
+      "Adds a dexfile buffer to a given dalvik.system.BaseDexClassLoader in a manner similar to"
+      " AddToSystemClassLoader. This may only be done during the LIVE phase. The buffer is copied"
+      " and the caller is responsible for deallocating it after this call.",
+      {
+        { "classloader", JVMTI_KIND_IN, JVMTI_TYPE_JOBJECT, false },
+        { "dex_bytes", JVMTI_KIND_IN_BUF, JVMTI_TYPE_CCHAR, false },
+        { "dex_bytes_len", JVMTI_KIND_IN, JVMTI_TYPE_JINT, false },
+      },
+      {
+         ERR(NULL_POINTER),
+         ERR(CLASS_LOADER_UNSUPPORTED),
+         ERR(ILLEGAL_ARGUMENT),
+         ERR(WRONG_PHASE),
+      });
+  if (error != ERR(NONE)) {
+    return error;
+  }
+
+  // ChangeArraySize
+  error = add_extension(
+      reinterpret_cast<jvmtiExtensionFunction>(HeapExtensions::ChangeArraySize),
+      "com.android.art.heap.change_array_size",
+      "Changes the size of a java array. As far as all JNI and java code is concerned this is"
+      " atomic. Must have can_tag_objects capability. If the new length of the array is smaller"
+      " than the original length, then the array will be truncated to the new length. Otherwise,"
+      " all new slots will be filled with null, 0, or False as appropriate for the array type.",
+      {
+        { "array", JVMTI_KIND_IN, JVMTI_TYPE_JOBJECT, false },
+        { "new_size", JVMTI_KIND_IN, JVMTI_TYPE_JINT, false },
+      },
+      {
+         ERR(NULL_POINTER),
+         ERR(MUST_POSSESS_CAPABILITY),
+         ERR(ILLEGAL_ARGUMENT),
+         ERR(OUT_OF_MEMORY),
+      });
   if (error != ERR(NONE)) {
     return error;
   }
