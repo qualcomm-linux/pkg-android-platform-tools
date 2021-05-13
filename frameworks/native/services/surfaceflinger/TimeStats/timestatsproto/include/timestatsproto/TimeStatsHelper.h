@@ -16,7 +16,6 @@
 #pragma once
 
 #include <timestatsproto/TimeStatsProtoHeader.h>
-#include <utils/Timers.h>
 
 #include <optional>
 #include <string>
@@ -35,7 +34,6 @@ public:
         std::unordered_map<int32_t, int32_t> hist;
 
         void insert(int32_t delta);
-        int64_t totalTime() const;
         float averageTime() const;
         std::string toString() const;
     };
@@ -44,8 +42,9 @@ public:
     public:
         std::string layerName;
         std::string packageName;
+        int64_t statsStart = 0;
+        int64_t statsEnd = 0;
         int32_t totalFrames = 0;
-        int32_t droppedFrames = 0;
         std::unordered_map<std::string, Histogram> deltas;
 
         std::string toString() const;
@@ -59,10 +58,7 @@ public:
         int32_t totalFrames = 0;
         int32_t missedFrames = 0;
         int32_t clientCompositionFrames = 0;
-        int64_t displayOnTime = 0;
-        Histogram presentToPresent;
         std::unordered_map<std::string, TimeStatsLayer> stats;
-        std::unordered_map<uint32_t, nsecs_t> refreshRateStats;
 
         std::string toString(std::optional<uint32_t> maxLayers) const;
         SFTimeStatsGlobalProto toProto(std::optional<uint32_t> maxLayers) const;

@@ -72,7 +72,7 @@ int main(int argc, char* argv[]) {
     property_set("ctl.start", "dumpstatez");
 
     // Socket will not be available until service starts.
-    int s;
+    int s = -1;
     for (int i = 0; i < 20; i++) {
         s = socket_local_client("dumpstate", ANDROID_SOCKET_NAMESPACE_RESERVED, SOCK_STREAM);
         if (s >= 0) break;
@@ -82,7 +82,7 @@ int main(int argc, char* argv[]) {
 
     if (s == -1) {
         printf("FAIL:Failed to connect to dumpstatez service: %s\n", strerror(errno));
-        return EXIT_FAILURE;
+        return EXIT_SUCCESS;
     }
 
     // Set a timeout so that if nothing is read in 10 minutes, we'll stop
@@ -92,16 +92,8 @@ int main(int argc, char* argv[]) {
     tv.tv_sec = 10 * 60;
     tv.tv_usec = 0;
     if (setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) == -1) {
-        fprintf(stderr,
-                "WARNING: Cannot set socket timeout, bugreportz might hang indefinitely: %s\n",
-                strerror(errno));
+        fprintf(stderr, "WARNING: Cannot set socket timeout: %s\n", strerror(errno));
     }
 
-    int ret = bugreportz(s, show_progress);
-
-    if (close(s) == -1) {
-        fprintf(stderr, "WARNING: error closing socket: %s\n", strerror(errno));
-        ret = EXIT_FAILURE;
-    }
-    return ret;
+    bugreportz(s, show_progress);
 }

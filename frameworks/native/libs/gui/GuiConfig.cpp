@@ -18,7 +18,8 @@
 
 namespace android {
 
-void appendGuiConfigString(std::string& configStr) {
+void appendGuiConfigString(String8& configStr)
+{
     static const char* config =
             " [libgui"
 #ifdef DONT_USE_FENCE_SYNC

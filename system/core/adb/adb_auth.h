@@ -50,10 +50,8 @@ void adbd_auth_init(void);
 void adbd_auth_verified(atransport *t);
 
 void adbd_cloexec_auth_socket();
-bool adbd_auth_verify(const char* token, size_t token_size, const std::string& sig,
-                      std::string* auth_key);
-void adbd_auth_confirm_key(atransport* t);
-void adbd_notify_framework_connected_key(atransport* t);
+bool adbd_auth_verify(const char* token, size_t token_size, const std::string& sig);
+void adbd_auth_confirm_key(const char* data, size_t len, atransport* t);
 
 void send_auth_request(atransport *t);
 

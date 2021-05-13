@@ -67,7 +67,7 @@ public:
     public:
         ~LocalRef();
         explicit LocalRef(egl_object_t* rhs);
-        explicit LocalRef(egl_display_t const* display, T o) : ref(nullptr) {
+        explicit LocalRef(egl_display_t const* display, T o) : ref(0) {
             egl_object_t* native = reinterpret_cast<N*>(o);
             if (o && egl_object_t::get(display, native)) {
                 ref = native;

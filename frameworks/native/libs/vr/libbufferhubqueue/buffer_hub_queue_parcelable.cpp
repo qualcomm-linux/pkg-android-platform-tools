@@ -35,7 +35,7 @@ status_t BufferHubQueueParcelable<Magic>::writeToParcel(Parcel* parcel) const {
   }
 
   status_t res = parcel->writeUint32(Magic);
-  if (res != OK) {
+  if (res != NO_ERROR) {
     ALOGE("BufferHubQueueParcelable::writeToParcel: Cannot write magic.");
     return res;
   }
@@ -53,10 +53,10 @@ status_t BufferHubQueueParcelable<Magic>::readFromParcel(const Parcel* parcel) {
   }
 
   uint32_t out_magic = 0;
-  status_t res = OK;
+  status_t res = NO_ERROR;
 
   res = parcel->readUint32(&out_magic);
-  if (res != OK)
+  if (res != NO_ERROR)
     return res;
 
   if (out_magic != Magic) {

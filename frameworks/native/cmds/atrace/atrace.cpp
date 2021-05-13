@@ -99,31 +99,30 @@ struct TracingCategory {
 
 /* Tracing categories */
 static const TracingCategory k_categories[] = {
-    { "gfx",        "Graphics",                 ATRACE_TAG_GRAPHICS, { } },
-    { "input",      "Input",                    ATRACE_TAG_INPUT, { } },
-    { "view",       "View System",              ATRACE_TAG_VIEW, { } },
-    { "webview",    "WebView",                  ATRACE_TAG_WEBVIEW, { } },
-    { "wm",         "Window Manager",           ATRACE_TAG_WINDOW_MANAGER, { } },
-    { "am",         "Activity Manager",         ATRACE_TAG_ACTIVITY_MANAGER, { } },
-    { "sm",         "Sync Manager",             ATRACE_TAG_SYNC_MANAGER, { } },
-    { "audio",      "Audio",                    ATRACE_TAG_AUDIO, { } },
-    { "video",      "Video",                    ATRACE_TAG_VIDEO, { } },
-    { "camera",     "Camera",                   ATRACE_TAG_CAMERA, { } },
-    { "hal",        "Hardware Modules",         ATRACE_TAG_HAL, { } },
-    { "res",        "Resource Loading",         ATRACE_TAG_RESOURCES, { } },
-    { "dalvik",     "Dalvik VM",                ATRACE_TAG_DALVIK, { } },
-    { "rs",         "RenderScript",             ATRACE_TAG_RS, { } },
-    { "bionic",     "Bionic C Library",         ATRACE_TAG_BIONIC, { } },
-    { "power",      "Power Management",         ATRACE_TAG_POWER, { } },
-    { "pm",         "Package Manager",          ATRACE_TAG_PACKAGE_MANAGER, { } },
-    { "ss",         "System Server",            ATRACE_TAG_SYSTEM_SERVER, { } },
-    { "database",   "Database",                 ATRACE_TAG_DATABASE, { } },
-    { "network",    "Network",                  ATRACE_TAG_NETWORK, { } },
-    { "adb",        "ADB",                      ATRACE_TAG_ADB, { } },
-    { "vibrator",   "Vibrator",                 ATRACE_TAG_VIBRATOR, { } },
-    { "aidl",       "AIDL calls",               ATRACE_TAG_AIDL, { } },
-    { "nnapi",      "NNAPI",                    ATRACE_TAG_NNAPI, { } },
-    { "rro",        "Runtime Resource Overlay", ATRACE_TAG_RRO, { } },
+    { "gfx",        "Graphics",         ATRACE_TAG_GRAPHICS, { } },
+    { "input",      "Input",            ATRACE_TAG_INPUT, { } },
+    { "view",       "View System",      ATRACE_TAG_VIEW, { } },
+    { "webview",    "WebView",          ATRACE_TAG_WEBVIEW, { } },
+    { "wm",         "Window Manager",   ATRACE_TAG_WINDOW_MANAGER, { } },
+    { "am",         "Activity Manager", ATRACE_TAG_ACTIVITY_MANAGER, { } },
+    { "sm",         "Sync Manager",     ATRACE_TAG_SYNC_MANAGER, { } },
+    { "audio",      "Audio",            ATRACE_TAG_AUDIO, { } },
+    { "video",      "Video",            ATRACE_TAG_VIDEO, { } },
+    { "camera",     "Camera",           ATRACE_TAG_CAMERA, { } },
+    { "hal",        "Hardware Modules", ATRACE_TAG_HAL, { } },
+    { "res",        "Resource Loading", ATRACE_TAG_RESOURCES, { } },
+    { "dalvik",     "Dalvik VM",        ATRACE_TAG_DALVIK, { } },
+    { "rs",         "RenderScript",     ATRACE_TAG_RS, { } },
+    { "bionic",     "Bionic C Library", ATRACE_TAG_BIONIC, { } },
+    { "power",      "Power Management", ATRACE_TAG_POWER, { } },
+    { "pm",         "Package Manager",  ATRACE_TAG_PACKAGE_MANAGER, { } },
+    { "ss",         "System Server",    ATRACE_TAG_SYSTEM_SERVER, { } },
+    { "database",   "Database",         ATRACE_TAG_DATABASE, { } },
+    { "network",    "Network",          ATRACE_TAG_NETWORK, { } },
+    { "adb",        "ADB",              ATRACE_TAG_ADB, { } },
+    { "vibrator",   "Vibrator",         ATRACE_TAG_VIBRATOR, { } },
+    { "aidl",       "AIDL calls",       ATRACE_TAG_AIDL, { } },
+    { "nnapi",      "NNAPI",            ATRACE_TAG_NNAPI, { } },
     { k_coreServiceCategory, "Core services", 0, { } },
     { k_pdxServiceCategory, "PDX services", 0, { } },
     { "sched",      "CPU Scheduling",   0, {
@@ -171,7 +170,6 @@ static const TracingCategory k_categories[] = {
         { OPT,      "events/clk/clk_disable/enable" },
         { OPT,      "events/clk/clk_enable/enable" },
         { OPT,      "events/power/cpu_frequency_limits/enable" },
-        { OPT,      "events/power/suspend_resume/enable" },
     } },
     { "membus",     "Memory Bus Utilization", 0, {
         { REQ,      "events/memory_bus/enable" },
@@ -891,7 +889,6 @@ static void cleanUpUserspaceTracing()
     setTagsProperty(0);
     clearAppProperties();
     pokeBinderServices();
-    pokeHalServices();
 
     if (g_tracePdx) {
         ServiceUtility::PokeServices();
@@ -1468,10 +1465,11 @@ int main(int argc, char **argv)
 
     // Reset the trace buffer size to 1.
     if (traceStop) {
-        cleanUpVendorTracing();
         cleanUpUserspaceTracing();
-        if (!onlyUserspace)
+        if (!onlyUserspace) {
+            cleanUpVendorTracing();
             cleanUpKernelTracing();
+        }
     }
 
     return g_traceAborted ? 1 : 0;

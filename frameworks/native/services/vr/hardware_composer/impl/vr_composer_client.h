@@ -54,6 +54,7 @@ class VrComposerClient : public ComposerClient {
 
     IVrComposerClient::BufferMetadata readBufferMetadata();
 
+    VrComposerClient& mVrClient;
     android::dvr::VrHwc& mVrHal;
 
     VrCommandEngine(const VrCommandEngine&) = delete;

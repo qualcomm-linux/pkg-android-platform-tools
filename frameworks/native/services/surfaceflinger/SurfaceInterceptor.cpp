@@ -30,7 +30,6 @@
 namespace android {
 
 // ----------------------------------------------------------------------------
-// TODO(marissaw): add new layer state values to SurfaceInterceptor
 
 SurfaceInterceptor::~SurfaceInterceptor() = default;
 
@@ -96,25 +95,22 @@ void SurfaceInterceptor::addInitialSurfaceStateLocked(Increment* increment,
         const sp<const Layer>& layer)
 {
     Transaction* transaction(increment->mutable_transaction());
-    const uint32_t layerFlags = layer->getTransactionFlags();
-    transaction->set_synchronous(layerFlags & BnSurfaceComposer::eSynchronous);
-    transaction->set_animation(layerFlags & BnSurfaceComposer::eAnimation);
+    transaction->set_synchronous(layer->mTransactionFlags & BnSurfaceComposer::eSynchronous);
+    transaction->set_animation(layer->mTransactionFlags & BnSurfaceComposer::eAnimation);
 
     const int32_t layerId(getLayerId(layer));
-    addPositionLocked(transaction, layerId, layer->mCurrentState.active_legacy.transform.tx(),
-                      layer->mCurrentState.active_legacy.transform.ty());
+    addPositionLocked(transaction, layerId, layer->mCurrentState.active.transform.tx(),
+            layer->mCurrentState.active.transform.ty());
     addDepthLocked(transaction, layerId, layer->mCurrentState.z);
     addAlphaLocked(transaction, layerId, layer->mCurrentState.color.a);
-    addTransparentRegionLocked(transaction, layerId,
-                               layer->mCurrentState.activeTransparentRegion_legacy);
+    addTransparentRegionLocked(transaction, layerId, layer->mCurrentState.activeTransparentRegion);
     addLayerStackLocked(transaction, layerId, layer->mCurrentState.layerStack);
-    addCropLocked(transaction, layerId, layer->mCurrentState.crop_legacy);
-    addCornerRadiusLocked(transaction, layerId, layer->mCurrentState.cornerRadius);
-    if (layer->mCurrentState.barrierLayer_legacy != nullptr) {
-        addDeferTransactionLocked(transaction, layerId,
-                                  layer->mCurrentState.barrierLayer_legacy.promote(),
-                                  layer->mCurrentState.frameNumber_legacy);
+    addCropLocked(transaction, layerId, layer->mCurrentState.crop);
+    if (layer->mCurrentState.barrierLayer != nullptr) {
+        addDeferTransactionLocked(transaction, layerId, layer->mCurrentState.barrierLayer.promote(),
+                layer->mCurrentState.frameNumber);
     }
+    addFinalCropLocked(transaction, layerId, layer->mCurrentState.finalCrop);
     addOverrideScalingModeLocked(transaction, layerId, layer->getEffectiveScalingMode());
     addFlagsLocked(transaction, layerId, layer->mCurrentState.flags);
 }
@@ -126,10 +122,10 @@ void SurfaceInterceptor::addInitialDisplayStateLocked(Increment* increment,
     transaction->set_synchronous(false);
     transaction->set_animation(false);
 
-    addDisplaySurfaceLocked(transaction, display.sequenceId, display.surface);
-    addDisplayLayerStackLocked(transaction, display.sequenceId, display.layerStack);
-    addDisplaySizeLocked(transaction, display.sequenceId, display.width, display.height);
-    addDisplayProjectionLocked(transaction, display.sequenceId, display.orientation,
+    addDisplaySurfaceLocked(transaction, display.displayId, display.surface);
+    addDisplayLayerStackLocked(transaction, display.displayId, display.layerStack);
+    addDisplaySizeLocked(transaction, display.displayId, display.width, display.height);
+    addDisplayProjectionLocked(transaction, display.displayId, display.orientation,
             display.viewport, display.frame);
 }
 
@@ -181,10 +177,10 @@ SurfaceChange* SurfaceInterceptor::createSurfaceChangeLocked(Transaction* transa
 }
 
 DisplayChange* SurfaceInterceptor::createDisplayChangeLocked(Transaction* transaction,
-        int32_t sequenceId)
+        int32_t displayId)
 {
     DisplayChange* dispChange(transaction->add_display_change());
-    dispChange->set_id(sequenceId);
+    dispChange->set_id(displayId);
     return dispChange;
 }
 
@@ -290,12 +286,13 @@ void SurfaceInterceptor::addCropLocked(Transaction* transaction, int32_t layerId
     setProtoRectLocked(protoRect, rect);
 }
 
-void SurfaceInterceptor::addCornerRadiusLocked(Transaction* transaction, int32_t layerId,
-                                       float cornerRadius)
+void SurfaceInterceptor::addFinalCropLocked(Transaction* transaction, int32_t layerId,
+        const Rect& rect)
 {
     SurfaceChange* change(createSurfaceChangeLocked(transaction, layerId));
-    CornerRadiusChange* cornerRadiusChange(change->mutable_corner_radius());
-    cornerRadiusChange->set_corner_radius(cornerRadius);
+    FinalCropChange* finalCropChange(change->mutable_final_crop());
+    Rectangle* protoRect(finalCropChange->mutable_rectangle());
+    setProtoRectLocked(protoRect, rect);
 }
 
 void SurfaceInterceptor::addDeferTransactionLocked(Transaction* transaction, int32_t layerId,
@@ -356,26 +353,25 @@ void SurfaceInterceptor::addSurfaceChangesLocked(Transaction* transaction,
     if (state.what & layer_state_t::eLayerStackChanged) {
         addLayerStackLocked(transaction, layerId, state.layerStack);
     }
-    if (state.what & layer_state_t::eCropChanged_legacy) {
-        addCropLocked(transaction, layerId, state.crop_legacy);
+    if (state.what & layer_state_t::eCropChanged) {
+        addCropLocked(transaction, layerId, state.crop);
     }
-    if (state.what & layer_state_t::eCornerRadiusChanged) {
-        addCornerRadiusLocked(transaction, layerId, state.cornerRadius);
-    }
-    if (state.what & layer_state_t::eDeferTransaction_legacy) {
+    if (state.what & layer_state_t::eDeferTransaction) {
         sp<Layer> otherLayer = nullptr;
-        if (state.barrierHandle_legacy != nullptr) {
-            otherLayer =
-                    static_cast<Layer::Handle*>(state.barrierHandle_legacy.get())->owner.promote();
-        } else if (state.barrierGbp_legacy != nullptr) {
-            auto const& gbp = state.barrierGbp_legacy;
+        if (state.barrierHandle != nullptr) {
+            otherLayer = static_cast<Layer::Handle*>(state.barrierHandle.get())->owner.promote();
+        } else if (state.barrierGbp != nullptr) {
+            auto const& gbp = state.barrierGbp;
             if (mFlinger->authenticateSurfaceTextureLocked(gbp)) {
                 otherLayer = (static_cast<MonitoredProducer*>(gbp.get()))->getLayer();
             } else {
                 ALOGE("Attempt to defer transaction to to an unrecognized GraphicBufferProducer");
             }
         }
-        addDeferTransactionLocked(transaction, layerId, otherLayer, state.frameNumber_legacy);
+        addDeferTransactionLocked(transaction, layerId, otherLayer, state.frameNumber);
+    }
+    if (state.what & layer_state_t::eFinalCropChanged) {
+        addFinalCropLocked(transaction, layerId, state.finalCrop);
     }
     if (state.what & layer_state_t::eOverrideScalingModeChanged) {
         addOverrideScalingModeLocked(transaction, layerId, state.overrideScalingMode);
@@ -383,19 +379,19 @@ void SurfaceInterceptor::addSurfaceChangesLocked(Transaction* transaction,
 }
 
 void SurfaceInterceptor::addDisplayChangesLocked(Transaction* transaction,
-        const DisplayState& state, int32_t sequenceId)
+        const DisplayState& state, int32_t displayId)
 {
     if (state.what & DisplayState::eSurfaceChanged) {
-        addDisplaySurfaceLocked(transaction, sequenceId, state.surface);
+        addDisplaySurfaceLocked(transaction, displayId, state.surface);
     }
     if (state.what & DisplayState::eLayerStackChanged) {
-        addDisplayLayerStackLocked(transaction, sequenceId, state.layerStack);
+        addDisplayLayerStackLocked(transaction, displayId, state.layerStack);
     }
     if (state.what & DisplayState::eDisplaySizeChanged) {
-        addDisplaySizeLocked(transaction, sequenceId, state.width, state.height);
+        addDisplaySizeLocked(transaction, displayId, state.width, state.height);
     }
     if (state.what & DisplayState::eDisplayProjectionChanged) {
-        addDisplayProjectionLocked(transaction, sequenceId, state.orientation, state.viewport,
+        addDisplayProjectionLocked(transaction, displayId, state.orientation, state.viewport,
                 state.frame);
     }
 }
@@ -415,7 +411,7 @@ void SurfaceInterceptor::addTransactionLocked(Increment* increment,
         ssize_t dpyIdx = displays.indexOfKey(disp.token);
         if (dpyIdx >= 0) {
             const DisplayDeviceState& dispState(displays.valueAt(dpyIdx));
-            addDisplayChangesLocked(transaction, disp, dispState.sequenceId);
+            addDisplayChangesLocked(transaction, disp, dispState.displayId);
         }
     }
 }
@@ -426,8 +422,8 @@ void SurfaceInterceptor::addSurfaceCreationLocked(Increment* increment,
     SurfaceCreation* creation(increment->mutable_surface_creation());
     creation->set_id(getLayerId(layer));
     creation->set_name(getLayerName(layer));
-    creation->set_w(layer->mCurrentState.active_legacy.w);
-    creation->set_h(layer->mCurrentState.active_legacy.h);
+    creation->set_w(layer->mCurrentState.active.w);
+    creation->set_h(layer->mCurrentState.active.h);
 }
 
 void SurfaceInterceptor::addSurfaceDeletionLocked(Increment* increment,
@@ -452,7 +448,7 @@ void SurfaceInterceptor::addVSyncUpdateLocked(Increment* increment, nsecs_t time
     event->set_when(timestamp);
 }
 
-void SurfaceInterceptor::addDisplaySurfaceLocked(Transaction* transaction, int32_t sequenceId,
+void SurfaceInterceptor::addDisplaySurfaceLocked(Transaction* transaction, int32_t displayId,
         const sp<const IGraphicBufferProducer>& surface)
 {
     if (surface == nullptr) {
@@ -461,7 +457,7 @@ void SurfaceInterceptor::addDisplaySurfaceLocked(Transaction* transaction, int32
     uint64_t bufferQueueId = 0;
     status_t err(surface->getUniqueId(&bufferQueueId));
     if (err == NO_ERROR) {
-        DisplayChange* dispChange(createDisplayChangeLocked(transaction, sequenceId));
+        DisplayChange* dispChange(createDisplayChangeLocked(transaction, displayId));
         DispSurfaceChange* surfaceChange(dispChange->mutable_surface());
         surfaceChange->set_buffer_queue_id(bufferQueueId);
         surfaceChange->set_buffer_queue_name(surface->getConsumerName().string());
@@ -473,26 +469,26 @@ void SurfaceInterceptor::addDisplaySurfaceLocked(Transaction* transaction, int32
 }
 
 void SurfaceInterceptor::addDisplayLayerStackLocked(Transaction* transaction,
-        int32_t sequenceId, uint32_t layerStack)
+        int32_t displayId, uint32_t layerStack)
 {
-    DisplayChange* dispChange(createDisplayChangeLocked(transaction, sequenceId));
+    DisplayChange* dispChange(createDisplayChangeLocked(transaction, displayId));
     LayerStackChange* layerStackChange(dispChange->mutable_layer_stack());
     layerStackChange->set_layer_stack(layerStack);
 }
 
-void SurfaceInterceptor::addDisplaySizeLocked(Transaction* transaction, int32_t sequenceId,
+void SurfaceInterceptor::addDisplaySizeLocked(Transaction* transaction, int32_t displayId,
         uint32_t w, uint32_t h)
 {
-    DisplayChange* dispChange(createDisplayChangeLocked(transaction, sequenceId));
+    DisplayChange* dispChange(createDisplayChangeLocked(transaction, displayId));
     SizeChange* sizeChange(dispChange->mutable_size());
     sizeChange->set_w(w);
     sizeChange->set_h(h);
 }
 
 void SurfaceInterceptor::addDisplayProjectionLocked(Transaction* transaction,
-        int32_t sequenceId, int32_t orientation, const Rect& viewport, const Rect& frame)
+        int32_t displayId, int32_t orientation, const Rect& viewport, const Rect& frame)
 {
-    DisplayChange* dispChange(createDisplayChangeLocked(transaction, sequenceId));
+    DisplayChange* dispChange(createDisplayChangeLocked(transaction, displayId));
     ProjectionChange* projectionChange(dispChange->mutable_projection());
     projectionChange->set_orientation(orientation);
     Rectangle* viewportRect(projectionChange->mutable_viewport());
@@ -505,24 +501,22 @@ void SurfaceInterceptor::addDisplayCreationLocked(Increment* increment,
         const DisplayDeviceState& info)
 {
     DisplayCreation* creation(increment->mutable_display_creation());
-    creation->set_id(info.sequenceId);
+    creation->set_id(info.displayId);
     creation->set_name(info.displayName);
+    creation->set_type(info.type);
     creation->set_is_secure(info.isSecure);
-    if (info.displayId) {
-        creation->set_display_id(info.displayId->value);
-    }
 }
 
-void SurfaceInterceptor::addDisplayDeletionLocked(Increment* increment, int32_t sequenceId) {
+void SurfaceInterceptor::addDisplayDeletionLocked(Increment* increment, int32_t displayId) {
     DisplayDeletion* deletion(increment->mutable_display_deletion());
-    deletion->set_id(sequenceId);
+    deletion->set_id(displayId);
 }
 
-void SurfaceInterceptor::addPowerModeUpdateLocked(Increment* increment, int32_t sequenceId,
+void SurfaceInterceptor::addPowerModeUpdateLocked(Increment* increment, int32_t displayId,
         int32_t mode)
 {
     PowerModeUpdate* powerModeUpdate(increment->mutable_power_mode_update());
-    powerModeUpdate->set_id(sequenceId);
+    powerModeUpdate->set_id(displayId);
     powerModeUpdate->set_mode(mode);
 }
 
@@ -585,22 +579,22 @@ void SurfaceInterceptor::saveDisplayCreation(const DisplayDeviceState& info) {
     addDisplayCreationLocked(createTraceIncrementLocked(), info);
 }
 
-void SurfaceInterceptor::saveDisplayDeletion(int32_t sequenceId) {
+void SurfaceInterceptor::saveDisplayDeletion(int32_t displayId) {
     if (!mEnabled) {
         return;
     }
     ATRACE_CALL();
     std::lock_guard<std::mutex> protoGuard(mTraceMutex);
-    addDisplayDeletionLocked(createTraceIncrementLocked(), sequenceId);
+    addDisplayDeletionLocked(createTraceIncrementLocked(), displayId);
 }
 
-void SurfaceInterceptor::savePowerModeUpdate(int32_t sequenceId, int32_t mode) {
+void SurfaceInterceptor::savePowerModeUpdate(int32_t displayId, int32_t mode) {
     if (!mEnabled) {
         return;
     }
     ATRACE_CALL();
     std::lock_guard<std::mutex> protoGuard(mTraceMutex);
-    addPowerModeUpdateLocked(createTraceIncrementLocked(), sequenceId, mode);
+    addPowerModeUpdateLocked(createTraceIncrementLocked(), displayId, mode);
 }
 
 } // namespace impl

@@ -18,7 +18,7 @@
 
 #include <gmock/gmock.h>
 
-#include "Scheduler/EventControlThread.h"
+#include "EventControlThread.h"
 
 namespace android {
 namespace mock {

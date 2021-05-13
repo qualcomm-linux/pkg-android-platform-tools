@@ -217,18 +217,18 @@ input_property_map_t* InputDriver::inputGetDevicePropertyMap(input_device_identi
     idi.product = id->productId;
     idi.version = id->version;
 
-    std::string configFile = getInputDeviceConfigurationFilePathByDeviceIdentifier(
+    String8 configFile = getInputDeviceConfigurationFilePathByDeviceIdentifier(
             idi, INPUT_DEVICE_CONFIGURATION_FILE_TYPE_CONFIGURATION);
-    if (configFile.empty()) {
+    if (configFile.isEmpty()) {
         ALOGD("No input device configuration file found for device '%s'.",
-                idi.name.c_str());
+                idi.name.string());
     } else {
         auto propMap = new input_property_map_t();
-        status_t status = PropertyMap::load(String8(configFile.c_str()), &propMap->propertyMap);
+        status_t status = PropertyMap::load(configFile, &propMap->propertyMap);
         if (status) {
             ALOGE("Error loading input device configuration file for device '%s'. "
                     "Using default configuration.",
-                    idi.name.c_str());
+                    idi.name.string());
             delete propMap;
             return nullptr;
         }

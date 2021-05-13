@@ -17,7 +17,7 @@
 #ifndef ANDROID_SURFACE_FLINGER_COLORIZER_H
 #define ANDROID_SURFACE_FLINGER_COLORIZER_H
 
-#include <android-base/stringprintf.h>
+#include <utils/String8.h>
 
 namespace android {
 
@@ -40,19 +40,19 @@ public:
         : mEnabled(enabled) {
     }
 
-    void colorize(std::string& out, color c) {
+    void colorize(String8& out, color c) {
         if (mEnabled) {
-            base::StringAppendF(&out, "\e[%dm", c);
+            out.appendFormat("\e[%dm", c);
         }
     }
 
-    void bold(std::string& out) {
+    void bold(String8& out) {
         if (mEnabled) {
             out.append("\e[1m");
         }
     }
 
-    void reset(std::string& out) {
+    void reset(String8& out) {
         if (mEnabled) {
             out.append("\e[0m");
         }

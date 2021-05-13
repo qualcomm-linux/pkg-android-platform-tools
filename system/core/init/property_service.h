@@ -14,14 +14,15 @@
  * limitations under the License.
  */
 
-#ifndef _INIT_PROPERTY_H
-#define _INIT_PROPERTY_H
+#pragma once
 
 #include <sys/socket.h>
 
+#include <functional>
 #include <string>
 
 #include "epoll.h"
+#include "result.h"
 
 namespace android {
 namespace init {
@@ -33,15 +34,18 @@ extern uint32_t (*property_set)(const std::string& name, const std::string& valu
 uint32_t HandlePropertySet(const std::string& name, const std::string& value,
                            const std::string& source_context, const ucred& cr, std::string* error);
 
-extern bool PropertyChildReap(pid_t pid);
-
-void property_init(void);
-void property_load_boot_defaults(bool);
-void load_persist_props(void);
-void load_system_props(void);
+void property_init();
+void property_load_boot_defaults(bool load_debug_prop);
+void load_persist_props();
 void StartPropertyService(Epoll* epoll);
+
+template <typename F, typename... Args>
+Result<int> CallFunctionAndHandleProperties(F&& f, Args&&... args) {
+    Result<int> CallFunctionAndHandlePropertiesImpl(const std::function<int()>& f);
+
+    auto func = [&] { return f(args...); };
+    return CallFunctionAndHandlePropertiesImpl(func);
+}
 
 }  // namespace init
 }  // namespace android
-
-#endif  /* _INIT_PROPERTY_H */

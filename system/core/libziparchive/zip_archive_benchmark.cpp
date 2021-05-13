@@ -55,10 +55,10 @@ static void FindEntry_no_match(benchmark::State& state) {
 
   // In order to walk through all file names in the archive, look for a name
   // that does not exist in the archive.
-  ZipString name("thisFileNameDoesNotExist");
+  std::string_view name("thisFileNameDoesNotExist");
 
   // Start the benchmark.
-  while (state.KeepRunning()) {
+  for (auto _ : state) {
     OpenArchive(temp_file->path, &handle);
     FindEntry(handle, name, &data);
     CloseArchive(handle);
@@ -71,11 +71,11 @@ static void Iterate_all_files(benchmark::State& state) {
   ZipArchiveHandle handle;
   void* iteration_cookie;
   ZipEntry data;
-  ZipString name;
+  std::string name;
 
-  while (state.KeepRunning()) {
+  for (auto _ : state) {
     OpenArchive(temp_file->path, &handle);
-    StartIteration(handle, &iteration_cookie, nullptr, nullptr);
+    StartIteration(handle, &iteration_cookie);
     while (Next(iteration_cookie, &data, &name) == 0) {
     }
     EndIteration(iteration_cookie);
@@ -83,5 +83,28 @@ static void Iterate_all_files(benchmark::State& state) {
   }
 }
 BENCHMARK(Iterate_all_files);
+
+static void StartAlignedEntry(benchmark::State& state) {
+  TemporaryFile file;
+  FILE* fp = fdopen(file.fd, "w");
+
+  ZipWriter writer(fp);
+
+  auto alignment = uint32_t(state.range(0));
+  std::string name = "name";
+  int counter = 0;
+  for (auto _ : state) {
+    writer.StartAlignedEntry(name + std::to_string(counter++), 0, alignment);
+    state.PauseTiming();
+    writer.WriteBytes("hola", 4);
+    writer.FinishEntry();
+    state.ResumeTiming();
+  }
+
+  writer.Finish();
+  fclose(fp);
+}
+BENCHMARK(StartAlignedEntry)->Arg(2)->Arg(16)->Arg(1024)->Arg(4096);
+
 
 BENCHMARK_MAIN();

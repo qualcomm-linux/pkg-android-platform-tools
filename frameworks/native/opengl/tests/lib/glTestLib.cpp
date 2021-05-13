@@ -37,7 +37,7 @@ void glTestPrintGLString(const char *name, GLenum s)
 {
     const char *v = (const char *) glGetString(s);
 
-    if (v == nullptr) {
+    if (v == NULL) {
         testPrintI("GL %s unknown", name);
     } else {
         testPrintI("GL %s = %s", name, v);

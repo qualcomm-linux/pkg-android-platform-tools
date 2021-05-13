@@ -16,9 +16,7 @@
 #include <set>
 
 #include <android-base/file.h>
-#include <android-base/properties.h>
 #include <android-base/stringprintf.h>
-#include <android-base/strings.h>
 #include <android/hidl/manager/1.0/IServiceManager.h>
 #include <dumputils/dump_utils.h>
 #include <log/log.h>
@@ -40,7 +38,6 @@ static const char* native_processes_to_dump[] = {
         "/system/bin/surfaceflinger",
         "/system/bin/vehicle_network_service",
         "/vendor/bin/hw/android.hardware.media.omx@1.0-service", // media.codec
-        "/apex/com.android.media.swcodec/bin/mediaswcodec", // media.swcodec
         NULL,
 };
 
@@ -48,56 +45,25 @@ static const char* native_processes_to_dump[] = {
 static const char* hal_interfaces_to_dump[] {
         "android.hardware.audio@2.0::IDevicesFactory",
         "android.hardware.audio@4.0::IDevicesFactory",
-        "android.hardware.audio@5.0::IDevicesFactory",
-        "android.hardware.biometrics.face@1.0::IBiometricsFace",
         "android.hardware.bluetooth@1.0::IBluetoothHci",
         "android.hardware.camera.provider@2.4::ICameraProvider",
         "android.hardware.drm@1.0::IDrmFactory",
-        "android.hardware.graphics.allocator@2.0::IAllocator",
         "android.hardware.graphics.composer@2.1::IComposer",
         "android.hardware.health@2.0::IHealth",
-        "android.hardware.media.c2@1.0::IComponentStore",
         "android.hardware.media.omx@1.0::IOmx",
         "android.hardware.media.omx@1.0::IOmxStore",
-        "android.hardware.power@1.3::IPower",
-        "android.hardware.power.stats@1.0::IPowerStats",
         "android.hardware.sensors@1.0::ISensors",
-        "android.hardware.thermal@2.0::IThermal",
         "android.hardware.vr@1.0::IVr",
-        "android.hardware.automotive.audiocontrol@1.0::IAudioControl",
-        "android.hardware.automotive.vehicle@2.0::IVehicle",
-        "android.hardware.automotive.evs@1.0::IEvsCamera",
         NULL,
 };
 
-/* list of extra hal interfaces to dump containing process during native dumps */
-// This is filled when dumpstate is called.
-static std::set<const std::string> extra_hal_interfaces_to_dump;
-
-static void read_extra_hals_to_dump_from_property() {
-    // extra hals to dump are already filled
-    if (extra_hal_interfaces_to_dump.size() > 0) {
-        return;
-    }
-    std::string value = android::base::GetProperty("ro.dump.hals.extra", "");
-    std::vector<std::string> tokens = android::base::Split(value, ",");
-    for (const auto &token : tokens) {
-        std::string trimmed_token = android::base::Trim(token);
-        if (trimmed_token.length() == 0) {
-            continue;
-        }
-        extra_hal_interfaces_to_dump.insert(trimmed_token);
-    }
-}
-
-// check if interface is included in either default hal list or extra hal list
-bool should_dump_hal_interface(const std::string& interface) {
+bool should_dump_hal_interface(const char* interface) {
     for (const char** i = hal_interfaces_to_dump; *i; i++) {
-        if (interface == *i) {
+        if (!strcmp(*i, interface)) {
             return true;
         }
     }
-    return extra_hal_interfaces_to_dump.find(interface) != extra_hal_interfaces_to_dump.end();
+    return false;
 }
 
 bool should_dump_native_traces(const char* path) {
@@ -117,15 +83,13 @@ std::set<int> get_interesting_hal_pids() {
     sp<IServiceManager> manager = IServiceManager::getService();
     std::set<int> pids;
 
-    read_extra_hals_to_dump_from_property();
-
     Return<void> ret = manager->debugDump([&](auto& hals) {
         for (const auto &info : hals) {
             if (info.pid == static_cast<int>(IServiceManager::PidConstant::NO_PID)) {
                 continue;
             }
 
-            if (!should_dump_hal_interface(info.interfaceName)) {
+            if (!should_dump_hal_interface(info.interfaceName.c_str())) {
                 continue;
             }
 
@@ -141,15 +105,13 @@ std::set<int> get_interesting_hal_pids() {
 }
 
 bool IsZygote(int pid) {
+    static const std::string kZygotePrefix = "zygote";
+
     std::string cmdline;
     if (!android::base::ReadFileToString(android::base::StringPrintf("/proc/%d/cmdline", pid),
                                          &cmdline)) {
         return true;
     }
 
-    // cmdline has embedded nulls; only consider argv[0].
-    cmdline = std::string(cmdline.c_str());
-
-    return cmdline == "zygote" || cmdline == "zygote64" || cmdline == "usap32" ||
-            cmdline == "usap64";
+    return (cmdline.find(kZygotePrefix) == 0);
 }

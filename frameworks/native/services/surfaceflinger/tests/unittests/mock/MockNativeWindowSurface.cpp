@@ -1,6 +1,6 @@
 /*
- * Copyright 2018 The Android Open Source Project
-
+ * Copyright (C) 2018 The Android Open Source Project
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -16,10 +16,12 @@
 
 #include "mock/MockNativeWindowSurface.h"
 
-namespace android::surfaceflinger::mock {
+namespace android {
+namespace mock {
 
 // Explicit default instantiation is recommended.
 NativeWindowSurface::NativeWindowSurface() = default;
 NativeWindowSurface::~NativeWindowSurface() = default;
 
-} // namespace android::surfaceflinger::mock
+} // namespace mock
+} // namespace android

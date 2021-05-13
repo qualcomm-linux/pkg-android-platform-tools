@@ -20,11 +20,8 @@
 #include <unistd.h>
 #include <ctype.h>
 
-#include <android-base/stringprintf.h>
 #include <input/InputDevice.h>
 #include <input/InputEventLabels.h>
-
-using android::base::StringPrintf;
 
 namespace android {
 
@@ -44,62 +41,65 @@ static bool isValidNameChar(char ch) {
     return isascii(ch) && (isdigit(ch) || isalpha(ch) || ch == '-' || ch == '_');
 }
 
-static void appendInputDeviceConfigurationFileRelativePath(std::string& path,
-        const std::string& name, InputDeviceConfigurationFileType type) {
-    path += CONFIGURATION_FILE_DIR[type];
-    path += name;
-    path += CONFIGURATION_FILE_EXTENSION[type];
+static void appendInputDeviceConfigurationFileRelativePath(String8& path,
+        const String8& name, InputDeviceConfigurationFileType type) {
+    path.append(CONFIGURATION_FILE_DIR[type]);
+    for (size_t i = 0; i < name.length(); i++) {
+        char ch = name[i];
+        if (!isValidNameChar(ch)) {
+            ch = '_';
+        }
+        path.append(&ch, 1);
+    }
+    path.append(CONFIGURATION_FILE_EXTENSION[type]);
 }
 
-std::string getInputDeviceConfigurationFilePathByDeviceIdentifier(
+String8 getInputDeviceConfigurationFilePathByDeviceIdentifier(
         const InputDeviceIdentifier& deviceIdentifier,
         InputDeviceConfigurationFileType type) {
     if (deviceIdentifier.vendor !=0 && deviceIdentifier.product != 0) {
         if (deviceIdentifier.version != 0) {
             // Try vendor product version.
-            std::string versionPath = getInputDeviceConfigurationFilePathByName(
-                    StringPrintf("Vendor_%04x_Product_%04x_Version_%04x",
+            String8 versionPath(getInputDeviceConfigurationFilePathByName(
+                    String8::format("Vendor_%04x_Product_%04x_Version_%04x",
                             deviceIdentifier.vendor, deviceIdentifier.product,
                             deviceIdentifier.version),
-                    type);
-            if (!versionPath.empty()) {
+                    type));
+            if (!versionPath.isEmpty()) {
                 return versionPath;
             }
         }
 
         // Try vendor product.
-        std::string productPath = getInputDeviceConfigurationFilePathByName(
-                StringPrintf("Vendor_%04x_Product_%04x",
+        String8 productPath(getInputDeviceConfigurationFilePathByName(
+                String8::format("Vendor_%04x_Product_%04x",
                         deviceIdentifier.vendor, deviceIdentifier.product),
-                type);
-        if (!productPath.empty()) {
+                type));
+        if (!productPath.isEmpty()) {
             return productPath;
         }
     }
 
     // Try device name.
-    return getInputDeviceConfigurationFilePathByName(deviceIdentifier.getCanonicalName(), type);
+    return getInputDeviceConfigurationFilePathByName(deviceIdentifier.name, type);
 }
 
-std::string getInputDeviceConfigurationFilePathByName(
-        const std::string& name, InputDeviceConfigurationFileType type) {
+String8 getInputDeviceConfigurationFilePathByName(
+        const String8& name, InputDeviceConfigurationFileType type) {
     // Search system repository.
-    std::string path;
+    String8 path;
 
     // Treblized input device config files will be located /odm/usr or /vendor/usr.
     const char *rootsForPartition[] {"/odm", "/vendor", getenv("ANDROID_ROOT")};
     for (size_t i = 0; i < size(rootsForPartition); i++) {
-        if (rootsForPartition[i] == nullptr) {
-            continue;
-        }
-        path = rootsForPartition[i];
-        path += "/usr/";
+        path.setTo(rootsForPartition[i]);
+        path.append("/usr/");
         appendInputDeviceConfigurationFileRelativePath(path, name, type);
 #if DEBUG_PROBE
         ALOGD("Probing for system provided input device configuration file: path='%s'",
-              path.c_str());
+              path.string());
 #endif
-        if (!access(path.c_str(), R_OK)) {
+        if (!access(path.string(), R_OK)) {
 #if DEBUG_PROBE
             ALOGD("Found");
 #endif
@@ -109,17 +109,13 @@ std::string getInputDeviceConfigurationFilePathByName(
 
     // Search user repository.
     // TODO Should only look here if not in safe mode.
-    path = "";
-    char *androidData = getenv("ANDROID_DATA");
-    if (androidData != nullptr) {
-        path += androidData;
-    }
-    path += "/system/devices/";
+    path.setTo(getenv("ANDROID_DATA"));
+    path.append("/system/devices/");
     appendInputDeviceConfigurationFileRelativePath(path, name, type);
 #if DEBUG_PROBE
-    ALOGD("Probing for system user input device configuration file: path='%s'", path.c_str());
+    ALOGD("Probing for system user input device configuration file: path='%s'", path.string());
 #endif
-    if (!access(path.c_str(), R_OK)) {
+    if (!access(path.string(), R_OK)) {
 #if DEBUG_PROBE
         ALOGD("Found");
 #endif
@@ -129,28 +125,16 @@ std::string getInputDeviceConfigurationFilePathByName(
     // Not found.
 #if DEBUG_PROBE
     ALOGD("Probe failed to find input device configuration file: name='%s', type=%d",
-            name.c_str(), type);
+            name.string(), type);
 #endif
-    return "";
-}
-
-// --- InputDeviceIdentifier
-
-std::string InputDeviceIdentifier::getCanonicalName() const {
-    std::string replacedName = name;
-    for (char& ch : replacedName) {
-        if (!isValidNameChar(ch)) {
-            ch = '_';
-        }
-    }
-    return replacedName;
+    return String8();
 }
 
 
 // --- InputDeviceInfo ---
 
 InputDeviceInfo::InputDeviceInfo() {
-    initialize(-1, 0, -1, InputDeviceIdentifier(), "", false, false);
+    initialize(-1, 0, -1, InputDeviceIdentifier(), String8(), false, false);
 }
 
 InputDeviceInfo::InputDeviceInfo(const InputDeviceInfo& other) :
@@ -166,7 +150,7 @@ InputDeviceInfo::~InputDeviceInfo() {
 }
 
 void InputDeviceInfo::initialize(int32_t id, int32_t generation, int32_t controllerNumber,
-        const InputDeviceIdentifier& identifier, const std::string& alias, bool isExternal,
+        const InputDeviceIdentifier& identifier, const String8& alias, bool isExternal,
         bool hasMic) {
     mId = id;
     mGeneration = generation;
@@ -186,12 +170,12 @@ const InputDeviceInfo::MotionRange* InputDeviceInfo::getMotionRange(
         int32_t axis, uint32_t source) const {
     size_t numRanges = mMotionRanges.size();
     for (size_t i = 0; i < numRanges; i++) {
-        const MotionRange& range = mMotionRanges[i];
+        const MotionRange& range = mMotionRanges.itemAt(i);
         if (range.axis == axis && range.source == source) {
             return &range;
         }
     }
-    return nullptr;
+    return NULL;
 }
 
 void InputDeviceInfo::addSource(uint32_t source) {
@@ -201,11 +185,11 @@ void InputDeviceInfo::addSource(uint32_t source) {
 void InputDeviceInfo::addMotionRange(int32_t axis, uint32_t source, float min, float max,
         float flat, float fuzz, float resolution) {
     MotionRange range = { axis, source, min, max, flat, fuzz, resolution };
-    mMotionRanges.push_back(range);
+    mMotionRanges.add(range);
 }
 
 void InputDeviceInfo::addMotionRange(const MotionRange& range) {
-    mMotionRanges.push_back(range);
+    mMotionRanges.add(range);
 }
 
 } // namespace android

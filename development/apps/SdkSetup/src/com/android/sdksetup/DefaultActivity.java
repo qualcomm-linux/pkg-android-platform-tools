@@ -17,6 +17,7 @@
 package com.android.sdksetup;
 
 import android.app.Activity;
+import android.app.backup.IBackupManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager;
@@ -56,6 +57,16 @@ public class DefaultActivity extends Activity {
             Settings.Global.putInt(getContentResolver(), Settings.Global.INSTALL_NON_MARKET_APPS, 1);
 
             Settings.Secure.putInt(getContentResolver(),Settings.Secure.ADB_ENABLED, 1);
+
+            // provision the backup manager.
+            IBackupManager bm = IBackupManager.Stub.asInterface(
+                    ServiceManager.getService(Context.BACKUP_SERVICE));
+            if (bm != null) {
+                try {
+                    bm.setBackupProvisioned(true);
+                } catch (RemoteException e) {
+                }
+            }
         }
 
         // remove this activity from the package manager.

@@ -1,17 +1,19 @@
+#include "producer_channel.h"
+
+#include <log/log.h>
+#include <sync/sync.h>
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 #include <sys/poll.h>
+#include <utils/Trace.h>
 
 #include <algorithm>
 #include <atomic>
 #include <thread>
 
-#include <log/log.h>
 #include <private/dvr/bufferhub_rpc.h>
-#include <private/dvr/consumer_channel.h>
-#include <private/dvr/producer_channel.h>
-#include <sync/sync.h>
-#include <utils/Trace.h>
+#include "consumer_channel.h"
+#include "detached_buffer_channel.h"
 
 using android::pdx::BorrowedHandle;
 using android::pdx::ErrorStatus;
@@ -24,6 +26,14 @@ using android::pdx::rpc::WrapBuffer;
 
 namespace android {
 namespace dvr {
+
+namespace {
+
+static inline uint64_t FindNextClearedBit(uint64_t bits) {
+  return ~bits - (~bits & (~bits - 1));
+}
+
+}  // namespace
 
 ProducerChannel::ProducerChannel(BufferHubService* service, int buffer_id,
                                  int channel_id, IonBuffer buffer,
@@ -55,6 +65,8 @@ ProducerChannel::ProducerChannel(BufferHubService* service, int channel_id,
                                  uint64_t usage, size_t user_metadata_size,
                                  int* error)
     : BufferHubChannel(service, channel_id, channel_id, kProducerType),
+      pending_consumers_(0),
+      producer_owns_(true),
       user_metadata_size_(user_metadata_size),
       metadata_buf_size_(BufferHubDefs::kMetadataHeaderSize +
                          user_metadata_size) {
@@ -91,16 +103,10 @@ int ProducerChannel::InitializeBuffer() {
 
   // Using placement new here to reuse shared memory instead of new allocation
   // and also initialize the value to zero.
-  buffer_state_ = new (&metadata_header_->bufferState) std::atomic<uint32_t>(0);
-  fence_state_ = new (&metadata_header_->fenceState) std::atomic<uint32_t>(0);
-  active_clients_bit_mask_ =
-      new (&metadata_header_->activeClientsBitMask) std::atomic<uint32_t>(0);
-
-  // Producer channel is never created after consumer channel, and one buffer
-  // only have one fixed producer for now. Thus, it is correct to assume
-  // producer state bit is kFirstClientBitMask for now.
-  active_clients_bit_mask_->store(BufferHubDefs::kFirstClientBitMask,
-                                  std::memory_order_release);
+  buffer_state_ =
+      new (&metadata_header_->buffer_state) std::atomic<uint64_t>(0);
+  fence_state_ =
+      new (&metadata_header_->fence_state) std::atomic<uint64_t>(0);
 
   acquire_fence_fd_.Reset(epoll_create1(EPOLL_CLOEXEC));
   release_fence_fd_.Reset(epoll_create1(EPOLL_CLOEXEC));
@@ -117,7 +123,7 @@ int ProducerChannel::InitializeBuffer() {
 
   epoll_event event;
   event.events = 0;
-  event.data.u32 = 0U;
+  event.data.u64 = 0ULL;
   if (epoll_ctl(release_fence_fd_.Get(), EPOLL_CTL_ADD, dummy_fence_fd_.Get(),
                 &event) < 0) {
     ALOGE(
@@ -162,9 +168,8 @@ Status<std::shared_ptr<ProducerChannel>> ProducerChannel::Create(
 ProducerChannel::~ProducerChannel() {
   ALOGD_IF(TRACE,
            "ProducerChannel::~ProducerChannel: channel_id=%d buffer_id=%d "
-           "state=%" PRIx32 ".",
-           channel_id(), buffer_id(),
-           buffer_state_->load(std::memory_order_acquire));
+           "state=%" PRIx64 ".",
+           channel_id(), buffer_id(), buffer_state_->load());
   for (auto consumer : consumer_channels_) {
     consumer->OnProducerClosed();
   }
@@ -173,16 +178,15 @@ ProducerChannel::~ProducerChannel() {
 
 BufferHubChannel::BufferInfo ProducerChannel::GetBufferInfo() const {
   // Derive the mask of signaled buffers in this producer / consumer set.
-  uint32_t signaled_mask = signaled() ? BufferHubDefs::kFirstClientBitMask : 0;
+  uint64_t signaled_mask = signaled() ? BufferHubDefs::kProducerStateBit : 0;
   for (const ConsumerChannel* consumer : consumer_channels_) {
-    signaled_mask |= consumer->signaled() ? consumer->client_state_mask() : 0;
+    signaled_mask |= consumer->signaled() ? consumer->consumer_state_bit() : 0;
   }
 
   return BufferInfo(buffer_id(), consumer_channels_.size(), buffer_.width(),
                     buffer_.height(), buffer_.layer_count(), buffer_.format(),
-                    buffer_.usage(),
-                    buffer_state_->load(std::memory_order_acquire),
-                    signaled_mask, metadata_header_->queueIndex);
+                    buffer_.usage(), pending_consumers_, buffer_state_->load(),
+                    signaled_mask, metadata_header_->queue_index);
 }
 
 void ProducerChannel::HandleImpulse(Message& message) {
@@ -220,192 +224,107 @@ bool ProducerChannel::HandleMessage(Message& message) {
           *this, &ProducerChannel::OnProducerGain, message);
       return true;
 
+    case BufferHubRPC::ProducerBufferDetach::Opcode:
+      DispatchRemoteMethod<BufferHubRPC::ProducerBufferDetach>(
+          *this, &ProducerChannel::OnProducerDetach, message);
+      return true;
+
     default:
       return false;
   }
 }
 
 BufferDescription<BorrowedHandle> ProducerChannel::GetBuffer(
-    uint32_t client_state_mask) {
-  return {buffer_,
-          metadata_buffer_,
-          buffer_id(),
-          channel_id(),
-          client_state_mask,
-          acquire_fence_fd_.Borrow(),
-          release_fence_fd_.Borrow()};
+    uint64_t buffer_state_bit) {
+  return {
+      buffer_,          metadata_buffer_,           buffer_id(),
+      buffer_state_bit, acquire_fence_fd_.Borrow(), release_fence_fd_.Borrow()};
 }
 
 Status<BufferDescription<BorrowedHandle>> ProducerChannel::OnGetBuffer(
     Message& /*message*/) {
   ATRACE_NAME("ProducerChannel::OnGetBuffer");
-  ALOGD_IF(TRACE, "ProducerChannel::OnGetBuffer: buffer=%d, state=%" PRIx32 ".",
-           buffer_id(), buffer_state_->load(std::memory_order_acquire));
-  return {GetBuffer(BufferHubDefs::kFirstClientBitMask)};
+  ALOGD_IF(TRACE, "ProducerChannel::OnGetBuffer: buffer=%d, state=%" PRIx64 ".",
+           buffer_id(), buffer_state_->load());
+  return {GetBuffer(BufferHubDefs::kProducerStateBit)};
 }
 
-Status<uint32_t> ProducerChannel::CreateConsumerStateMask() {
-  // Try find the next consumer state bit which has not been claimed by any
-  // consumer yet.
-  // memory_order_acquire is chosen here because all writes in other threads
-  // that release active_clients_bit_mask_ need to be visible here.
-  uint32_t current_active_clients_bit_mask =
-      active_clients_bit_mask_->load(std::memory_order_acquire);
-  uint32_t consumer_state_mask =
-      BufferHubDefs::findNextAvailableClientStateMask(
-          current_active_clients_bit_mask | orphaned_consumer_bit_mask_);
-  if (consumer_state_mask == 0U) {
-    ALOGE("%s: reached the maximum mumber of consumers per producer: 63.",
-          __FUNCTION__);
-    return ErrorStatus(E2BIG);
-  }
-  uint32_t updated_active_clients_bit_mask =
-      current_active_clients_bit_mask | consumer_state_mask;
-  // Set the updated value only if the current value stays the same as what was
-  // read before. If the comparison succeeds, update the value without
-  // reordering anything before or after this read-modify-write in the current
-  // thread, and the modification will be visible in other threads that acquire
-  // active_clients_bit_mask_. If the comparison fails, load the result of
-  // all writes from all threads to updated_active_clients_bit_mask.
-  // Keep on finding the next available slient state mask until succeed or out
-  // of memory.
-  while (!active_clients_bit_mask_->compare_exchange_weak(
-      current_active_clients_bit_mask, updated_active_clients_bit_mask,
-      std::memory_order_acq_rel, std::memory_order_acquire)) {
-    ALOGE("%s: Current active clients bit mask is changed to %" PRIx32
-          ", which was expected to be %" PRIx32
-          ". Trying to generate a new client state mask to resolve race "
-          "condition.",
-          __FUNCTION__, updated_active_clients_bit_mask,
-          current_active_clients_bit_mask);
-    consumer_state_mask = BufferHubDefs::findNextAvailableClientStateMask(
-        current_active_clients_bit_mask | orphaned_consumer_bit_mask_);
-    if (consumer_state_mask == 0U) {
-      ALOGE("%s: reached the maximum mumber of consumers per producer: %d.",
-            __FUNCTION__, (BufferHubDefs::kMaxNumberOfClients - 1));
-      return ErrorStatus(E2BIG);
-    }
-    updated_active_clients_bit_mask =
-        current_active_clients_bit_mask | consumer_state_mask;
-  }
-
-  return {consumer_state_mask};
-}
-
-void ProducerChannel::RemoveConsumerClientMask(uint32_t consumer_state_mask) {
-  // Clear up the buffer state and fence state in case there is already
-  // something there due to possible race condition between producer post and
-  // consumer failed to create channel.
-  buffer_state_->fetch_and(~consumer_state_mask, std::memory_order_release);
-  fence_state_->fetch_and(~consumer_state_mask, std::memory_order_release);
-
-  // Restore the consumer state bit and make it visible in other threads that
-  // acquire the active_clients_bit_mask_.
-  active_clients_bit_mask_->fetch_and(~consumer_state_mask,
-                                      std::memory_order_release);
-}
-
-Status<RemoteChannelHandle> ProducerChannel::CreateConsumer(
-    Message& message, uint32_t consumer_state_mask) {
-  ATRACE_NAME(__FUNCTION__);
-  ALOGD("%s: buffer_id=%d", __FUNCTION__, buffer_id());
+Status<RemoteChannelHandle> ProducerChannel::CreateConsumer(Message& message) {
+  ATRACE_NAME("ProducerChannel::CreateConsumer");
+  ALOGD_IF(TRACE,
+           "ProducerChannel::CreateConsumer: buffer_id=%d, producer_owns=%d",
+           buffer_id(), producer_owns_);
 
   int channel_id;
   auto status = message.PushChannel(0, nullptr, &channel_id);
   if (!status) {
-    ALOGE("%s: Failed to push consumer channel: %s", __FUNCTION__,
-          status.GetErrorMessage().c_str());
-    RemoveConsumerClientMask(consumer_state_mask);
+    ALOGE(
+        "ProducerChannel::CreateConsumer: Failed to push consumer channel: %s",
+        status.GetErrorMessage().c_str());
     return ErrorStatus(ENOMEM);
   }
 
-  auto consumer = std::make_shared<ConsumerChannel>(
-      service(), buffer_id(), channel_id, consumer_state_mask,
-      shared_from_this());
+  // Try find the next consumer state bit which has not been claimed by any
+  // consumer yet.
+  uint64_t consumer_state_bit = FindNextClearedBit(
+      active_consumer_bit_mask_ | orphaned_consumer_bit_mask_ |
+      BufferHubDefs::kProducerStateBit);
+  if (consumer_state_bit == 0ULL) {
+    ALOGE(
+        "ProducerChannel::CreateConsumer: reached the maximum mumber of "
+        "consumers per producer: 63.");
+    return ErrorStatus(E2BIG);
+  }
+
+  auto consumer =
+      std::make_shared<ConsumerChannel>(service(), buffer_id(), channel_id,
+                                        consumer_state_bit, shared_from_this());
   const auto channel_status = service()->SetChannel(channel_id, consumer);
   if (!channel_status) {
-    ALOGE("%s: failed to set new consumer channel: %s.", __FUNCTION__,
-          channel_status.GetErrorMessage().c_str());
-    RemoveConsumerClientMask(consumer_state_mask);
+    ALOGE(
+        "ProducerChannel::CreateConsumer: failed to set new consumer channel: "
+        "%s",
+        channel_status.GetErrorMessage().c_str());
     return ErrorStatus(ENOMEM);
   }
 
-  uint32_t current_buffer_state =
-      buffer_state_->load(std::memory_order_acquire);
-  // Return the consumer channel handle without signal when adding the new
-  // consumer to a buffer that is available to producer (a.k.a a fully-released
-  // buffer) or a gained buffer.
-  if (current_buffer_state == 0U ||
-      BufferHubDefs::isAnyClientGained(current_buffer_state)) {
-    return {status.take()};
+  if (!producer_owns_ &&
+      !BufferHubDefs::IsBufferReleased(buffer_state_->load())) {
+    // Signal the new consumer when adding it to a posted producer.
+    if (consumer->OnProducerPosted())
+      pending_consumers_++;
   }
 
-  // Signal the new consumer when adding it to a posted producer.
-  bool update_buffer_state = true;
-  if (!BufferHubDefs::isClientPosted(current_buffer_state,
-                                     consumer_state_mask)) {
-    uint32_t updated_buffer_state =
-        current_buffer_state ^
-        (consumer_state_mask & BufferHubDefs::kHighBitsMask);
-    while (!buffer_state_->compare_exchange_weak(
-        current_buffer_state, updated_buffer_state, std::memory_order_acq_rel,
-        std::memory_order_acquire)) {
-      ALOGI(
-          "%s: Failed to post to the new consumer. "
-          "Current buffer state was changed to %" PRIx32
-          " when trying to acquire the buffer and modify the buffer state to "
-          "%" PRIx32
-          ". About to try again if the buffer is still not gained nor fully "
-          "released.",
-          __FUNCTION__, current_buffer_state, updated_buffer_state);
-      if (current_buffer_state == 0U ||
-          BufferHubDefs::isAnyClientGained(current_buffer_state)) {
-        ALOGI("%s: buffer is gained or fully released, state=%" PRIx32 ".",
-              __FUNCTION__, current_buffer_state);
-        update_buffer_state = false;
-        break;
-      }
-      updated_buffer_state =
-          current_buffer_state ^
-          (consumer_state_mask & BufferHubDefs::kHighBitsMask);
-    }
-  }
-  if (update_buffer_state || BufferHubDefs::isClientPosted(
-                                 buffer_state_->load(std::memory_order_acquire),
-                                 consumer_state_mask)) {
-    consumer->OnProducerPosted();
-  }
-
+  active_consumer_bit_mask_ |= consumer_state_bit;
   return {status.take()};
 }
 
 Status<RemoteChannelHandle> ProducerChannel::OnNewConsumer(Message& message) {
   ATRACE_NAME("ProducerChannel::OnNewConsumer");
   ALOGD_IF(TRACE, "ProducerChannel::OnNewConsumer: buffer_id=%d", buffer_id());
-  auto status = CreateConsumerStateMask();
-  if (!status.ok()) {
-    return status.error_status();
-  }
-  return CreateConsumer(message, /*consumer_state_mask=*/status.get());
+  return CreateConsumer(message);
 }
 
-Status<void> ProducerChannel::OnProducerPost(Message&,
-                                             LocalFence acquire_fence) {
+Status<void> ProducerChannel::OnProducerPost(
+    Message&, LocalFence acquire_fence) {
   ATRACE_NAME("ProducerChannel::OnProducerPost");
-  ALOGD_IF(TRACE, "%s: buffer_id=%d, state=0x%x", __FUNCTION__, buffer_id(),
-           buffer_state_->load(std::memory_order_acquire));
+  ALOGD_IF(TRACE, "ProducerChannel::OnProducerPost: buffer_id=%d", buffer_id());
+  if (!producer_owns_) {
+    ALOGE("ProducerChannel::OnProducerPost: Not in gained state!");
+    return ErrorStatus(EBUSY);
+  }
 
   epoll_event event;
   event.events = 0;
-  event.data.u32 = 0U;
+  event.data.u64 = 0ULL;
   int ret = epoll_ctl(release_fence_fd_.Get(), EPOLL_CTL_MOD,
                       dummy_fence_fd_.Get(), &event);
   ALOGE_IF(ret < 0,
-           "ProducerChannel::OnProducerPost: Failed to modify the shared "
-           "release fence to include the dummy fence: %s",
-           strerror(errno));
+      "ProducerChannel::OnProducerPost: Failed to modify the shared "
+      "release fence to include the dummy fence: %s",
+      strerror(errno));
 
-  eventfd_t dummy_fence_count = 0U;
+  eventfd_t dummy_fence_count = 0ULL;
   if (eventfd_read(dummy_fence_fd_.Get(), &dummy_fence_count) < 0) {
     const int error = errno;
     if (error != EAGAIN) {
@@ -424,44 +343,57 @@ Status<void> ProducerChannel::OnProducerPost(Message&,
            dummy_fence_count, buffer_id());
 
   post_fence_ = std::move(acquire_fence);
+  producer_owns_ = false;
 
   // Signal any interested consumers. If there are none, the buffer will stay
   // in posted state until a consumer comes online. This behavior guarantees
   // that no frame is silently dropped.
-  for (auto& consumer : consumer_channels_) {
-    consumer->OnProducerPosted();
+  pending_consumers_ = 0;
+  for (auto consumer : consumer_channels_) {
+    if (consumer->OnProducerPosted())
+      pending_consumers_++;
   }
+  ALOGD_IF(TRACE, "ProducerChannel::OnProducerPost: %d pending consumers",
+           pending_consumers_);
 
   return {};
 }
 
 Status<LocalFence> ProducerChannel::OnProducerGain(Message& /*message*/) {
   ATRACE_NAME("ProducerChannel::OnGain");
-  ALOGD_IF(TRACE, "%s: buffer_id=%d", __FUNCTION__, buffer_id());
+  ALOGD_IF(TRACE, "ProducerChannel::OnGain: buffer_id=%d", buffer_id());
+  if (producer_owns_) {
+    ALOGE("ProducerChanneL::OnGain: Already in gained state: channel=%d",
+          channel_id());
+    return ErrorStatus(EALREADY);
+  }
+
+  // There are still pending consumers, return busy.
+  if (pending_consumers_ > 0) {
+    ALOGE(
+        "ProducerChannel::OnGain: Producer (id=%d) is gaining a buffer that "
+        "still has %d pending consumer(s).",
+        buffer_id(), pending_consumers_);
+    return ErrorStatus(EBUSY);
+  }
 
   ClearAvailable();
+  producer_owns_ = true;
   post_fence_.close();
-  for (auto& consumer : consumer_channels_) {
-    consumer->OnProducerGained();
-  }
   return {std::move(returned_fence_)};
 }
 
-// TODO(b/112338294) Keep here for reference. Remove it after new logic is
-// written.
-/* Status<RemoteChannelHandle> ProducerChannel::OnProducerDetach(
+Status<RemoteChannelHandle> ProducerChannel::OnProducerDetach(
     Message& message) {
   ATRACE_NAME("ProducerChannel::OnProducerDetach");
   ALOGD_IF(TRACE, "ProducerChannel::OnProducerDetach: buffer_id=%d",
            buffer_id());
 
-  uint32_t buffer_state = buffer_state_->load(std::memory_order_acquire);
-  if (!BufferHubDefs::isClientGained(
-      buffer_state, BufferHubDefs::kFirstClientStateMask)) {
-    // Can only detach a ProducerBuffer when it's in gained state.
+  uint64_t buffer_state = buffer_state_->load();
+  if (!BufferHubDefs::IsBufferGained(buffer_state)) {
+    // Can only detach a BufferProducer when it's in gained state.
     ALOGW(
-        "ProducerChannel::OnProducerDetach: The buffer (id=%d, state=%"
-        PRIx32
+        "ProducerChannel::OnProducerDetach: The buffer (id=%d, state=0x%" PRIx64
         ") is not in gained state.",
         buffer_id(), buffer_state);
     return {};
@@ -483,9 +415,10 @@ Status<LocalFence> ProducerChannel::OnProducerGain(Message& /*message*/) {
     return ErrorStatus(-ret);
   };
 
-  std::unique_ptr<BufferChannel> channel =
-      BufferChannel::Create(service(), buffer_id(), channel_id,
-                            std::move(buffer_), user_metadata_size_);
+  std::unique_ptr<DetachedBufferChannel> channel =
+      DetachedBufferChannel::Create(
+          service(), buffer_id(), channel_id, std::move(buffer_),
+          std::move(metadata_buffer_), user_metadata_size_);
   if (!channel) {
     ALOGE("ProducerChannel::OnProducerDetach: Invalid buffer.");
     return ErrorStatus(EINVAL);
@@ -494,23 +427,28 @@ Status<LocalFence> ProducerChannel::OnProducerGain(Message& /*message*/) {
   const auto channel_status =
       service()->SetChannel(channel_id, std::move(channel));
   if (!channel_status) {
-    // Technically, this should never fail, as we just pushed the channel.
-    // Note that LOG_FATAL will be stripped out in non-debug build.
+    // Technically, this should never fail, as we just pushed the channel. Note
+    // that LOG_FATAL will be stripped out in non-debug build.
     LOG_FATAL(
-        "ProducerChannel::OnProducerDetach: Failed to set new detached "
-        "buffer channel: %s.", channel_status.GetErrorMessage().c_str());
+        "ProducerChannel::OnProducerDetach: Failed to set new detached buffer "
+        "channel: %s.",
+        channel_status.GetErrorMessage().c_str());
   }
 
   return status;
-} */
+}
 
 Status<LocalFence> ProducerChannel::OnConsumerAcquire(Message& /*message*/) {
   ATRACE_NAME("ProducerChannel::OnConsumerAcquire");
   ALOGD_IF(TRACE, "ProducerChannel::OnConsumerAcquire: buffer_id=%d",
            buffer_id());
+  if (producer_owns_) {
+    ALOGE("ProducerChannel::OnConsumerAcquire: Not in posted state!");
+    return ErrorStatus(EBUSY);
+  }
 
-  // Return a borrowed fd to avoid unnecessary duplication of the underlying
-  // fd. Serialization just needs to read the handle.
+  // Return a borrowed fd to avoid unnecessary duplication of the underlying fd.
+  // Serialization just needs to read the handle.
   return {std::move(post_fence_)};
 }
 
@@ -519,6 +457,10 @@ Status<void> ProducerChannel::OnConsumerRelease(Message&,
   ATRACE_NAME("ProducerChannel::OnConsumerRelease");
   ALOGD_IF(TRACE, "ProducerChannel::OnConsumerRelease: buffer_id=%d",
            buffer_id());
+  if (producer_owns_) {
+    ALOGE("ProducerChannel::OnConsumerRelease: Not in acquired state!");
+    return ErrorStatus(EBUSY);
+  }
 
   // Attempt to merge the fences if necessary.
   if (release_fence) {
@@ -538,51 +480,74 @@ Status<void> ProducerChannel::OnConsumerRelease(Message&,
     }
   }
 
-  if (IsBufferReleasedByAllActiveClientsExceptForOrphans()) {
-    buffer_state_->store(0U);
-    SignalAvailable();
+  OnConsumerIgnored();
+  if (pending_consumers_ == 0) {
+    // Clear the producer bit atomically to transit into released state. This
+    // has to done by BufferHub as it requries synchronization among all
+    // consumers.
+    BufferHubDefs::ModifyBufferState(buffer_state_,
+                                     BufferHubDefs::kProducerStateBit, 0ULL);
+    ALOGD_IF(TRACE,
+             "ProducerChannel::OnConsumerRelease: releasing last consumer: "
+             "buffer_id=%d state=%" PRIx64 ".",
+             buffer_id(), buffer_state_->load());
+
     if (orphaned_consumer_bit_mask_) {
       ALOGW(
-          "%s: orphaned buffer detected during the this acquire/release cycle: "
-          "id=%d orphaned=0x%" PRIx32 " queue_index=%" PRId64 ".",
-          __FUNCTION__, buffer_id(), orphaned_consumer_bit_mask_,
-          metadata_header_->queueIndex);
+          "ProducerChannel::OnConsumerRelease: orphaned buffer detected "
+          "during the this acquire/release cycle: id=%d orphaned=0x%" PRIx64
+          " queue_index=%" PRIu64 ".",
+          buffer_id(), orphaned_consumer_bit_mask_,
+          metadata_header_->queue_index);
       orphaned_consumer_bit_mask_ = 0;
     }
+
+    SignalAvailable();
   }
 
+  ALOGE_IF(pending_consumers_ &&
+               BufferHubDefs::IsBufferReleased(buffer_state_->load()),
+           "ProducerChannel::OnConsumerRelease: buffer state inconsistent: "
+           "pending_consumers=%d, buffer buffer is in releaed state.",
+           pending_consumers_);
   return {};
 }
 
-void ProducerChannel::OnConsumerOrphaned(const uint32_t& consumer_state_mask) {
-  // Remember the ignored consumer so that newly added consumer won't be
-  // taking the same state mask as this orphaned consumer.
-  ALOGE_IF(orphaned_consumer_bit_mask_ & consumer_state_mask,
-           "%s: Consumer (consumer_state_mask=%" PRIx32
-           ") is already orphaned.",
-           __FUNCTION__, consumer_state_mask);
-  orphaned_consumer_bit_mask_ |= consumer_state_mask;
-
-  if (IsBufferReleasedByAllActiveClientsExceptForOrphans()) {
-    buffer_state_->store(0U);
-    SignalAvailable();
+void ProducerChannel::OnConsumerIgnored() {
+  if (pending_consumers_ == 0) {
+    ALOGE("ProducerChannel::OnConsumerIgnored: no pending consumer.");
+    return;
   }
 
-  // Atomically clear the fence state bit as an orphaned consumer will never
-  // signal a release fence.
-  fence_state_->fetch_and(~consumer_state_mask, std::memory_order_release);
+  --pending_consumers_;
+  ALOGD_IF(TRACE,
+           "ProducerChannel::OnConsumerIgnored: buffer_id=%d %d consumers left",
+           buffer_id(), pending_consumers_);
+}
 
-  // Atomically set the buffer state of this consumer to released state.
-  buffer_state_->fetch_and(~consumer_state_mask, std::memory_order_release);
+void ProducerChannel::OnConsumerOrphaned(ConsumerChannel* channel) {
+  // Ignore the orphaned consumer.
+  OnConsumerIgnored();
+
+  const uint64_t consumer_state_bit = channel->consumer_state_bit();
+  ALOGE_IF(orphaned_consumer_bit_mask_ & consumer_state_bit,
+           "ProducerChannel::OnConsumerOrphaned: Consumer "
+           "(consumer_state_bit=%" PRIx64 ") is already orphaned.",
+           consumer_state_bit);
+  orphaned_consumer_bit_mask_ |= consumer_state_bit;
+
+  // Atomically clear the fence state bit as an orphaned consumer will never
+  // signal a release fence. Also clear the buffer state as it won't be released
+  // as well.
+  fence_state_->fetch_and(~consumer_state_bit);
+  BufferHubDefs::ModifyBufferState(buffer_state_, consumer_state_bit, 0ULL);
 
   ALOGW(
-      "%s: detected new orphaned consumer buffer_id=%d "
-      "consumer_state_mask=%" PRIx32 " queue_index=%" PRId64
-      " buffer_state=%" PRIx32 " fence_state=%" PRIx32 ".",
-      __FUNCTION__, buffer_id(), consumer_state_mask,
-      metadata_header_->queueIndex,
-      buffer_state_->load(std::memory_order_acquire),
-      fence_state_->load(std::memory_order_acquire));
+      "ProducerChannel::OnConsumerOrphaned: detected new orphaned consumer "
+      "buffer_id=%d consumer_state_bit=%" PRIx64 " queue_index=%" PRIu64
+      " buffer_state=%" PRIx64 " fence_state=%" PRIx64 ".",
+      buffer_id(), consumer_state_bit, metadata_header_->queue_index,
+      buffer_state_->load(), fence_state_->load());
 }
 
 void ProducerChannel::AddConsumer(ConsumerChannel* channel) {
@@ -592,81 +557,51 @@ void ProducerChannel::AddConsumer(ConsumerChannel* channel) {
 void ProducerChannel::RemoveConsumer(ConsumerChannel* channel) {
   consumer_channels_.erase(
       std::find(consumer_channels_.begin(), consumer_channels_.end(), channel));
-  // Restore the consumer state bit and make it visible in other threads that
-  // acquire the active_clients_bit_mask_.
-  uint32_t consumer_state_mask = channel->client_state_mask();
-  uint32_t current_active_clients_bit_mask =
-      active_clients_bit_mask_->load(std::memory_order_acquire);
-  uint32_t updated_active_clients_bit_mask =
-      current_active_clients_bit_mask & (~consumer_state_mask);
-  while (!active_clients_bit_mask_->compare_exchange_weak(
-      current_active_clients_bit_mask, updated_active_clients_bit_mask,
-      std::memory_order_acq_rel, std::memory_order_acquire)) {
-    ALOGI(
-        "%s: Failed to remove consumer state mask. Current active clients bit "
-        "mask is changed to %" PRIx32
-        " when trying to acquire and modify it to %" PRIx32
-        ". About to try again.",
-        __FUNCTION__, current_active_clients_bit_mask,
-        updated_active_clients_bit_mask);
-    updated_active_clients_bit_mask =
-        current_active_clients_bit_mask & (~consumer_state_mask);
-  }
+  active_consumer_bit_mask_ &= ~channel->consumer_state_bit();
 
-  const uint32_t current_buffer_state =
-      buffer_state_->load(std::memory_order_acquire);
-  if (BufferHubDefs::isClientPosted(current_buffer_state,
-                                    consumer_state_mask) ||
-      BufferHubDefs::isClientAcquired(current_buffer_state,
-                                      consumer_state_mask)) {
+  const uint64_t buffer_state = buffer_state_->load();
+  if (BufferHubDefs::IsBufferPosted(buffer_state) ||
+      BufferHubDefs::IsBufferAcquired(buffer_state)) {
     // The consumer client is being destoryed without releasing. This could
     // happen in corner cases when the consumer crashes. Here we mark it
     // orphaned before remove it from producer.
-    OnConsumerOrphaned(consumer_state_mask);
-    return;
+    OnConsumerOrphaned(channel);
   }
 
-  if (BufferHubDefs::isClientReleased(current_buffer_state,
-                                      consumer_state_mask) ||
-      BufferHubDefs::isAnyClientGained(current_buffer_state)) {
+  if (BufferHubDefs::IsBufferReleased(buffer_state) ||
+      BufferHubDefs::IsBufferGained(buffer_state)) {
     // The consumer is being close while it is suppose to signal a release
     // fence. Signal the dummy fence here.
-    if (fence_state_->load(std::memory_order_acquire) & consumer_state_mask) {
+    if (fence_state_->load() & channel->consumer_state_bit()) {
       epoll_event event;
       event.events = EPOLLIN;
-      event.data.u32 = consumer_state_mask;
+      event.data.u64 = channel->consumer_state_bit();
       if (epoll_ctl(release_fence_fd_.Get(), EPOLL_CTL_MOD,
                     dummy_fence_fd_.Get(), &event) < 0) {
         ALOGE(
-            "%s: Failed to modify the shared release fence to include the "
-            "dummy fence: %s",
-            __FUNCTION__, strerror(errno));
+            "ProducerChannel::RemoveConsumer: Failed to modify the shared "
+            "release fence to include the dummy fence: %s",
+            strerror(errno));
         return;
       }
-      ALOGW("%s: signal dummy release fence buffer_id=%d", __FUNCTION__,
-            buffer_id());
+      ALOGW(
+          "ProducerChannel::RemoveConsumer: signal dummy release fence "
+          "buffer_id=%d",
+          buffer_id());
       eventfd_write(dummy_fence_fd_.Get(), 1);
     }
   }
 }
 
-// Returns true if the given parameters match the underlying buffer
-// parameters.
+// Returns true if the given parameters match the underlying buffer parameters.
 bool ProducerChannel::CheckParameters(uint32_t width, uint32_t height,
                                       uint32_t layer_count, uint32_t format,
                                       uint64_t usage,
-                                      size_t user_metadata_size) const {
+                                      size_t user_metadata_size) {
   return user_metadata_size == user_metadata_size_ &&
          buffer_.width() == width && buffer_.height() == height &&
          buffer_.layer_count() == layer_count && buffer_.format() == format &&
          buffer_.usage() == usage;
-}
-
-bool ProducerChannel::IsBufferReleasedByAllActiveClientsExceptForOrphans()
-    const {
-  return (buffer_state_->load(std::memory_order_acquire) &
-          ~orphaned_consumer_bit_mask_ &
-          active_clients_bit_mask_->load(std::memory_order_acquire)) == 0U;
 }
 
 }  // namespace dvr

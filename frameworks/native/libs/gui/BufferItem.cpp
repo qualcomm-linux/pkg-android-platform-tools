@@ -39,8 +39,8 @@ static inline constexpr T to64(const uint32_t lo, const uint32_t hi) {
 }
 
 BufferItem::BufferItem() :
-    mGraphicBuffer(nullptr),
-    mFence(nullptr),
+    mGraphicBuffer(NULL),
+    mFence(NULL),
     mCrop(Rect::INVALID_RECT),
     mTransform(0),
     mScalingMode(NATIVE_WINDOW_SCALING_MODE_FREEZE),
@@ -91,11 +91,11 @@ size_t BufferItem::getPodSize() const {
 
 size_t BufferItem::getFlattenedSize() const {
     size_t size = sizeof(uint32_t); // Flags
-    if (mGraphicBuffer != nullptr) {
+    if (mGraphicBuffer != 0) {
         size += mGraphicBuffer->getFlattenedSize();
         size = FlattenableUtils::align<4>(size);
     }
-    if (mFence != nullptr) {
+    if (mFence != 0) {
         size += mFence->getFlattenedSize();
         size = FlattenableUtils::align<4>(size);
     }
@@ -107,10 +107,10 @@ size_t BufferItem::getFlattenedSize() const {
 
 size_t BufferItem::getFdCount() const {
     size_t count = 0;
-    if (mGraphicBuffer != nullptr) {
+    if (mGraphicBuffer != 0) {
         count += mGraphicBuffer->getFdCount();
     }
-    if (mFence != nullptr) {
+    if (mFence != 0) {
         count += mFence->getFdCount();
     }
     return count;
@@ -137,13 +137,13 @@ status_t BufferItem::flatten(
     FlattenableUtils::advance(buffer, size, sizeof(uint32_t));
 
     flags = 0;
-    if (mGraphicBuffer != nullptr) {
+    if (mGraphicBuffer != 0) {
         status_t err = mGraphicBuffer->flatten(buffer, size, fds, count);
         if (err) return err;
         size -= FlattenableUtils::align<4>(buffer);
         flags |= 1;
     }
-    if (mFence != nullptr) {
+    if (mFence != 0) {
         status_t err = mFence->flatten(buffer, size, fds, count);
         if (err) return err;
         size -= FlattenableUtils::align<4>(buffer);

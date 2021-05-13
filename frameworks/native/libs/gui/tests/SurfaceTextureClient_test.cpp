@@ -29,6 +29,7 @@
 #include <utils/Thread.h>
 
 extern "C" EGLAPI const char* eglQueryStringImplementationANDROID(EGLDisplay dpy, EGLint name);
+#define CROP_EXT_STR "EGL_ANDROID_image_crop"
 
 namespace android {
 
@@ -38,7 +39,7 @@ protected:
             mEglDisplay(EGL_NO_DISPLAY),
             mEglSurface(EGL_NO_SURFACE),
             mEglContext(EGL_NO_CONTEXT),
-            mEglConfig(nullptr) {
+            mEglConfig(NULL) {
     }
 
     virtual void SetUp() {
@@ -81,7 +82,7 @@ protected:
         ASSERT_EQ(EGL_SUCCESS, eglGetError());
         ASSERT_NE(EGL_NO_SURFACE, mEglSurface);
 
-        mEglContext = eglCreateContext(mEglDisplay, myConfig, EGL_NO_CONTEXT, nullptr);
+        mEglContext = eglCreateContext(mEglDisplay, myConfig, EGL_NO_CONTEXT, 0);
         ASSERT_EQ(EGL_SUCCESS, eglGetError());
         ASSERT_NE(EGL_NO_CONTEXT, mEglContext);
 
@@ -126,7 +127,7 @@ protected:
 
 TEST_F(SurfaceTextureClientTest, GetISurfaceTextureIsNotNull) {
     sp<IGraphicBufferProducer> ist(mSTC->getIGraphicBufferProducer());
-    ASSERT_TRUE(ist != nullptr);
+    ASSERT_TRUE(ist != NULL);
 }
 
 TEST_F(SurfaceTextureClientTest, QueuesToWindowCompositorIsFalse) {
@@ -154,7 +155,7 @@ TEST_F(SurfaceTextureClientTest, EglCreateWindowSurfaceSucceeds) {
     EXPECT_TRUE(eglInitialize(dpy, &majorVersion, &minorVersion));
     ASSERT_EQ(EGL_SUCCESS, eglGetError());
 
-    EGLConfig myConfig = {nullptr};
+    EGLConfig myConfig = {0};
     EGLint numConfigs = 0;
     EGLint configAttribs[] = {
         EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
@@ -171,7 +172,7 @@ TEST_F(SurfaceTextureClientTest, EglCreateWindowSurfaceSucceeds) {
     ASSERT_EQ(EGL_SUCCESS, eglGetError());
 
     EGLSurface eglSurface = eglCreateWindowSurface(dpy, myConfig, mANW.get(),
-            nullptr);
+            NULL);
     EXPECT_NE(EGL_NO_SURFACE, eglSurface);
     EXPECT_EQ(EGL_SUCCESS, eglGetError());
 
@@ -184,7 +185,7 @@ TEST_F(SurfaceTextureClientTest, EglCreateWindowSurfaceSucceeds) {
 
 TEST_F(SurfaceTextureClientTest, EglSwapBuffersAbandonErrorIsEglBadSurface) {
 
-    EGLSurface eglSurface = eglCreateWindowSurface(mEglDisplay, mEglConfig, mANW.get(), nullptr);
+    EGLSurface eglSurface = eglCreateWindowSurface(mEglDisplay, mEglConfig, mANW.get(), NULL);
     EXPECT_NE(EGL_NO_SURFACE, eglSurface);
     EXPECT_EQ(EGL_SUCCESS, eglGetError());
 
@@ -637,6 +638,18 @@ TEST_F(SurfaceTextureClientTest, GetTransformMatrixSucceedsAfterFreeingBuffers) 
 }
 
 TEST_F(SurfaceTextureClientTest, GetTransformMatrixSucceedsAfterFreeingBuffersWithCrop) {
+    // Query to see if the image crop extension exists
+    EGLDisplay dpy = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+    const char* exts = eglQueryStringImplementationANDROID(dpy, EGL_EXTENSIONS);
+    size_t cropExtLen = strlen(CROP_EXT_STR);
+    size_t extsLen = strlen(exts);
+    bool equal = !strcmp(CROP_EXT_STR, exts);
+    bool atStart = !strncmp(CROP_EXT_STR " ", exts, cropExtLen+1);
+    bool atEnd = (cropExtLen+1) < extsLen &&
+            !strcmp(" " CROP_EXT_STR, exts + extsLen - (cropExtLen+1));
+    bool inMiddle = strstr(exts, " " CROP_EXT_STR " ");
+    bool hasEglAndroidImageCrop = equal || atStart || atEnd || inMiddle;
+
     android_native_buffer_t* buf[3];
     float mtx[16] = {};
     android_native_rect_t crop;
@@ -656,15 +669,17 @@ TEST_F(SurfaceTextureClientTest, GetTransformMatrixSucceedsAfterFreeingBuffersWi
     ASSERT_EQ(OK, native_window_set_buffer_count(mANW.get(), 6)); // frees buffers
     mST->getTransformMatrix(mtx);
 
-    // This accounts for the .5 texel shrink for each edge that's included in
-    // the transform matrix to avoid texturing outside the crop region.
-    EXPECT_EQ(0.5f, mtx[0]);
+    // If the egl image crop extension is not present, this accounts for the
+    // .5 texel shrink for each edge that's included in the transform matrix
+    // to avoid texturing outside the crop region. Otherwise the crop is not
+    // included in the transform matrix.
+    EXPECT_EQ(hasEglAndroidImageCrop ? 1 : 0.5, mtx[0]);
     EXPECT_EQ(0.f, mtx[1]);
     EXPECT_EQ(0.f, mtx[2]);
     EXPECT_EQ(0.f, mtx[3]);
 
     EXPECT_EQ(0.f, mtx[4]);
-    EXPECT_EQ(-0.5f, mtx[5]);
+    EXPECT_EQ(hasEglAndroidImageCrop ? -1 : -0.5, mtx[5]);
     EXPECT_EQ(0.f, mtx[6]);
     EXPECT_EQ(0.f, mtx[7]);
 
@@ -673,8 +688,8 @@ TEST_F(SurfaceTextureClientTest, GetTransformMatrixSucceedsAfterFreeingBuffersWi
     EXPECT_EQ(1.f, mtx[10]);
     EXPECT_EQ(0.f, mtx[11]);
 
-    EXPECT_EQ(0.0625f, mtx[12]);
-    EXPECT_EQ(0.5625f, mtx[13]);
+    EXPECT_EQ(hasEglAndroidImageCrop ? 0 : 0.0625f, mtx[12]);
+    EXPECT_EQ(hasEglAndroidImageCrop ? 1 : 0.5625f, mtx[13]);
     EXPECT_EQ(0.f, mtx[14]);
     EXPECT_EQ(1.f, mtx[15]);
 }
@@ -738,7 +753,7 @@ protected:
         ASSERT_EQ(EGL_SUCCESS, eglGetError());
 
         mEglContext = eglCreateContext(mEglDisplay, myConfig, EGL_NO_CONTEXT,
-                nullptr);
+                0);
         ASSERT_EQ(EGL_SUCCESS, eglGetError());
         ASSERT_NE(EGL_NO_CONTEXT, mEglContext);
 
@@ -750,7 +765,7 @@ protected:
                     GLConsumer::TEXTURE_EXTERNAL, true, false));
             sp<Surface> stc(new Surface(producer));
             mEglSurfaces[i] = eglCreateWindowSurface(mEglDisplay, myConfig,
-                    static_cast<ANativeWindow*>(stc.get()), nullptr);
+                    static_cast<ANativeWindow*>(stc.get()), NULL);
             ASSERT_EQ(EGL_SUCCESS, eglGetError());
             ASSERT_NE(EGL_NO_SURFACE, mEglSurfaces[i]);
         }

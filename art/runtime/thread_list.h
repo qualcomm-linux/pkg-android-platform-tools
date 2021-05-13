@@ -20,7 +20,6 @@
 #include "barrier.h"
 #include "base/histogram.h"
 #include "base/mutex.h"
-#include "base/time_utils.h"
 #include "base/value_object.h"
 #include "jni.h"
 #include "suspend_reason.h"
@@ -47,7 +46,8 @@ class ThreadList {
   static constexpr uint32_t kMaxThreadId = 0xFFFF;
   static constexpr uint32_t kInvalidThreadId = 0;
   static constexpr uint32_t kMainThreadId = 1;
-  static constexpr uint64_t kDefaultThreadSuspendTimeout = MsToNs(kIsDebugBuild ? 50000 : 10000);
+  static constexpr uint64_t kDefaultThreadSuspendTimeout =
+      kIsDebugBuild ? 50'000'000'000ull : 10'000'000'000ull;
 
   explicit ThreadList(uint64_t thread_suspend_timeout_ns);
   ~ThreadList();
@@ -147,6 +147,13 @@ class ThreadList {
   // Iterates over all the threads.
   void ForEach(void (*callback)(Thread*, void*), void* context)
       REQUIRES(Locks::thread_list_lock_);
+
+  template<typename CallBack>
+  void ForEach(CallBack cb) REQUIRES(Locks::thread_list_lock_) {
+    ForEach([](Thread* t, void* ctx) REQUIRES(Locks::thread_list_lock_) {
+      (*reinterpret_cast<CallBack*>(ctx))(t);
+    }, &cb);
+  }
 
   // Add/remove current thread from list.
   void Register(Thread* self)

@@ -23,7 +23,7 @@
 #include <log/log.h>
 
 #include "AsyncCallRecorder.h"
-#include "Scheduler/EventControlThread.h"
+#include "EventControlThread.h"
 
 namespace android {
 namespace {

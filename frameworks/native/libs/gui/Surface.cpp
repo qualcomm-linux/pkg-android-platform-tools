@@ -20,11 +20,6 @@
 
 #include <gui/Surface.h>
 
-#include <condition_variable>
-#include <deque>
-#include <mutex>
-#include <thread>
-
 #include <inttypes.h>
 
 #include <android/native_window.h>
@@ -35,7 +30,6 @@
 
 #include <ui/DisplayStatInfo.h>
 #include <ui/Fence.h>
-#include <ui/GraphicBuffer.h>
 #include <ui/HdrCapabilities.h>
 #include <ui/Region.h>
 
@@ -44,6 +38,9 @@
 
 #include <gui/ISurfaceComposer.h>
 #include <private/gui/ComposerService.h>
+
+#include <android/hardware/configstore/1.0/ISurfaceFlingerConfigs.h>
+#include <configstore/Utils.h>
 
 namespace android {
 
@@ -159,7 +156,7 @@ status_t Surface::getDisplayRefreshCycleDuration(nsecs_t* outRefreshDuration) {
     ATRACE_CALL();
 
     DisplayStatInfo stats;
-    status_t result = composerService()->getDisplayStats(nullptr, &stats);
+    status_t result = composerService()->getDisplayStats(NULL, &stats);
     if (result != NO_ERROR) {
         return result;
     }
@@ -324,27 +321,48 @@ status_t Surface::getFrameTimestamps(uint64_t frameNumber,
     return NO_ERROR;
 }
 
+using namespace android::hardware::configstore;
+using namespace android::hardware::configstore::V1_0;
+
 status_t Surface::getWideColorSupport(bool* supported) {
     ATRACE_CALL();
 
-    const sp<IBinder> display = composerService()->getInternalDisplayToken();
-    if (display == nullptr) {
-        return NAME_NOT_FOUND;
-    }
+    sp<IBinder> display(
+        composerService()->getBuiltInDisplay(ISurfaceComposer::eDisplayIdMain));
+    Vector<ColorMode> colorModes;
+    status_t err =
+        composerService()->getDisplayColorModes(display, &colorModes);
+
+    if (err)
+        return err;
+
+    bool wideColorBoardConfig =
+        getBool<ISurfaceFlingerConfigs,
+                &ISurfaceFlingerConfigs::hasWideColorDisplay>(false);
 
     *supported = false;
-    status_t error = composerService()->isWideColorDisplay(display, supported);
-    return error;
+    for (ColorMode colorMode : colorModes) {
+        switch (colorMode) {
+            case ColorMode::DISPLAY_P3:
+            case ColorMode::ADOBE_RGB:
+            case ColorMode::DCI_P3:
+                if (wideColorBoardConfig) {
+                    *supported = true;
+                }
+                break;
+            default:
+                break;
+        }
+    }
+
+    return NO_ERROR;
 }
 
 status_t Surface::getHdrSupport(bool* supported) {
     ATRACE_CALL();
 
-    const sp<IBinder> display = composerService()->getInternalDisplayToken();
-    if (display == nullptr) {
-        return NAME_NOT_FOUND;
-    }
-
+    sp<IBinder> display(
+        composerService()->getBuiltInDisplay(ISurfaceComposer::eDisplayIdMain));
     HdrCapabilities hdrCapabilities;
     status_t err =
         composerService()->getHdrCapabilities(display, &hdrCapabilities);
@@ -456,82 +474,6 @@ int Surface::setSwapInterval(int interval) {
     return NO_ERROR;
 }
 
-class FenceMonitor {
-public:
-    explicit FenceMonitor(const char* name) : mName(name), mFencesQueued(0), mFencesSignaled(0) {
-        std::thread thread(&FenceMonitor::loop, this);
-        pthread_setname_np(thread.native_handle(), mName);
-        thread.detach();
-    }
-
-    void queueFence(const sp<Fence>& fence) {
-        char message[64];
-
-        std::lock_guard<std::mutex> lock(mMutex);
-        if (fence->getSignalTime() != Fence::SIGNAL_TIME_PENDING) {
-            snprintf(message, sizeof(message), "%s fence %u has signaled", mName, mFencesQueued);
-            ATRACE_NAME(message);
-            // Need an increment on both to make the trace number correct.
-            mFencesQueued++;
-            mFencesSignaled++;
-            return;
-        }
-        snprintf(message, sizeof(message), "Trace %s fence %u", mName, mFencesQueued);
-        ATRACE_NAME(message);
-
-        mQueue.push_back(fence);
-        mCondition.notify_one();
-        mFencesQueued++;
-        ATRACE_INT(mName, int32_t(mQueue.size()));
-    }
-
-private:
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wmissing-noreturn"
-    void loop() {
-        while (true) {
-            threadLoop();
-        }
-    }
-#pragma clang diagnostic pop
-
-    void threadLoop() {
-        sp<Fence> fence;
-        uint32_t fenceNum;
-        {
-            std::unique_lock<std::mutex> lock(mMutex);
-            while (mQueue.empty()) {
-                mCondition.wait(lock);
-            }
-            fence = mQueue[0];
-            fenceNum = mFencesSignaled;
-        }
-        {
-            char message[64];
-            snprintf(message, sizeof(message), "waiting for %s %u", mName, fenceNum);
-            ATRACE_NAME(message);
-
-            status_t result = fence->waitForever(message);
-            if (result != OK) {
-                ALOGE("Error waiting for fence: %d", result);
-            }
-        }
-        {
-            std::lock_guard<std::mutex> lock(mMutex);
-            mQueue.pop_front();
-            mFencesSignaled++;
-            ATRACE_INT(mName, int32_t(mQueue.size()));
-        }
-    }
-
-    const char* mName;
-    uint32_t mFencesQueued;
-    uint32_t mFencesSignaled;
-    std::deque<sp<Fence>> mQueue;
-    std::condition_variable mCondition;
-    std::mutex mMutex;
-};
-
 int Surface::dequeueBuffer(android_native_buffer_t** buffer, int* fenceFd) {
     ATRACE_CALL();
     ALOGV("Surface::dequeueBuffer");
@@ -559,7 +501,7 @@ int Surface::dequeueBuffer(android_native_buffer_t** buffer, int* fenceFd) {
         if (mSharedBufferMode && mAutoRefresh && mSharedBufferSlot !=
                 BufferItem::INVALID_BUFFER_SLOT) {
             sp<GraphicBuffer>& gbuf(mSlots[mSharedBufferSlot].buffer);
-            if (gbuf != nullptr) {
+            if (gbuf != NULL) {
                 *buffer = gbuf.get();
                 *fenceFd = -1;
                 return OK;
@@ -599,12 +541,7 @@ int Surface::dequeueBuffer(android_native_buffer_t** buffer, int* fenceFd) {
     sp<GraphicBuffer>& gbuf(mSlots[buf].buffer);
 
     // this should never happen
-    ALOGE_IF(fence == nullptr, "Surface::dequeueBuffer: received null Fence! buf=%d", buf);
-
-    if (CC_UNLIKELY(atrace_is_tag_enabled(ATRACE_TAG_GRAPHICS))) {
-        static FenceMonitor hwcReleaseThread("HWC release");
-        hwcReleaseThread.queueFence(fence);
-    }
+    ALOGE_IF(fence == NULL, "Surface::dequeueBuffer: received null Fence! buf=%d", buf);
 
     if (result & IGraphicBufferProducer::RELEASE_ALL_BUFFERS) {
         freeAllBuffers();
@@ -682,7 +619,7 @@ int Surface::cancelBuffer(android_native_buffer_t* buffer,
 int Surface::getSlotFromBufferLocked(
         android_native_buffer_t* buffer) const {
     for (int i = 0; i < NUM_BUFFER_SLOTS; i++) {
-        if (mSlots[i].buffer != nullptr &&
+        if (mSlots[i].buffer != NULL &&
                 mSlots[i].buffer->handle == buffer->handle) {
             return i;
         }
@@ -817,7 +754,7 @@ int Surface::queueBuffer(android_native_buffer_t* buffer, int fenceFd) {
         // The consumer doesn't send it back to prevent us from having two
         // file descriptors of the same fence.
         mFrameEventHistory->updateAcquireFence(mNextFrameNumber,
-                std::make_shared<FenceTime>(fence));
+                std::make_shared<FenceTime>(std::move(fence)));
 
         // Cache timestamps of signaled fences so we can close their file
         // descriptors.
@@ -830,9 +767,8 @@ int Surface::queueBuffer(android_native_buffer_t* buffer, int fenceFd) {
     mDefaultHeight = output.height;
     mNextFrameNumber = output.nextFrameNumber;
 
-    // Ignore transform hint if sticky transform is set or transform to display inverse flag is
-    // set.
-    if (mStickyTransform == 0 && !transformToDisplayInverse()) {
+    // Disable transform hint if sticky transform is set.
+    if (mStickyTransform == 0) {
         mTransformHint = output.transformHint;
     }
 
@@ -848,11 +784,6 @@ int Surface::queueBuffer(android_native_buffer_t* buffer, int fenceFd) {
     }
 
     mQueueBufferCondition.broadcast();
-
-    if (CC_UNLIKELY(atrace_is_tag_enabled(ATRACE_TAG_GRAPHICS))) {
-        static FenceMonitor gpuCompletionThread("GPU completion");
-        gpuCompletionThread.queueFence(fence);
-    }
 
     return err;
 }
@@ -1034,9 +965,6 @@ int Surface::perform(int operation, va_list args)
     case NATIVE_WINDOW_SET_BUFFERS_CTA861_3_METADATA:
         res = dispatchSetBuffersCta8613Metadata(args);
         break;
-    case NATIVE_WINDOW_SET_BUFFERS_HDR10_PLUS_METADATA:
-        res = dispatchSetBuffersHdr10PlusMetadata(args);
-        break;
     case NATIVE_WINDOW_SET_SURFACE_DAMAGE:
         res = dispatchSetSurfaceDamage(args);
         break;
@@ -1192,12 +1120,6 @@ int Surface::dispatchSetBuffersCta8613Metadata(va_list args) {
     return setBuffersCta8613Metadata(metadata);
 }
 
-int Surface::dispatchSetBuffersHdr10PlusMetadata(va_list args) {
-    const size_t size = va_arg(args, size_t);
-    const uint8_t* metadata = va_arg(args, const uint8_t*);
-    return setBuffersHdr10PlusMetadata(size, metadata);
-}
-
 int Surface::dispatchSetSurfaceDamage(va_list args) {
     android_native_rect_t* rects = va_arg(args, android_native_rect_t*);
     size_t numRects = va_arg(args, size_t);
@@ -1273,11 +1195,6 @@ int Surface::dispatchGetConsumerUsage64(va_list args) {
     return getConsumerUsage(usage);
 }
 
-bool Surface::transformToDisplayInverse() {
-    return (mTransform & NATIVE_WINDOW_TRANSFORM_INVERSE_DISPLAY) ==
-            NATIVE_WINDOW_TRANSFORM_INVERSE_DISPLAY;
-}
-
 int Surface::connect(int api) {
     static sp<IProducerListener> listener = new DummyProducerListener();
     return connect(api, listener);
@@ -1285,14 +1202,6 @@ int Surface::connect(int api) {
 
 int Surface::connect(int api, const sp<IProducerListener>& listener) {
     return connect(api, listener, false);
-}
-
-int Surface::connect(
-        int api, bool reportBufferRemoval, const sp<SurfaceListener>& sListener) {
-    if (sListener != nullptr) {
-        mListenerProxy = new ProducerListenerProxy(this, sListener);
-    }
-    return connect(api, mListenerProxy, reportBufferRemoval);
 }
 
 int Surface::connect(
@@ -1308,10 +1217,8 @@ int Surface::connect(
         mDefaultHeight = output.height;
         mNextFrameNumber = output.nextFrameNumber;
 
-        // Ignore transform hint if sticky transform is set or transform to display inverse flag is
-        // set. Transform hint should be ignored if the client is expected to always submit buffers
-        // in the same orientation.
-        if (mStickyTransform == 0 && !transformToDisplayInverse()) {
+        // Disable transform hint if sticky transform is set.
+        if (mStickyTransform == 0) {
             mTransformHint = output.transformHint;
         }
 
@@ -1361,7 +1268,7 @@ int Surface::detachNextBuffer(sp<GraphicBuffer>* outBuffer,
     ATRACE_CALL();
     ALOGV("Surface::detachNextBuffer");
 
-    if (outBuffer == nullptr || outFence == nullptr) {
+    if (outBuffer == NULL || outFence == NULL) {
         return BAD_VALUE;
     }
 
@@ -1370,8 +1277,8 @@ int Surface::detachNextBuffer(sp<GraphicBuffer>* outBuffer,
         mRemovedBuffers.clear();
     }
 
-    sp<GraphicBuffer> buffer(nullptr);
-    sp<Fence> fence(nullptr);
+    sp<GraphicBuffer> buffer(NULL);
+    sp<Fence> fence(NULL);
     status_t result = mGraphicBufferProducer->detachNextBuffer(
             &buffer, &fence);
     if (result != NO_ERROR) {
@@ -1379,19 +1286,19 @@ int Surface::detachNextBuffer(sp<GraphicBuffer>* outBuffer,
     }
 
     *outBuffer = buffer;
-    if (fence != nullptr && fence->isValid()) {
+    if (fence != NULL && fence->isValid()) {
         *outFence = fence;
     } else {
         *outFence = Fence::NO_FENCE;
     }
 
     for (int i = 0; i < NUM_BUFFER_SLOTS; i++) {
-        if (mSlots[i].buffer != nullptr &&
+        if (mSlots[i].buffer != NULL &&
                 mSlots[i].buffer->getId() == buffer->getId()) {
             if (mReportRemovedBuffers) {
                 mRemovedBuffers.push_back(mSlots[i].buffer);
             }
-            mSlots[i].buffer = nullptr;
+            mSlots[i].buffer = NULL;
         }
     }
 
@@ -1442,7 +1349,7 @@ int Surface::setCrop(Rect const* rect)
     ATRACE_CALL();
 
     Rect realRect(Rect::EMPTY_RECT);
-    if (rect == nullptr || rect->isEmpty()) {
+    if (rect == NULL || rect->isEmpty()) {
         realRect.clear();
     } else {
         realRect = *rect;
@@ -1608,13 +1515,6 @@ int Surface::setBuffersTransform(uint32_t transform)
     ATRACE_CALL();
     ALOGV("Surface::setBuffersTransform");
     Mutex::Autolock lock(mMutex);
-    // Ensure NATIVE_WINDOW_TRANSFORM_INVERSE_DISPLAY is sticky. If the client sets the flag, do not
-    // override it until the surface is disconnected. This is a temporary workaround for camera
-    // until they switch to using Buffer State Layers. Currently if client sets the buffer transform
-    // it may be overriden by the buffer producer when the producer sets the buffer transform.
-    if (transformToDisplayInverse()) {
-        transform |= NATIVE_WINDOW_TRANSFORM_INVERSE_DISPLAY;
-    }
     mTransform = transform;
     return NO_ERROR;
 }
@@ -1668,19 +1568,6 @@ int Surface::setBuffersCta8613Metadata(const android_cta861_3_metadata* metadata
     return NO_ERROR;
 }
 
-int Surface::setBuffersHdr10PlusMetadata(const size_t size, const uint8_t* metadata) {
-    ALOGV("Surface::setBuffersBlobMetadata");
-    Mutex::Autolock lock(mMutex);
-    if (size > 0) {
-        mHdrMetadata.hdr10plus.assign(metadata, metadata + size);
-        mHdrMetadata.validTypes |= HdrMetadata::HDR10PLUS;
-    } else {
-        mHdrMetadata.validTypes &= ~HdrMetadata::HDR10PLUS;
-        mHdrMetadata.hdr10plus.clear();
-    }
-    return NO_ERROR;
-}
-
 Dataspace Surface::getBuffersDataSpace() {
     ALOGV("Surface::getBuffersDataSpace");
     Mutex::Autolock lock(mMutex);
@@ -1689,30 +1576,8 @@ Dataspace Surface::getBuffersDataSpace() {
 
 void Surface::freeAllBuffers() {
     for (int i = 0; i < NUM_BUFFER_SLOTS; i++) {
-        mSlots[i].buffer = nullptr;
+        mSlots[i].buffer = 0;
     }
-}
-
-status_t Surface::getAndFlushBuffersFromSlots(const std::vector<int32_t>& slots,
-        std::vector<sp<GraphicBuffer>>* outBuffers) {
-    ALOGV("Surface::getAndFlushBuffersFromSlots");
-    for (int32_t i : slots) {
-        if (i < 0 || i >= NUM_BUFFER_SLOTS) {
-            ALOGE("%s: Invalid slotIndex: %d", __FUNCTION__, i);
-            return BAD_VALUE;
-        }
-    }
-
-    Mutex::Autolock lock(mMutex);
-    for (int32_t i : slots) {
-        if (mSlots[i].buffer == nullptr) {
-            ALOGW("%s: Discarded slot %d doesn't contain buffer!", __FUNCTION__, i);
-            continue;
-        }
-        outBuffers->push_back(mSlots[i].buffer);
-        mSlots[i].buffer = nullptr;
-    }
-    return OK;
 }
 
 void Surface::setSurfaceDamage(android_native_rect_t* rects, size_t numRects) {
@@ -1751,12 +1616,12 @@ static status_t copyBlt(
     // src and dst with, height and format must be identical. no verification
     // is done here.
     status_t err;
-    uint8_t* src_bits = nullptr;
+    uint8_t* src_bits = NULL;
     err = src->lock(GRALLOC_USAGE_SW_READ_OFTEN, reg.bounds(),
             reinterpret_cast<void**>(&src_bits));
     ALOGE_IF(err, "error locking src buffer %s", strerror(-err));
 
-    uint8_t* dst_bits = nullptr;
+    uint8_t* dst_bits = NULL;
     err = dst->lockAsync(GRALLOC_USAGE_SW_WRITE_OFTEN, reg.bounds(),
             reinterpret_cast<void**>(&dst_bits), *dstFenceFd);
     ALOGE_IF(err, "error locking dst buffer %s", strerror(-err));
@@ -1804,7 +1669,7 @@ static status_t copyBlt(
 status_t Surface::lock(
         ANativeWindow_Buffer* outBuffer, ARect* inOutDirtyBounds)
 {
-    if (mLockedBuffer != nullptr) {
+    if (mLockedBuffer != 0) {
         ALOGE("Surface::lock failed, already locked");
         return INVALID_OPERATION;
     }
@@ -1836,7 +1701,7 @@ status_t Surface::lock(
 
         // figure out if we can copy the frontbuffer back
         const sp<GraphicBuffer>& frontBuffer(mPostedBuffer);
-        const bool canCopyBack = (frontBuffer != nullptr &&
+        const bool canCopyBack = (frontBuffer != 0 &&
                 backBuffer->width  == frontBuffer->width &&
                 backBuffer->height == frontBuffer->height &&
                 backBuffer->format == frontBuffer->format);
@@ -1898,7 +1763,7 @@ status_t Surface::lock(
 
 status_t Surface::unlockAndPost()
 {
-    if (mLockedBuffer == nullptr) {
+    if (mLockedBuffer == 0) {
         ALOGE("Surface::unlockAndPost failed, no locked buffer");
         return INVALID_OPERATION;
     }
@@ -1912,7 +1777,7 @@ status_t Surface::unlockAndPost()
             mLockedBuffer->handle, strerror(-err));
 
     mPostedBuffer = mLockedBuffer;
-    mLockedBuffer = nullptr;
+    mLockedBuffer = 0;
     return err;
 }
 
@@ -1951,18 +1816,12 @@ status_t Surface::getAndFlushRemovedBuffers(std::vector<sp<GraphicBuffer>>* out)
     return OK;
 }
 
-status_t Surface::attachAndQueueBufferWithDataspace(Surface* surface, sp<GraphicBuffer> buffer,
-                                                    Dataspace dataspace) {
+status_t Surface::attachAndQueueBuffer(Surface* surface, sp<GraphicBuffer> buffer) {
     if (buffer == nullptr) {
         return BAD_VALUE;
     }
     int err = static_cast<ANativeWindow*>(surface)->perform(surface, NATIVE_WINDOW_API_CONNECT,
                                                             NATIVE_WINDOW_API_CPU);
-    if (err != OK) {
-        return err;
-    }
-    ui::Dataspace tmpDataspace = surface->getBuffersDataSpace();
-    err = surface->setBuffersDataSpace(dataspace);
     if (err != OK) {
         return err;
     }
@@ -1974,30 +1833,8 @@ status_t Surface::attachAndQueueBufferWithDataspace(Surface* surface, sp<Graphic
     if (err != OK) {
         return err;
     }
-    err = surface->setBuffersDataSpace(tmpDataspace);
-    if (err != OK) {
-        return err;
-    }
     err = surface->disconnect(NATIVE_WINDOW_API_CPU);
     return err;
-}
-
-void Surface::ProducerListenerProxy::onBuffersDiscarded(const std::vector<int32_t>& slots) {
-    ATRACE_CALL();
-    sp<Surface> parent = mParent.promote();
-    if (parent == nullptr) {
-        return;
-    }
-
-    std::vector<sp<GraphicBuffer>> discardedBufs;
-    status_t res = parent->getAndFlushBuffersFromSlots(slots, &discardedBufs);
-    if (res != OK) {
-        ALOGE("%s: Failed to get buffers from slots: %s(%d)", __FUNCTION__,
-                strerror(-res), res);
-        return;
-    }
-
-    mSurfaceListener->onBuffersDiscarded(discardedBufs);
 }
 
 }; // namespace android

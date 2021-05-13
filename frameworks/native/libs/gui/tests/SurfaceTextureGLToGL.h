@@ -38,7 +38,7 @@ protected:
 
     void SetUpWindowAndContext() {
         mProducerEglSurface = eglCreateWindowSurface(mEglDisplay, mGlConfig,
-                mANW.get(), nullptr);
+                mANW.get(), NULL);
         ASSERT_EQ(EGL_SUCCESS, eglGetError());
         ASSERT_NE(EGL_NO_SURFACE, mProducerEglSurface);
 

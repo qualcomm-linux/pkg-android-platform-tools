@@ -26,6 +26,7 @@
 #include <unistd.h>
 
 #include <android-base/file.h>
+#include <android-base/strings.h>
 
 #include "utility.h"
 
@@ -37,7 +38,7 @@ using android::base::unique_fd;
 namespace {
 
 std::string GetPartitionAbsolutePath(const std::string& path) {
-    if (path[0] == '/') {
+    if (android::base::StartsWith(path, "/")) {
         return path;
     }
     return "/dev/block/by-name/" + path;
@@ -63,6 +64,12 @@ bool GetBlockDeviceInfo(const std::string& block_device, BlockDeviceInfo* device
         PERROR << __PRETTY_FUNCTION__ << "BLKALIGNOFF failed on " << block_device;
         return false;
     }
+    // The kernel can return -1 here when misaligned devices are stacked (i.e.
+    // device-mapper).
+    if (alignment_offset == -1) {
+        alignment_offset = 0;
+    }
+
     int logical_block_size;
     if (ioctl(fd, BLKSSZGET, &logical_block_size) < 0) {
         PERROR << __PRETTY_FUNCTION__ << "BLKSSZGET failed on " << block_device;

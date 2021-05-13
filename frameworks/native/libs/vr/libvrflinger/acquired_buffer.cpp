@@ -8,11 +8,11 @@ using android::pdx::LocalHandle;
 namespace android {
 namespace dvr {
 
-AcquiredBuffer::AcquiredBuffer(const std::shared_ptr<ConsumerBuffer>& buffer,
+AcquiredBuffer::AcquiredBuffer(const std::shared_ptr<BufferConsumer>& buffer,
                                LocalHandle acquire_fence, std::size_t slot)
     : buffer_(buffer), acquire_fence_(std::move(acquire_fence)), slot_(slot) {}
 
-AcquiredBuffer::AcquiredBuffer(const std::shared_ptr<ConsumerBuffer>& buffer,
+AcquiredBuffer::AcquiredBuffer(const std::shared_ptr<BufferConsumer>& buffer,
                                int* error) {
   LocalHandle fence;
   const int ret = buffer->Acquire(&fence);
@@ -75,7 +75,7 @@ LocalHandle AcquiredBuffer::ClaimAcquireFence() {
   return std::move(acquire_fence_);
 }
 
-std::shared_ptr<ConsumerBuffer> AcquiredBuffer::ClaimBuffer() {
+std::shared_ptr<BufferConsumer> AcquiredBuffer::ClaimBuffer() {
   return std::move(buffer_);
 }
 
