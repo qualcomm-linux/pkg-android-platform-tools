@@ -7,7 +7,8 @@ LIBADB_SRC_FILES := \
     adb_trace.cpp \
     adb_unique_fd.cpp \
     adb_utils.cpp \
-    fdevent.cpp \
+    fdevent/fdevent.cpp \
+    fdevent/fdevent_poll.cpp \
     services.cpp \
     sockets.cpp \
     socket_spec.cpp \
