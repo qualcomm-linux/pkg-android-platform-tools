@@ -15,6 +15,7 @@ fs_mgr_liblp_SOURCES := \
         builder.cpp \
         images.cpp \
         partition_opener.cpp \
+        property_fetcher.cpp \
         reader.cpp \
         utility.cpp \
         writer.cpp \
@@ -29,7 +30,7 @@ CPPFLAGS += \
             -DPLATFORM_TOOLS_VERSION='"$(PLATFORM_TOOLS_VERSION)"' \
             -D_FILE_OFFSET_BITS=64 \
             -Isystem/core/include \
-            -Isystem/core/mkbootimg/include/bootimg \
+            -Isystem/tools/mkbootimg/include/bootimg \
             -Isystem/core/adb \
             -Isystem/core/base/include \
             -Isystem/core/demangle/include \
