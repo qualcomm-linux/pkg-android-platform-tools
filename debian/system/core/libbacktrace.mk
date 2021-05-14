@@ -70,11 +70,10 @@ ifeq ($(DEB_HOST_ARCH), mips64el)
   SOURCES_ASSEMBLY = libunwindstack/AsmGetRegsMips64.S
 endif
 
-demangle_srcs = demangle/Demangler.cpp
-
 SOURCES = \
   $(foreach source, $(filter %.cpp, $(libbacktrace_SOURCES)), libbacktrace/$(source)) \
   $(foreach source, $(filter %.cpp, $(libunwindstack_SOURCES)), libunwindstack/$(source)) \
+  $(foreach source, $(filter %.cpp, $(libunwindstack_dexfile_SOURCES)), libunwindstack/$(source)) \
   $(demangle_srcs)
 SOURCES := $(foreach source, $(SOURCES), system/core/$(source))
 SOURCES_ASSEMBLY := $(foreach source, $(SOURCES_ASSEMBLY), system/core/$(source))
@@ -84,7 +83,6 @@ OBJECTS_ASSEMBLY := $(SOURCES_ASSEMBLY:.S=.o)
 CXXFLAGS += -c -std=gnu++2a -fno-omit-frame-pointer
 CPPFLAGS += \
             -I/usr/include/android \
-            -DNO_LIBDEXFILE_SUPPORT \
             -Isystem/core/include \
             -Isystem/core/base/include \
             -Isystem/core/demangle/include \
@@ -95,12 +93,15 @@ CPPFLAGS += \
             -Idebian/include/external/libunwind \
             -Isystem/core/liblog/include \
             -Isystem/core/base/include \
+            -Iart/libdexfile/external/include \
 
 LDFLAGS += -shared -Wl,-soname,$(NAME).so.0 \
            -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
            -Wl,-rpath=debian/out/external/libunwind \
+           -Wl,-rpath=debian/out/art \
            -L/usr/lib/$(DEB_HOST_MULTIARCH)/android -Lsystem/core \
-           -Ldebian/out/external/libunwind -lunwind -lbase -llog -lpthread -l7z
+           -Ldebian/out/external/libunwind -Ldebian/out/art \
+           -lunwind -lbase -llog -lpthread -l7z -ldexfile_support
 
 # -latomic should be the last library specified
 # https://github.com/android/ndk/issues/589
