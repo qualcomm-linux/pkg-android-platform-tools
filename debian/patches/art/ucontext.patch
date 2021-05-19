@@ -22,10 +22,10 @@ Description: Use `ucontext_t` instead of `ucontext`
      return;
 --- a/art/runtime/arch/x86/fault_handler_x86.cc
 +++ b/art/runtime/arch/x86/fault_handler_x86.cc
-@@ -280,7 +280,7 @@
- void FaultManager::GetMethodAndReturnPcAndSp(siginfo_t* siginfo, void* context,
-                                              ArtMethod** out_method,
-                                              uintptr_t* out_return_pc, uintptr_t* out_sp) {
+@@ -282,7 +282,7 @@
+                                              uintptr_t* out_return_pc,
+                                              uintptr_t* out_sp,
+                                              bool* out_is_stack_overflow) {
 -  struct ucontext* uc = reinterpret_cast<struct ucontext*>(context);
 +  struct ucontext_t* uc = reinterpret_cast<struct ucontext_t*>(context);
    *out_sp = static_cast<uintptr_t>(uc->CTX_ESP);
@@ -60,10 +60,10 @@ Description: Use `ucontext_t` instead of `ucontext`
    uintptr_t fault_addr = reinterpret_cast<uintptr_t>(info->si_addr);
 --- a/art/runtime/arch/arm64/fault_handler_arm64.cc
 +++ b/art/runtime/arch/arm64/fault_handler_arm64.cc
-@@ -41,7 +41,7 @@
- void FaultManager::GetMethodAndReturnPcAndSp(siginfo_t* siginfo ATTRIBUTE_UNUSED, void* context,
-                                              ArtMethod** out_method,
-                                              uintptr_t* out_return_pc, uintptr_t* out_sp) {
+@@ -44,7 +44,7 @@
+                                              uintptr_t* out_return_pc,
+                                              uintptr_t* out_sp,
+                                              bool* out_is_stack_overflow) {
 -  struct ucontext *uc = reinterpret_cast<struct ucontext *>(context);
 +  struct ucontext_t *uc = reinterpret_cast<struct ucontext_t *>(context);
    struct sigcontext *sc = reinterpret_cast<struct sigcontext*>(&uc->uc_mcontext);
@@ -98,10 +98,10 @@ Description: Use `ucontext_t` instead of `ucontext`
    VLOG(signals) << "sigcontext: " << std::hex << sc;
 --- a/art/runtime/arch/arm/fault_handler_arm.cc
 +++ b/art/runtime/arch/arm/fault_handler_arm.cc
-@@ -48,7 +48,7 @@
- void FaultManager::GetMethodAndReturnPcAndSp(siginfo_t* siginfo ATTRIBUTE_UNUSED, void* context,
-                                              ArtMethod** out_method,
-                                              uintptr_t* out_return_pc, uintptr_t* out_sp) {
+@@ -51,7 +51,7 @@
+                                              uintptr_t* out_return_pc,
+                                              uintptr_t* out_sp,
+                                              bool* out_is_stack_overflow) {
 -  struct ucontext* uc = reinterpret_cast<struct ucontext*>(context);
 +  struct ucontext_t* uc = reinterpret_cast<struct ucontext_t*>(context);
    struct sigcontext *sc = reinterpret_cast<struct sigcontext*>(&uc->uc_mcontext);
@@ -150,10 +150,10 @@ Description: Use `ucontext_t` instead of `ucontext`
  #else
 --- a/art/runtime/arch/mips/fault_handler_mips.cc
 +++ b/art/runtime/arch/mips/fault_handler_mips.cc
-@@ -40,7 +40,7 @@
- void FaultManager::GetMethodAndReturnPcAndSp(siginfo_t* siginfo, void* context,
-                                              ArtMethod** out_method,
-                                              uintptr_t* out_return_pc, uintptr_t* out_sp) {
+@@ -43,7 +43,7 @@
+                                              uintptr_t* out_return_pc,
+                                              uintptr_t* out_sp,
+                                              bool* out_is_stack_overflow) {
 -  struct ucontext* uc = reinterpret_cast<struct ucontext*>(context);
 +  struct ucontext_t* uc = reinterpret_cast<struct ucontext_t*>(context);
    struct sigcontext *sc = reinterpret_cast<struct sigcontext*>(&uc->uc_mcontext);
@@ -179,10 +179,10 @@ Description: Use `ucontext_t` instead of `ucontext`
    VLOG(signals) << "sigcontext: " << std::hex << sc;
 --- a/art/runtime/arch/mips64/fault_handler_mips64.cc
 +++ b/art/runtime/arch/mips64/fault_handler_mips64.cc
-@@ -41,7 +41,7 @@
- void FaultManager::GetMethodAndReturnPcAndSp(siginfo_t* siginfo, void* context,
-                                              ArtMethod** out_method,
-                                              uintptr_t* out_return_pc, uintptr_t* out_sp) {
+@@ -44,7 +44,7 @@
+                                              uintptr_t* out_return_pc,
+                                              uintptr_t* out_sp,
+                                              bool* out_is_stack_overflow) {
 -  struct ucontext* uc = reinterpret_cast<struct ucontext*>(context);
 +  struct ucontext_t* uc = reinterpret_cast<struct ucontext_t*>(context);
    struct sigcontext *sc = reinterpret_cast<struct sigcontext*>(&uc->uc_mcontext);
