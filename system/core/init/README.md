@@ -170,6 +170,8 @@ runs the service.
   be changed by setting the "androidboot.console" kernel parameter. In
   all cases the leading "/dev/" should be omitted, so "/dev/tty0" would be
   specified as just "console tty0".
+  This option connects stdin, stdout, and stderr to the console. It is mutually exclusive with the
+  stdio_to_kmsg option, which only connects stdout and stderr to kmsg.
 
 `critical`
 > This is a device-critical service. If it exits more than four times in
@@ -263,6 +265,12 @@ runs the service.
 > Scheduling priority of the service process. This value has to be in range
   -20 to 19. Default priority is 0. Priority is set via setpriority().
 
+`reboot_on_failure <target>`
+> If this process cannot be started or if the process terminates with an exit code other than
+  CLD_EXITED or an status other than '0', reboot the system with the target specified in
+  _target_. _target_ takes the same format as the parameter to sys.powerctl. This is particularly
+  intended to be used with the `exec_start` builtin for any must-have checks during boot.
+
 `restart_period <seconds>`
 > If a non-oneshot service exits, it will be restarted at its start time plus
   this period. It defaults to 5s to rate limit crashing services.
@@ -306,6 +314,13 @@ runs the service.
   socket.  It defaults to the service security context, as specified by
   seclabel or computed based on the service executable file security context.
   For native executables see libcutils android\_get\_control\_socket().
+
+`stdio_to_kmsg`
+> Redirect stdout and stderr to /dev/kmsg_debug. This is useful for services that do not use native
+  Android logging during early boot and whose logs messages we want to capture. This is only enabled
+  when /dev/kmsg_debug is enabled, which is only enabled on userdebug and eng builds.
+  This is mutually exclusive with the console option, which additionally connects stdin to the
+  given console.
 
 `timeout_period <seconds>`
 > Provide a timeout after which point the service will be killed. The oneshot keyword is respected
@@ -472,6 +487,25 @@ Commands
   -f: force installation of the module even if the version of the running kernel
   and the version of the kernel for which the module was compiled do not match.
 
+`interface_start <name>` \
+`interface_restart <name>` \
+`interface_stop <name>`
+> Find the service that provides the interface _name_ if it exists and run the `start`, `restart`,
+or `stop` commands on it respectively.  _name_ may be either a fully qualified HIDL name, in which
+case it is specified as `<interface>/<instance>`, or an AIDL name, in which case it is specified as
+`aidl/<interface>` for example `android.hardware.secure_element@1.1::ISecureElement/eSE1` or
+`aidl/aidl_lazy_test_1`.
+
+> Note that these commands only act on interfaces specified by the `interface` service option, not
+on interfaces registered at runtime.
+
+> Example usage of these commands: \
+`interface_start android.hardware.secure_element@1.1::ISecureElement/eSE1`
+will start the HIDL Service that provides the `android.hardware.secure_element@1.1` and `eSI1`
+instance. \
+`interface_start aidl/aidl_lazy_test_1` will start the AIDL service that
+provides the `aidl_lazy_test_1` interface.
+
 `load_system_props`
 > (This action is deprecated and no-op.)
 
@@ -490,11 +524,22 @@ Commands
 > Used to mark the point right after /data is mounted. Used to implement the
   `class_reset_post_data` and `class_start_post_data` commands.
 
-`mkdir <path> [mode] [owner] [group]`
+`mkdir <path> [<mode>] [<owner>] [<group>] [encryption=<action>] [key=<key>]`
 > Create a directory at _path_, optionally with the given mode, owner, and
   group. If not provided, the directory is created with permissions 755 and
   owned by the root user and root group. If provided, the mode, owner and group
   will be updated if the directory exists already.
+
+ > _action_ can be one of:
+  * `None`: take no encryption action; directory will be encrypted if parent is.
+  * `Require`: encrypt directory, abort boot process if encryption fails
+  * `Attempt`: try to set an encryption policy, but continue if it fails
+  * `DeleteIfNecessary`: recursively delete directory if necessary to set
+  encryption policy.
+
+  > _key_ can be one of:
+  * `ref`: use the systemwide DE key
+  * `per_boot_ref`: use the key freshly generated on each boot.
 
 `mount_all <fstab> [ <path> ]\* [--<option>]`
 > Calls fs\_mgr\_mount\_all on the given fs\_mgr-format fstab with optional
@@ -557,6 +602,7 @@ Commands
   Note that this is _not_ synchronous, and even if it were, there is
   no guarantee that the operating system's scheduler will execute the
   service sufficiently to guarantee anything about the service's status.
+  See the `exec_start` command for a synchronous version of `start`.
 
 > This creates an important consequence that if the service offers
   functionality to other services, such as providing a
@@ -673,6 +719,26 @@ Init provides state information with the following properties.
   `/sys/fs/ext4/${dev.mnt.blk.<mount_point>}/` to tune the block device
   characteristics in a device agnostic manner.
 
+Init responds to properties that begin with `ctl.`.  These properties take the format of
+`ctl.<command>` and the _value_ of the system property is used as a parameter, for example:
+`SetProperty("ctl.start", "logd")` will run the `start` command on `logd`.  Note that these
+properties are only settable; they will have no value when read.
+
+`ctl.start` \
+`ctl.restart` \
+`ctl.stop`
+> These are equivalent to using the `start`, `restart`, and `stop` commands on the service specified
+by the _value_ of the property.
+
+`ctl.interface_start` \
+`ctl.interface_restart` \
+`ctl.interface_stop`
+> These are equivalent to using the `interface_start`, `interface_restart`, and `interface_stop`
+commands on the interface specified by the _value_ of the property.
+
+`ctl.sigstop_on` and `ctl.sigstop_off` will turn on or off the _sigstop_ feature for the service
+specified by the _value_ of the property.  See the _Debugging init_ section below for more details
+about this feature.
 
 Boot timing
 -----------
@@ -769,6 +835,12 @@ affected.
 
 Debugging init
 --------------
+When a service starts from init, it may fail to `execv()` the service. This is not typical, and may
+point to an error happening in the linker as the new service is started. The linker in Android
+prints its logs to `logd` and `stderr`, so they are visible in `logcat`. If the error is encountered
+before it is possible to access `logcat`, the `stdio_to_kmsg` service option may be used to direct
+the logs that the linker prints to `stderr` to `kmsg`, where they can be read via a serial port.
+
 Launching init services without init is not recommended as init sets up a significant amount of
 environment (user, groups, security label, capabilities, etc) that is hard to replicate manually.
 

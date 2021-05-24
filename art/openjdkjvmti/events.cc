@@ -31,6 +31,7 @@
 
 #include <android-base/thread_annotations.h>
 
+#include "alloc_manager.h"
 #include "base/locks.h"
 #include "base/mutex.h"
 #include "events-inl.h"
@@ -64,6 +65,8 @@
 #include "mirror/object-inl.h"
 #include "monitor-inl.h"
 #include "nativehelper/scoped_local_ref.h"
+#include "reflective_handle.h"
+#include "reflective_handle_scope-inl.h"
 #include "runtime.h"
 #include "scoped_thread_state_change-inl.h"
 #include "scoped_thread_state_change.h"
@@ -92,8 +95,14 @@ void ArtJvmtiEventCallbacks::CopyExtensionsFrom(const ArtJvmtiEventCallbacks* cb
 
 jvmtiError ArtJvmtiEventCallbacks::Set(jint index, jvmtiExtensionEvent cb) {
   switch (index) {
+    case static_cast<jint>(ArtJvmtiEvent::kObsoleteObjectCreated):
+      ObsoleteObjectCreated = reinterpret_cast<ArtJvmtiEventObsoleteObjectCreated>(cb);
+      return OK;
     case static_cast<jint>(ArtJvmtiEvent::kDdmPublishChunk):
       DdmPublishChunk = reinterpret_cast<ArtJvmtiEventDdmPublishChunk>(cb);
+      return OK;
+    case static_cast<jint>(ArtJvmtiEvent::kStructuralDexFileLoadHook):
+      StructuralDexFileLoadHook = reinterpret_cast<ArtJvmtiEventStructuralDexFileLoadHook>(cb);
       return OK;
     default:
       return ERR(ILLEGAL_ARGUMENT);
@@ -110,6 +119,8 @@ bool IsExtensionEvent(jint e) {
 bool IsExtensionEvent(ArtJvmtiEvent e) {
   switch (e) {
     case ArtJvmtiEvent::kDdmPublishChunk:
+    case ArtJvmtiEvent::kObsoleteObjectCreated:
+    case ArtJvmtiEvent::kStructuralDexFileLoadHook:
       return true;
     default:
       return false;
@@ -243,6 +254,7 @@ static bool IsThreadControllable(ArtJvmtiEvent event) {
     case ArtJvmtiEvent::kCompiledMethodUnload:
     case ArtJvmtiEvent::kDynamicCodeGenerated:
     case ArtJvmtiEvent::kDataDumpRequest:
+    case ArtJvmtiEvent::kObsoleteObjectCreated:
       return false;
 
     default:
@@ -301,9 +313,9 @@ class JvmtiDdmChunkListener : public art::DdmCallback {
   DISALLOW_COPY_AND_ASSIGN(JvmtiDdmChunkListener);
 };
 
-class JvmtiAllocationListener : public art::gc::AllocationListener {
+class JvmtiEventAllocationListener : public AllocationManager::AllocationCallback {
  public:
-  explicit JvmtiAllocationListener(EventHandler* handler) : handler_(handler) {}
+  explicit JvmtiEventAllocationListener(EventHandler* handler) : handler_(handler) {}
 
   void ObjectAllocated(art::Thread* self, art::ObjPtr<art::mirror::Object>* obj, size_t byte_count)
       override REQUIRES_SHARED(art::Locks::mutator_lock_) {
@@ -338,15 +350,14 @@ class JvmtiAllocationListener : public art::gc::AllocationListener {
   EventHandler* handler_;
 };
 
-static void SetupObjectAllocationTracking(art::gc::AllocationListener* listener, bool enable) {
+static void SetupObjectAllocationTracking(bool enable) {
   // We must not hold the mutator lock here, but if we're in FastJNI, for example, we might. For
   // now, do a workaround: (possibly) acquire and release.
   art::ScopedObjectAccess soa(art::Thread::Current());
-  art::ScopedThreadSuspension sts(soa.Self(), art::ThreadState::kSuspended);
   if (enable) {
-    art::Runtime::Current()->GetHeap()->SetAllocationListener(listener);
+    AllocationManager::Get()->EnableAllocationCallback(soa.Self());
   } else {
-    art::Runtime::Current()->GetHeap()->RemoveAllocationListener();
+    AllocationManager::Get()->DisableAllocationCallback(soa.Self());
   }
 }
 
@@ -795,11 +806,14 @@ class JvmtiMethodTraceListener final : public art::instrumentation::Instrumentat
   // Call-back for when we read from a field.
   void FieldRead(art::Thread* self,
                  art::Handle<art::mirror::Object> this_object,
-                 art::ArtMethod* method,
+                 art::ArtMethod* method_p,
                  uint32_t dex_pc,
-                 art::ArtField* field)
+                 art::ArtField* field_p)
       REQUIRES_SHARED(art::Locks::mutator_lock_) override {
     if (event_handler_->IsEventEnabledAnywhere(ArtJvmtiEvent::kFieldAccess)) {
+      art::StackReflectiveHandleScope<1, 1> rhs(self);
+      art::ReflectiveHandle<art::ArtField> field(rhs.NewHandle(field_p));
+      art::ReflectiveHandle<art::ArtMethod> method(rhs.NewHandle(method_p));
       art::JNIEnvExt* jnienv = self->GetJniEnv();
       // DCHECK(!self->IsExceptionPending());
       ScopedLocalRef<jobject> this_ref(jnienv, AddLocalRef<jobject>(jnienv, this_object.Get()));
@@ -819,13 +833,16 @@ class JvmtiMethodTraceListener final : public art::instrumentation::Instrumentat
 
   void FieldWritten(art::Thread* self,
                     art::Handle<art::mirror::Object> this_object,
-                    art::ArtMethod* method,
+                    art::ArtMethod* method_p,
                     uint32_t dex_pc,
-                    art::ArtField* field,
+                    art::ArtField* field_p,
                     art::Handle<art::mirror::Object> new_val)
       REQUIRES_SHARED(art::Locks::mutator_lock_) override {
     if (event_handler_->IsEventEnabledAnywhere(ArtJvmtiEvent::kFieldModification)) {
       art::JNIEnvExt* jnienv = self->GetJniEnv();
+      art::StackReflectiveHandleScope<1, 1> rhs(self);
+      art::ReflectiveHandle<art::ArtField> field(rhs.NewHandle(field_p));
+      art::ReflectiveHandle<art::ArtMethod> method(rhs.NewHandle(method_p));
       // DCHECK(!self->IsExceptionPending());
       ScopedLocalRef<jobject> this_ref(jnienv, AddLocalRef<jobject>(jnienv, this_object.Get()));
       ScopedLocalRef<jobject> fklass(jnienv,
@@ -851,13 +868,16 @@ class JvmtiMethodTraceListener final : public art::instrumentation::Instrumentat
   // Call-back for when we write into a field.
   void FieldWritten(art::Thread* self,
                     art::Handle<art::mirror::Object> this_object,
-                    art::ArtMethod* method,
+                    art::ArtMethod* method_p,
                     uint32_t dex_pc,
-                    art::ArtField* field,
+                    art::ArtField* field_p,
                     const art::JValue& field_value)
       REQUIRES_SHARED(art::Locks::mutator_lock_) override {
     if (event_handler_->IsEventEnabledAnywhere(ArtJvmtiEvent::kFieldModification)) {
       art::JNIEnvExt* jnienv = self->GetJniEnv();
+      art::StackReflectiveHandleScope<1, 1> rhs(self);
+      art::ReflectiveHandle<art::ArtField> field(rhs.NewHandle(field_p));
+      art::ReflectiveHandle<art::ArtMethod> method(rhs.NewHandle(method_p));
       DCHECK(!self->IsExceptionPending());
       ScopedLocalRef<jobject> this_ref(jnienv, AddLocalRef<jobject>(jnienv, this_object.Get()));
       ScopedLocalRef<jobject> fklass(jnienv,
@@ -1158,6 +1178,8 @@ static DeoptRequirement GetDeoptRequirement(ArtJvmtiEvent event, jthread thread)
     case ArtJvmtiEvent::kVmObjectAlloc:
     case ArtJvmtiEvent::kClassFileLoadHookRetransformable:
     case ArtJvmtiEvent::kDdmPublishChunk:
+    case ArtJvmtiEvent::kObsoleteObjectCreated:
+    case ArtJvmtiEvent::kStructuralDexFileLoadHook:
       return DeoptRequirement::kNone;
   }
 }
@@ -1305,7 +1327,7 @@ void EventHandler::HandleEventType(ArtJvmtiEvent event, bool enable) {
       SetupDdmTracking(ddm_listener_.get(), enable);
       return;
     case ArtJvmtiEvent::kVmObjectAlloc:
-      SetupObjectAllocationTracking(alloc_listener_.get(), enable);
+      SetupObjectAllocationTracking(enable);
       return;
     case ArtJvmtiEvent::kGarbageCollectionStart:
     case ArtJvmtiEvent::kGarbageCollectionFinish:
@@ -1643,13 +1665,15 @@ void EventHandler::Shutdown() {
   art::ScopedSuspendAll ssa("jvmti method tracing uninstallation");
   // Just remove every possible event.
   art::Runtime::Current()->GetInstrumentation()->RemoveListener(method_trace_listener_.get(), ~0);
+  AllocationManager::Get()->RemoveAllocListener();
 }
 
 EventHandler::EventHandler()
   : envs_lock_("JVMTI Environment List Lock", art::LockLevel::kPostMutatorTopLockLevel),
     frame_pop_enabled(false),
     internal_event_refcount_({0}) {
-  alloc_listener_.reset(new JvmtiAllocationListener(this));
+  alloc_listener_.reset(new JvmtiEventAllocationListener(this));
+  AllocationManager::Get()->SetAllocListener(alloc_listener_.get());
   ddm_listener_.reset(new JvmtiDdmChunkListener(this));
   gc_pause_listener_.reset(new JvmtiGcPauseListener(this));
   method_trace_listener_.reset(new JvmtiMethodTraceListener(this));

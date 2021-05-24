@@ -70,6 +70,7 @@ cc_test {
         "libutils",
     ],
     test_suites: ["device-tests"],
+    require_root: true,
 }
 
 cc_test {
@@ -118,12 +119,7 @@ cc_test {
     srcs: ["binderSafeInterfaceTest.cpp"],
 
     cppflags: [
-        "-Weverything",
-        "-Wno-c++98-compat",
-        "-Wno-c++98-compat-pedantic",
-        "-Wno-global-constructors",
-        "-Wno-padded",
-        "-Wno-weak-vtables",
+        "-Wextra",
     ],
 
     cpp_std: "experimental",
@@ -136,6 +132,7 @@ cc_test {
         "libutils",
     ],
     test_suites: ["device-tests"],
+    require_root: true,
 }
 
 aidl_interface {
@@ -164,4 +161,5 @@ cc_test {
     ],
 
     test_suites: ["device-tests"],
+    require_root: true,
 }

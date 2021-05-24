@@ -25,7 +25,7 @@
 
 namespace art {
 
-static const char* kDexDiagContains = "--contains=core.vdex";
+static const char* kDexDiagContains = "--contains=boot.vdex";
 static const char* kDexDiagContainsFails = "--contains=anything_other_than_core.vdex";
 static const char* kDexDiagHelp = "--help";
 static const char* kDexDiagVerbose = "--verbose";
@@ -39,7 +39,7 @@ class DexDiagTest : public CommonArtTest {
 
   // Path to the dexdiag(d?)[32|64] binary.
   std::string GetDexDiagFilePath() {
-    std::string path = GetAndroidRuntimeBinDir() + '/' + kDexDiagBinaryName;
+    std::string path = GetArtBinDir() + '/' + kDexDiagBinaryName;
     std::string path32 = path + "32";
     // If we have both a 32-bit and a 64-bit build, the 32-bit file will have a 32 suffix.
     if (OS::FileExists(path32.c_str()) && !Is64BitInstructionSet(kRuntimeISA)) {
@@ -68,8 +68,6 @@ class DexDiagTest : public CommonArtTest {
                                                oat_location.c_str(),
                                                /*executable=*/ false,
                                                /*low_4gb=*/ false,
-                                               /*abs_dex_location=*/ nullptr,
-                                               /*reservation=*/ nullptr,
                                                &error_msg));
     EXPECT_TRUE(oat != nullptr) << error_msg;
     return oat;

@@ -43,11 +43,9 @@ static int perf_event_open(const perf_event_attr& attr, pid_t pid, int cpu,
   return syscall(__NR_perf_event_open, &attr, pid, cpu, group_fd, flags);
 }
 
-std::unique_ptr<EventFd> EventFd::OpenEventFile(const perf_event_attr& attr,
-                                                pid_t tid, int cpu,
+std::unique_ptr<EventFd> EventFd::OpenEventFile(const perf_event_attr& attr, pid_t tid, int cpu,
                                                 EventFd* group_event_fd,
-                                                bool report_error) {
-  std::string event_name = GetEventNameByAttr(attr);
+                                                const std::string& event_name, bool report_error) {
   int group_fd = -1;
   if (group_event_fd != nullptr) {
     group_fd = group_event_fd->perf_event_fd_;
@@ -122,6 +120,14 @@ bool EventFd::SetEnableEvent(bool enable) {
     return false;
   }
   return true;
+}
+
+bool EventFd::SetFilter(const std::string& filter) {
+  bool success = ioctl(perf_event_fd_, PERF_EVENT_IOC_SET_FILTER, filter.c_str()) >= 0;
+  if (!success) {
+    PLOG(ERROR) << "failed to set filter";
+  }
+  return success;
 }
 
 bool EventFd::InnerReadCounter(PerfCounter* counter) const {
@@ -322,12 +328,6 @@ bool EventFd::StartPolling(IOEventLoop& loop,
 
 bool EventFd::StopPolling() { return IOEventLoop::DelEvent(ioevent_ref_); }
 
-bool IsEventAttrSupported(const perf_event_attr& attr) {
-  if (attr.type == SIMPLEPERF_TYPE_USER_SPACE_SAMPLERS &&
-      attr.config == SIMPLEPERF_CONFIG_INPLACE_SAMPLER) {
-    // User space samplers don't need kernel support.
-    return true;
-  }
-  std::unique_ptr<EventFd> event_fd = EventFd::OpenEventFile(attr, getpid(), -1, nullptr, false);
-  return event_fd != nullptr;
+bool IsEventAttrSupported(const perf_event_attr& attr, const std::string& event_name) {
+  return EventFd::OpenEventFile(attr, getpid(), -1, nullptr, event_name, false) != nullptr;
 }

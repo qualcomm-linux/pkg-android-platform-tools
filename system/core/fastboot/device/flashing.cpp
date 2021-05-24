@@ -21,6 +21,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 
@@ -32,6 +33,7 @@
 #include <fstab/fstab.h>
 #include <liblp/builder.h>
 #include <liblp/liblp.h>
+#include <libsnapshot/snapshot.h>
 #include <sparse/sparse.h>
 
 #include "fastboot_device.h"
@@ -55,6 +57,7 @@ void WipeOverlayfsForPartition(FastbootDevice* device, const std::string& partit
     Fstab fstab;
     ReadDefaultFstab(&fstab);
 
+    std::optional<AutoMountMetadata> mount_metadata;
     for (const auto& entry : fstab) {
         auto partition = android::base::Basename(entry.mount_point);
         if ("/" == entry.mount_point) {
@@ -62,6 +65,7 @@ void WipeOverlayfsForPartition(FastbootDevice* device, const std::string& partit
         }
 
         if ((partition + device->GetCurrentSlot()) == partition_name) {
+            mount_metadata.emplace();
             fs_mgr_overlayfs_teardown(entry.mount_point.c_str());
         }
     }
@@ -169,6 +173,11 @@ bool UpdateSuper(FastbootDevice* device, const std::string& super_name, bool wip
         // Preserve partitions in the other slot, but not the current slot.
         std::string partition_name = GetPartitionName(partition);
         if (!slot_suffix.empty() && GetPartitionSlotSuffix(partition_name) == slot_suffix) {
+            continue;
+        }
+        std::string group_name = GetPartitionGroupName(old_metadata->groups[partition.group_index]);
+        // Skip partitions in the COW group
+        if (group_name == android::snapshot::kCowGroupName) {
             continue;
         }
         partitions_to_keep.emplace(partition_name);

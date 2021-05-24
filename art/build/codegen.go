@@ -19,22 +19,36 @@ package art
 // arches on the device.
 
 import (
-	"android/soong/android"
 	"sort"
 	"strings"
+
+	"android/soong/android"
 )
 
-func codegen(ctx android.LoadHookContext, c *codegenProperties, library bool) {
+type moduleType struct {
+	library bool
+	static  bool
+	shared  bool
+}
+
+var (
+	staticLibrary          = moduleType{true, true, false}
+	sharedLibrary          = moduleType{true, false, true}
+	staticAndSharedLibrary = moduleType{true, true, true}
+	binary                 = moduleType{false, false, false}
+)
+
+func codegen(ctx android.LoadHookContext, c *codegenProperties, t moduleType) {
 	var hostArches, deviceArches []string
 
-	e := envDefault(ctx, "ART_HOST_CODEGEN_ARCHS", "")
+	e := ctx.Config().Getenv("ART_HOST_CODEGEN_ARCHS")
 	if e == "" {
 		hostArches = supportedArches
 	} else {
 		hostArches = strings.Split(e, " ")
 	}
 
-	e = envDefault(ctx, "ART_TARGET_CODEGEN_ARCHS", "")
+	e = ctx.Config().Getenv("ART_TARGET_CODEGEN_ARCHS")
 	if e == "" {
 		deviceArches = defaultDeviceCodegenArches(ctx)
 	} else {
@@ -92,28 +106,43 @@ func codegen(ctx android.LoadHookContext, c *codegenProperties, library bool) {
 			}
 		}
 
-		type libraryProps struct {
+		type sharedLibraryProps struct {
 			Target struct {
-				Android *CodegenLibraryArchProperties
-				Host    *CodegenLibraryArchProperties
+				Android *CodegenLibraryArchSharedProperties
+				Host    *CodegenLibraryArchSharedProperties
+			}
+		}
+
+		type staticLibraryProps struct {
+			Target struct {
+				Android *CodegenLibraryArchStaticProperties
+				Host    *CodegenLibraryArchStaticProperties
 			}
 		}
 
 		arch := getCodegenArchProperties(archName)
 
 		cp := &commonProps{}
-		lp := &libraryProps{}
+		sharedLP := &sharedLibraryProps{}
+		staticLP := &staticLibraryProps{}
 		if host {
 			cp.Target.Host = &arch.CodegenCommonArchProperties
-			lp.Target.Host = &arch.CodegenLibraryArchProperties
+			sharedLP.Target.Host = &arch.CodegenLibraryArchSharedProperties
+			staticLP.Target.Host = &arch.CodegenLibraryArchStaticProperties
 		} else {
 			cp.Target.Android = &arch.CodegenCommonArchProperties
-			lp.Target.Android = &arch.CodegenLibraryArchProperties
+			sharedLP.Target.Android = &arch.CodegenLibraryArchSharedProperties
+			staticLP.Target.Android = &arch.CodegenLibraryArchStaticProperties
 		}
 
 		ctx.AppendProperties(cp)
-		if library {
-			ctx.AppendProperties(lp)
+		if t.library {
+			if t.static {
+				ctx.AppendProperties(staticLP)
+			}
+			if t.shared {
+				ctx.AppendProperties(sharedLP)
+			}
 		}
 	}
 
@@ -142,10 +171,12 @@ type CodegenCommonArchProperties struct {
 	Cppflags []string
 }
 
-type CodegenLibraryArchProperties struct {
+type CodegenLibraryArchStaticProperties struct {
 	Static struct {
 		Whole_static_libs []string
 	}
+}
+type CodegenLibraryArchSharedProperties struct {
 	Shared struct {
 		Shared_libs               []string
 		Export_shared_lib_headers []string
@@ -155,7 +186,8 @@ type CodegenLibraryArchProperties struct {
 type codegenArchProperties struct {
 	CodegenSourceArchProperties
 	CodegenCommonArchProperties
-	CodegenLibraryArchProperties
+	CodegenLibraryArchStaticProperties
+	CodegenLibraryArchSharedProperties
 }
 
 type codegenProperties struct {
@@ -185,8 +217,8 @@ func defaultDeviceCodegenArches(ctx android.LoadHookContext) []string {
 	return ret
 }
 
-func installCodegenCustomizer(module android.Module, library bool) {
+func installCodegenCustomizer(module android.Module, t moduleType) {
 	c := &codegenProperties{}
-	android.AddLoadHook(module, func(ctx android.LoadHookContext) { codegen(ctx, c, library) })
+	android.AddLoadHook(module, func(ctx android.LoadHookContext) { codegen(ctx, c, t) })
 	module.AddProperties(c)
 }

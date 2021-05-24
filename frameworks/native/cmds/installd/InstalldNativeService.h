@@ -136,7 +136,7 @@ public:
     binder::Status deleteOdex(const std::string& apkPath, const std::string& instructionSet,
             const std::unique_ptr<std::string>& outputPath);
     binder::Status installApkVerity(const std::string& filePath,
-            const ::android::base::unique_fd& verityInput, int32_t contentSize);
+            android::base::unique_fd verityInput, int32_t contentSize);
     binder::Status assertFsverityRootHashMatches(const std::string& filePath,
             const std::vector<uint8_t>& expectedHash);
     binder::Status reconcileSecondaryDexFile(const std::string& dexPath,
@@ -154,6 +154,8 @@ public:
             int32_t userId, int32_t appId, const std::string& profileName,
             const std::string& codePath, const std::unique_ptr<std::string>& dexMetadata,
             bool* _aidl_return);
+
+    binder::Status migrateLegacyObbData();
 
 private:
     std::recursive_mutex mLock;

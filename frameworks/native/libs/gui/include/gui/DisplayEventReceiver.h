@@ -52,13 +52,14 @@ public:
     enum {
         DISPLAY_EVENT_VSYNC = fourcc('v', 's', 'y', 'n'),
         DISPLAY_EVENT_HOTPLUG = fourcc('p', 'l', 'u', 'g'),
+        DISPLAY_EVENT_CONFIG_CHANGED = fourcc('c', 'o', 'n', 'f'),
     };
 
     struct Event {
 
         struct Header {
             uint32_t type;
-            uint32_t id;
+            PhysicalDisplayId displayId;
             nsecs_t timestamp __attribute__((aligned(8)));
         };
 
@@ -70,10 +71,15 @@ public:
             bool connected;
         };
 
+        struct Config {
+            int32_t configId;
+        };
+
         Header header;
         union {
             VSync vsync;
             Hotplug hotplug;
+            Config config;
         };
     };
 
@@ -82,10 +88,13 @@ public:
      * DisplayEventReceiver creates and registers an event connection with
      * SurfaceFlinger. VSync events are disabled by default. Call setVSyncRate
      * or requestNextVsync to receive them.
+     * To receive Config Changed events specify this in the constructor.
      * Other events start being delivered immediately.
      */
     explicit DisplayEventReceiver(
-            ISurfaceComposer::VsyncSource vsyncSource = ISurfaceComposer::eVsyncSourceApp);
+            ISurfaceComposer::VsyncSource vsyncSource = ISurfaceComposer::eVsyncSourceApp,
+            ISurfaceComposer::ConfigChanged configChanged =
+                    ISurfaceComposer::eConfigChangedSuppress);
 
     /*
      * ~DisplayEventReceiver severs the connection with SurfaceFlinger, new events

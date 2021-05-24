@@ -38,9 +38,9 @@ struct PerfCounter {
 // EventFd represents an opened perf_event_file.
 class EventFd {
  public:
-  static std::unique_ptr<EventFd> OpenEventFile(const perf_event_attr& attr,
-                                                pid_t tid, int cpu,
+  static std::unique_ptr<EventFd> OpenEventFile(const perf_event_attr& attr, pid_t tid, int cpu,
                                                 EventFd* group_event_fd,
+                                                const std::string& event_name,
                                                 bool report_error = true);
 
   virtual ~EventFd();
@@ -59,6 +59,7 @@ class EventFd {
   // It tells the kernel to start counting and recording events specified by
   // this file.
   bool SetEnableEvent(bool enable);
+  bool SetFilter(const std::string& filter);
 
   bool ReadCounter(PerfCounter* counter);
 
@@ -150,6 +151,6 @@ class EventFd {
   DISALLOW_COPY_AND_ASSIGN(EventFd);
 };
 
-bool IsEventAttrSupported(const perf_event_attr& attr);
+bool IsEventAttrSupported(const perf_event_attr& attr, const std::string& event_name);
 
 #endif  // SIMPLE_PERF_EVENT_FD_H_

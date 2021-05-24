@@ -34,9 +34,7 @@
 #include <unwindstack/Memory.h>
 #include <unwindstack/Unwinder.h>
 
-#if !defined(NO_LIBDEXFILE_SUPPORT)
 #include <unwindstack/DexFiles.h>
-#endif
 
 // Use the demangler from libc++.
 extern "C" char* __cxa_demangle(const char*, char*, size_t*, int* status);
@@ -84,7 +82,7 @@ void Unwinder::FillInDexFrame() {
     return;
   }
 
-#if !defined(NO_LIBDEXFILE_SUPPORT)
+#if defined(DEXFILE_SUPPORT)
   if (dex_files_ == nullptr) {
     return;
   }
@@ -309,7 +307,7 @@ void Unwinder::Unwind(const std::vector<std::string>* initial_map_names_to_skip,
   }
 }
 
-std::string Unwinder::FormatFrame(const FrameData& frame) {
+std::string Unwinder::FormatFrame(const FrameData& frame) const {
   std::string data;
   if (regs_->Is32Bit()) {
     data += android::base::StringPrintf("  #%02zu pc %08" PRIx64, frame.num, frame.rel_pc);
@@ -355,7 +353,7 @@ std::string Unwinder::FormatFrame(const FrameData& frame) {
   return data;
 }
 
-std::string Unwinder::FormatFrame(size_t frame_num) {
+std::string Unwinder::FormatFrame(size_t frame_num) const {
   if (frame_num >= frames_.size()) {
     return "";
   }
@@ -367,12 +365,10 @@ void Unwinder::SetJitDebug(JitDebug* jit_debug, ArchEnum arch) {
   jit_debug_ = jit_debug;
 }
 
-#if !defined(NO_LIBDEXFILE_SUPPORT)
 void Unwinder::SetDexFiles(DexFiles* dex_files, ArchEnum arch) {
   dex_files->SetArch(arch);
   dex_files_ = dex_files;
 }
-#endif
 
 bool UnwinderFromPid::Init(ArchEnum arch) {
   if (pid_ == getpid()) {
@@ -390,7 +386,7 @@ bool UnwinderFromPid::Init(ArchEnum arch) {
   jit_debug_ptr_.reset(new JitDebug(process_memory_));
   jit_debug_ = jit_debug_ptr_.get();
   SetJitDebug(jit_debug_, arch);
-#if !defined(NO_LIBDEXFILE_SUPPORT)
+#if defined(DEXFILE_SUPPORT)
   dex_files_ptr_.reset(new DexFiles(process_memory_));
   dex_files_ = dex_files_ptr_.get();
   SetDexFiles(dex_files_, arch);

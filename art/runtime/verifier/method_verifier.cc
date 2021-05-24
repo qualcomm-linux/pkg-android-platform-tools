@@ -770,8 +770,8 @@ class MethodVerifier final : public ::art::verifier::MethodVerifier {
   // Dump the failures encountered by the verifier.
   std::ostream& DumpFailures(std::ostream& os) {
     DCHECK_EQ(failures_.size(), failure_messages_.size());
-    for (size_t i = 0; i < failures_.size(); ++i) {
-        os << failure_messages_[i]->str() << "\n";
+    for (const auto* stream : failure_messages_) {
+        os << stream->str() << "\n";
     }
     return os;
   }
@@ -1854,8 +1854,7 @@ void HandleMonitorDexPcsWorkLine(
   for (auto& pair : depth_to_lock_info) {
     monitor_enter_dex_pcs->push_back(pair.second);
     // Map depth to dex PC.
-    (*monitor_enter_dex_pcs)[monitor_enter_dex_pcs->size() - 1].dex_pc =
-        work_line->GetMonitorEnterDexPc(pair.second.dex_pc);
+    monitor_enter_dex_pcs->back().dex_pc = work_line->GetMonitorEnterDexPc(pair.second.dex_pc);
   }
 }
 
@@ -4285,13 +4284,6 @@ ArtMethod* MethodVerifier<kVerifierDebug>::VerifyInvocationArgs(
       return nullptr;
     }
     if (reference_type.GetClass()->IsInterface()) {
-      // TODO Can we verify anything else.
-      if (class_idx == class_def_.class_idx_) {
-        Fail(VERIFY_ERROR_CLASS_CHANGE) << "Cannot invoke-super on self as interface";
-        return nullptr;
-      }
-      // TODO Revisit whether we want to allow invoke-super on direct interfaces only like the JLS
-      // does.
       if (!GetDeclaringClass().HasClass()) {
         Fail(VERIFY_ERROR_NO_CLASS) << "Unable to resolve the full class of 'this' used in an"
                                     << "interface invoke-super";
@@ -5115,6 +5107,7 @@ MethodVerifier::FailureData MethodVerifier::VerifyMethod(Thread* self,
                                                          ArtMethod* method,
                                                          uint32_t method_access_flags,
                                                          CompilerCallbacks* callbacks,
+                                                         VerifierCallback* verifier_callback,
                                                          bool allow_soft_failures,
                                                          HardFailLogMode log_level,
                                                          bool need_precise_constants,
@@ -5134,6 +5127,7 @@ MethodVerifier::FailureData MethodVerifier::VerifyMethod(Thread* self,
                               method,
                               method_access_flags,
                               callbacks,
+                              verifier_callback,
                               allow_soft_failures,
                               log_level,
                               need_precise_constants,
@@ -5153,6 +5147,7 @@ MethodVerifier::FailureData MethodVerifier::VerifyMethod(Thread* self,
                                method,
                                method_access_flags,
                                callbacks,
+                               verifier_callback,
                                allow_soft_failures,
                                log_level,
                                need_precise_constants,
@@ -5175,6 +5170,7 @@ MethodVerifier::FailureData MethodVerifier::VerifyMethod(Thread* self,
                                                          ArtMethod* method,
                                                          uint32_t method_access_flags,
                                                          CompilerCallbacks* callbacks,
+                                                         VerifierCallback* verifier_callback,
                                                          bool allow_soft_failures,
                                                          HardFailLogMode log_level,
                                                          bool need_precise_constants,
@@ -5213,6 +5209,7 @@ MethodVerifier::FailureData MethodVerifier::VerifyMethod(Thread* self,
       callbacks->MethodVerified(&verifier);
     }
 
+    bool set_dont_compile = false;
     if (verifier.failures_.size() != 0) {
       if (VLOG_IS_ON(verifier)) {
         verifier.DumpFailures(VLOG_STREAM(verifier) << "Soft verification failures in "
@@ -5225,12 +5222,12 @@ MethodVerifier::FailureData MethodVerifier::VerifyMethod(Thread* self,
       result.kind = FailureKind::kSoftFailure;
       if (method != nullptr &&
           !CanCompilerHandleVerificationFailure(verifier.encountered_failure_types_)) {
-        method->SetDontCompile();
+        set_dont_compile = true;
       }
     }
     if (method != nullptr) {
       if (verifier.HasInstructionThatWillThrow()) {
-        method->SetDontCompile();
+        set_dont_compile = true;
         if (aot_mode && (callbacks != nullptr) && !callbacks->IsBootImage()) {
           // When compiling apps, make HasInstructionThatWillThrow a soft error to trigger
           // re-verification at runtime.
@@ -5244,9 +5241,12 @@ MethodVerifier::FailureData MethodVerifier::VerifyMethod(Thread* self,
           result.kind = FailureKind::kSoftFailure;
         }
       }
+      bool must_count_locks = false;
       if ((verifier.encountered_failure_types_ & VerifyError::VERIFY_ERROR_LOCKING) != 0) {
-        method->SetMustCountLocks();
+        must_count_locks = true;
       }
+      verifier_callback->SetDontCompile(method, set_dont_compile);
+      verifier_callback->SetMustCountLocks(method, must_count_locks);
     }
   } else {
     // Bad method data.

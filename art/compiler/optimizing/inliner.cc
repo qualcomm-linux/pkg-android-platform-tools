@@ -692,9 +692,8 @@ HInliner::InlineCacheType HInliner::GetInlineCacheAOT(
   }
 
   std::unique_ptr<ProfileCompilationInfo::OfflineProfileMethodInfo> offline_profile =
-      pci->GetMethod(caller_dex_file.GetLocation(),
-                     caller_dex_file.GetLocationChecksum(),
-                     caller_compilation_unit_.GetDexMethodIndex());
+      pci->GetHotMethodInfo(MethodReference(
+          &caller_dex_file, caller_compilation_unit_.GetDexMethodIndex()));
   if (offline_profile == nullptr) {
     return kInlineCacheNoData;  // no profile information for this invocation.
   }
@@ -747,8 +746,7 @@ HInliner::InlineCacheType HInliner::ExtractClassesFromOfflineProfile(
       }
     }
     if (!found) {
-      VLOG(compiler) << "Could not find profiled dex file: "
-          << offline_profile.dex_references[i].dex_location;
+      VLOG(compiler) << "Could not find profiled dex file: " << offline_profile.dex_references[i];
       return kInlineCacheMissingTypes;
     }
   }
@@ -1815,6 +1813,7 @@ bool HInliner::TryBuildAndInlineHelper(HInvoke* invoke_instruction,
       graph_->IsDebuggable(),
       /* osr= */ false,
       /* is_shared_jit_code= */ graph_->IsCompilingForSharedJitCode(),
+      /* baseline= */ graph_->IsCompilingBaseline(),
       /* start_instruction_id= */ caller_instruction_counter);
   callee_graph->SetArtMethod(resolved_method);
 

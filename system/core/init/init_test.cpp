@@ -93,6 +93,26 @@ pass_test
     EXPECT_TRUE(expect_true);
 }
 
+TEST(init, WrongEventTrigger) {
+    std::string init_script =
+            R"init(
+on boot:
+pass_test
+)init";
+
+    TemporaryFile tf;
+    ASSERT_TRUE(tf.fd != -1);
+    ASSERT_TRUE(android::base::WriteStringToFd(init_script, tf.fd));
+
+    ActionManager am;
+
+    Parser parser;
+    parser.AddSectionParser("on", std::make_unique<ActionParser>(&am, nullptr));
+
+    ASSERT_TRUE(parser.ParseConfig(tf.path));
+    ASSERT_EQ(1u, parser.parse_error_count());
+}
+
 TEST(init, EventTriggerOrder) {
     std::string init_script =
         R"init(
@@ -184,9 +204,9 @@ TEST(init, EventTriggerOrderMultipleFiles) {
                                "execute 3";
     // clang-format on
     // WriteFile() ensures the right mode is set
-    ASSERT_TRUE(WriteFile(std::string(dir.path) + "/a.rc", dir_a_script));
+    ASSERT_RESULT_OK(WriteFile(std::string(dir.path) + "/a.rc", dir_a_script));
 
-    ASSERT_TRUE(WriteFile(std::string(dir.path) + "/b.rc", "on boot\nexecute 5"));
+    ASSERT_RESULT_OK(WriteFile(std::string(dir.path) + "/b.rc", "on boot\nexecute 5"));
 
     // clang-format off
     std::string start_script = "import " + std::string(first_import.path) + "\n"
@@ -221,3 +241,19 @@ TEST(init, EventTriggerOrderMultipleFiles) {
 
 }  // namespace init
 }  // namespace android
+
+int SubcontextTestChildMain(int, char**);
+int FirmwareTestChildMain(int, char**);
+
+int main(int argc, char** argv) {
+    if (argc > 1 && !strcmp(argv[1], "subcontext")) {
+        return SubcontextTestChildMain(argc, argv);
+    }
+
+    if (argc > 1 && !strcmp(argv[1], "firmware")) {
+        return FirmwareTestChildMain(argc, argv);
+    }
+
+    testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
+}

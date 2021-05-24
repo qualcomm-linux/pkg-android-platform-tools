@@ -35,6 +35,22 @@ class StandardDexFile : public DexFile {
   struct CodeItem : public dex::CodeItem {
     static constexpr size_t kAlignment = 4;
 
+    static constexpr size_t InsSizeOffset() {
+      return OFFSETOF_MEMBER(CodeItem, ins_size_);
+    }
+
+    static constexpr size_t OutsSizeOffset() {
+      return OFFSETOF_MEMBER(CodeItem, outs_size_);
+    }
+
+    static constexpr size_t RegistersSizeOffset() {
+      return OFFSETOF_MEMBER(CodeItem, registers_size_);
+    }
+
+    static constexpr size_t InsnsOffset() {
+      return OFFSETOF_MEMBER(CodeItem, insns_);
+    }
+
    private:
     CodeItem() = default;
 
@@ -68,7 +84,7 @@ class StandardDexFile : public DexFile {
   static void WriteCurrentVersion(uint8_t* magic);
 
   static const uint8_t kDexMagic[kDexMagicSize];
-  static constexpr size_t kNumDexVersions = 4;
+  static constexpr size_t kNumDexVersions = 5;
   static const uint8_t kDexMagicVersions[kNumDexVersions][kDexVersionLen];
 
   // Returns true if the byte string points to the magic value.

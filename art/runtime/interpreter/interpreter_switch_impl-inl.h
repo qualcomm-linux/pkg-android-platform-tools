@@ -343,6 +343,9 @@ class InstructionHandler {
     if (UNLIKELY(!array->CheckIsValidIndex(index))) {
       return false;  // Pending exception.
     } else {
+      if (transaction_active && !CheckWriteConstraint(self, array)) {
+        return false;
+      }
       array->template SetWithoutChecks<transaction_active>(index, value);
     }
     return true;
@@ -974,6 +977,10 @@ class InstructionHandler {
     ObjPtr<mirror::Object> val = GetVRegReference(A());
     ObjPtr<mirror::ObjectArray<mirror::Object>> array = a->AsObjectArray<mirror::Object>();
     if (array->CheckIsValidIndex(index) && array->CheckAssignable(val)) {
+      if (transaction_active &&
+          (!CheckWriteConstraint(self, array) || !CheckWriteValueConstraint(self, val))) {
+        return false;
+      }
       array->SetWithoutChecks<transaction_active>(index, val);
     } else {
       return false;  // Pending exception.
@@ -1901,11 +1908,34 @@ class InstructionHandler {
   bool& exit_interpreter_loop;
 };
 
-// TODO On ASAN builds this function gets a huge stack frame. Since normally we run in the mterp
-// this shouldn't cause any problems for stack overflow detection. Remove this once b/117341496 is
-// fixed.
+// Don't inline in ASAN. It would create massive stack frame.
+#ifdef ADDRESS_SANITIZER
+#define ASAN_NO_INLINE NO_INLINE
+#else
+#define ASAN_NO_INLINE ALWAYS_INLINE
+#endif
+
+#define OPCODE_CASE(OPCODE, OPCODE_NAME, NAME, FORMAT, i, a, e, v)                                \
+template<bool do_access_check, bool transaction_active>                                           \
+ASAN_NO_INLINE static bool OP_##OPCODE_NAME(                                                      \
+    SwitchImplContext* ctx,                                                                       \
+    const instrumentation::Instrumentation* instrumentation,                                      \
+    Thread* self,                                                                                 \
+    ShadowFrame& shadow_frame,                                                                    \
+    uint16_t dex_pc,                                                                              \
+    const Instruction* inst,                                                                      \
+    uint16_t inst_data,                                                                           \
+    const Instruction*& next,                                                                     \
+    bool& exit) REQUIRES_SHARED(Locks::mutator_lock_) {                                           \
+  InstructionHandler<do_access_check, transaction_active, Instruction::FORMAT> handler(           \
+      ctx, instrumentation, self, shadow_frame, dex_pc, inst, inst_data, next, exit);             \
+  return LIKELY(handler.OPCODE_NAME());                                                           \
+}
+DEX_INSTRUCTION_LIST(OPCODE_CASE)
+#undef OPCODE_CASE
+
 template<bool do_access_check, bool transaction_active>
-ATTRIBUTE_NO_SANITIZE_ADDRESS void ExecuteSwitchImplCpp(SwitchImplContext* ctx) {
+void ExecuteSwitchImplCpp(SwitchImplContext* ctx) {
   Thread* self = ctx->self;
   const CodeItemDataAccessor& accessor = ctx->accessor;
   ShadowFrame& shadow_frame = ctx->shadow_frame;
@@ -1935,9 +1965,9 @@ ATTRIBUTE_NO_SANITIZE_ADDRESS void ExecuteSwitchImplCpp(SwitchImplContext* ctx) 
         case OPCODE: {                                                                            \
           DCHECK_EQ(self->IsExceptionPending(), (OPCODE == Instruction::MOVE_EXCEPTION));         \
           next = inst->RelativeAt(Instruction::SizeInCodeUnits(Instruction::FORMAT));             \
-          InstructionHandler<do_access_check, transaction_active, Instruction::FORMAT> handler(   \
+          bool success = OP_##OPCODE_NAME<do_access_check, transaction_active>(                   \
               ctx, instrumentation, self, shadow_frame, dex_pc, inst, inst_data, next, exit);     \
-          if (handler.OPCODE_NAME() && LIKELY(!interpret_one_instruction)) {                      \
+          if (success && LIKELY(!interpret_one_instruction)) {                                    \
             DCHECK(!exit) << NAME;                                                                \
             continue;                                                                             \
           }                                                                                       \

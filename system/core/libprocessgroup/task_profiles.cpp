@@ -268,6 +268,31 @@ bool SetCgroupAction::ExecuteForTask(int tid) const {
     return true;
 }
 
+bool ApplyProfileAction::ExecuteForProcess(uid_t uid, pid_t pid) const {
+    for (const auto& profile : profiles_) {
+        profile->EnableResourceCaching();
+        if (!profile->ExecuteForProcess(uid, pid)) {
+            PLOG(WARNING) << "ExecuteForProcess failed for aggregate profile";
+        }
+    }
+    return true;
+}
+
+bool ApplyProfileAction::ExecuteForTask(int tid) const {
+    for (const auto& profile : profiles_) {
+        profile->EnableResourceCaching();
+        if (!profile->ExecuteForTask(tid)) {
+            PLOG(WARNING) << "ExecuteForTask failed for aggregate profile";
+        }
+    }
+    return true;
+}
+
+void TaskProfile::MoveTo(TaskProfile* profile) {
+    profile->elements_ = std::move(elements_);
+    profile->res_cached_ = res_cached_;
+}
+
 bool TaskProfile::ExecuteForProcess(uid_t uid, pid_t pid) const {
     for (const auto& element : elements_) {
         if (!element->ExecuteForProcess(uid, pid)) {
@@ -373,15 +398,13 @@ bool TaskProfiles::Load(const CgroupMap& cg_map, const std::string& file_name) {
         }
     }
 
-    std::map<std::string, std::string> params;
-
     const Json::Value& profiles_val = root["Profiles"];
     for (Json::Value::ArrayIndex i = 0; i < profiles_val.size(); ++i) {
         const Json::Value& profile_val = profiles_val[i];
 
         std::string profile_name = profile_val["Name"].asString();
         const Json::Value& actions = profile_val["Actions"];
-        auto profile = std::make_unique<TaskProfile>();
+        auto profile = std::make_shared<TaskProfile>();
 
         for (Json::Value::ArrayIndex act_idx = 0; act_idx < actions.size(); ++act_idx) {
             const Json::Value& action_val = actions[act_idx];
@@ -440,7 +463,46 @@ bool TaskProfiles::Load(const CgroupMap& cg_map, const std::string& file_name) {
                 LOG(WARNING) << "Unknown profile action: " << action_name;
             }
         }
-        profiles_[profile_name] = std::move(profile);
+        auto iter = profiles_.find(profile_name);
+        if (iter == profiles_.end()) {
+            profiles_[profile_name] = profile;
+        } else {
+            // Move the content rather that replace the profile because old profile might be
+            // referenced from an aggregate profile if vendor overrides task profiles
+            profile->MoveTo(iter->second.get());
+            profile.reset();
+        }
+    }
+
+    const Json::Value& aggregateprofiles_val = root["AggregateProfiles"];
+    for (Json::Value::ArrayIndex i = 0; i < aggregateprofiles_val.size(); ++i) {
+        const Json::Value& aggregateprofile_val = aggregateprofiles_val[i];
+
+        std::string aggregateprofile_name = aggregateprofile_val["Name"].asString();
+        const Json::Value& aggregateprofiles = aggregateprofile_val["Profiles"];
+        std::vector<std::shared_ptr<TaskProfile>> profiles;
+        bool ret = true;
+
+        for (Json::Value::ArrayIndex pf_idx = 0; pf_idx < aggregateprofiles.size(); ++pf_idx) {
+            std::string profile_name = aggregateprofiles[pf_idx].asString();
+
+            if (profile_name == aggregateprofile_name) {
+                LOG(WARNING) << "AggregateProfiles: recursive profile name: " << profile_name;
+                ret = false;
+                break;
+            } else if (profiles_.find(profile_name) == profiles_.end()) {
+                LOG(WARNING) << "AggregateProfiles: undefined profile name: " << profile_name;
+                ret = false;
+                break;
+            } else {
+                profiles.push_back(profiles_[profile_name]);
+            }
+        }
+        if (ret) {
+            auto profile = std::make_shared<TaskProfile>();
+            profile->Add(std::make_unique<ApplyProfileAction>(profiles));
+            profiles_[aggregateprofile_name] = profile;
+        }
     }
 
     return true;
@@ -462,4 +524,40 @@ const ProfileAttribute* TaskProfiles::GetAttribute(const std::string& name) cons
         return iter->second.get();
     }
     return nullptr;
+}
+
+bool TaskProfiles::SetProcessProfiles(uid_t uid, pid_t pid,
+                                      const std::vector<std::string>& profiles, bool use_fd_cache) {
+    for (const auto& name : profiles) {
+        TaskProfile* profile = GetProfile(name);
+        if (profile != nullptr) {
+            if (use_fd_cache) {
+                profile->EnableResourceCaching();
+            }
+            if (!profile->ExecuteForProcess(uid, pid)) {
+                PLOG(WARNING) << "Failed to apply " << name << " process profile";
+            }
+        } else {
+            PLOG(WARNING) << "Failed to find " << name << "process profile";
+        }
+    }
+    return true;
+}
+
+bool TaskProfiles::SetTaskProfiles(int tid, const std::vector<std::string>& profiles,
+                                   bool use_fd_cache) {
+    for (const auto& name : profiles) {
+        TaskProfile* profile = GetProfile(name);
+        if (profile != nullptr) {
+            if (use_fd_cache) {
+                profile->EnableResourceCaching();
+            }
+            if (!profile->ExecuteForTask(tid)) {
+                PLOG(WARNING) << "Failed to apply " << name << " task profile";
+            }
+        } else {
+            PLOG(WARNING) << "Failed to find " << name << "task profile";
+        }
+    }
+    return true;
 }
