@@ -40,6 +40,7 @@
 
 #include "jvmti.h"
 
+#include "alloc_manager.h"
 #include "art_jvmti.h"
 #include "base/logging.h"  // For gLogVerbosity.
 #include "base/mutex.h"
@@ -79,6 +80,7 @@ namespace openjdkjvmti {
 // These should never be null.
 EventHandler* gEventHandler;
 DeoptManager* gDeoptManager;
+AllocationManager* gAllocManager;
 
 #define ENSURE_NON_NULL(n)      \
   do {                          \
@@ -778,18 +780,7 @@ class JvmtiFunctions {
   static jvmtiError RetransformClasses(jvmtiEnv* env, jint class_count, const jclass* classes) {
     ENSURE_VALID_ENV(env);
     ENSURE_HAS_CAP(env, can_retransform_classes);
-    std::string error_msg;
-    jvmtiError res = Transformer::RetransformClasses(ArtJvmTiEnv::AsArtJvmTiEnv(env),
-                                                     gEventHandler,
-                                                     art::Runtime::Current(),
-                                                     art::Thread::Current(),
-                                                     class_count,
-                                                     classes,
-                                                     &error_msg);
-    if (res != OK) {
-      JVMTI_LOG(WARNING, env) << "FAILURE TO RETRANFORM " << error_msg;
-    }
-    return res;
+    return Transformer::RetransformClasses(env, class_count, classes);
   }
 
   static jvmtiError RedefineClasses(jvmtiEnv* env,
@@ -797,18 +788,7 @@ class JvmtiFunctions {
                                     const jvmtiClassDefinition* class_definitions) {
     ENSURE_VALID_ENV(env);
     ENSURE_HAS_CAP(env, can_redefine_classes);
-    std::string error_msg;
-    jvmtiError res = Redefiner::RedefineClasses(ArtJvmTiEnv::AsArtJvmTiEnv(env),
-                                                gEventHandler,
-                                                art::Runtime::Current(),
-                                                art::Thread::Current(),
-                                                class_count,
-                                                class_definitions,
-                                                &error_msg);
-    if (res != OK) {
-      JVMTI_LOG(WARNING, env) << "FAILURE TO REDEFINE " << error_msg;
-    }
-    return res;
+    return Redefiner::RedefineClasses(env, class_count, class_definitions);
   }
 
   static jvmtiError GetObjectSize(jvmtiEnv* env, jobject object, jlong* size_ptr) {
@@ -1418,6 +1398,7 @@ class JvmtiFunctions {
       art::gLogVerbosity.verifier = val;
       // Do not set verifier-debug.
       art::gLogVerbosity.image = val;
+      art::gLogVerbosity.plugin = val;
 
       // Note: can't switch systrace_lock_logging. That requires changing entrypoints.
 
@@ -1518,6 +1499,7 @@ static jint GetEnvHandler(art::JavaVMExt* vm, /*out*/void** env, jint version) {
 extern "C" bool ArtPlugin_Initialize() {
   art::Runtime* runtime = art::Runtime::Current();
 
+  gAllocManager = new AllocationManager;
   gDeoptManager = new DeoptManager;
   gEventHandler = new EventHandler;
 
@@ -1532,9 +1514,12 @@ extern "C" bool ArtPlugin_Initialize() {
   ClassUtil::Register(gEventHandler);
   DumpUtil::Register(gEventHandler);
   MethodUtil::Register(gEventHandler);
+  HeapExtensions::Register(gEventHandler);
   SearchUtil::Register();
   HeapUtil::Register();
-  Transformer::Setup();
+  FieldUtil::Register(gEventHandler);
+  BreakpointUtil::Register(gEventHandler);
+  Transformer::Register(gEventHandler);
 
   {
     // Make sure we can deopt anything we need to.
@@ -1557,6 +1542,8 @@ extern "C" bool ArtPlugin_Deinitialize() {
   MethodUtil::Unregister();
   SearchUtil::Unregister();
   HeapUtil::Unregister();
+  FieldUtil::Unregister();
+  BreakpointUtil::Unregister();
 
   // TODO It would be good to delete the gEventHandler and gDeoptManager here but we cannot since
   // daemon threads might be suspended and we want to make sure that even if they wake up briefly

@@ -79,6 +79,22 @@ class MarkCodeClosure;
 // of garbage collecting code.
 using CodeCacheBitmap = gc::accounting::MemoryRangeBitmap<kJitCodeAccountingBytes>;
 
+// The state of profile-based compilation in the zygote.
+// - kInProgress:      JIT compilation is happening
+// - kDone:            JIT compilation is finished, and the zygote is preparing notifying
+//                     the other processes.
+// - kNotifiedOk:      the zygote has notified the other processes, which can start
+//                     sharing the boot image method mappings.
+// - kNotifiedFailure: the zygote has notified the other processes, but they
+//                     cannot share the boot image method mappings due to
+//                     unexpected errors
+enum class ZygoteCompilationState : uint8_t {
+  kInProgress = 0,
+  kDone = 1,
+  kNotifiedOk = 2,
+  kNotifiedFailure = 3,
+};
+
 // Class abstraction over a map of ArtMethod -> compiled code, where the
 // ArtMethod are compiled by the zygote, and the map acts as a communication
 // channel between the zygote and the other processes.
@@ -88,7 +104,8 @@ using CodeCacheBitmap = gc::accounting::MemoryRangeBitmap<kJitCodeAccountingByte
 // This map is writable only by the zygote, and readable by all children.
 class ZygoteMap {
  public:
-  explicit ZygoteMap(JitMemoryRegion* region) : map_(), region_(region) {}
+  explicit ZygoteMap(JitMemoryRegion* region)
+      : map_(), region_(region), compilation_state_(nullptr) {}
 
   // Initialize the data structure so it can hold `number_of_methods` mappings.
   // Note that the map is fixed size and never grows.
@@ -106,6 +123,23 @@ class ZygoteMap {
     return GetCodeFor(method) != nullptr;
   }
 
+  void SetCompilationState(ZygoteCompilationState state) {
+    region_->WriteData(compilation_state_, state);
+  }
+
+  bool IsCompilationDoneButNotNotified() const {
+    return compilation_state_ != nullptr && *compilation_state_ == ZygoteCompilationState::kDone;
+  }
+
+  bool IsCompilationNotified() const {
+    return compilation_state_ != nullptr && *compilation_state_ > ZygoteCompilationState::kDone;
+  }
+
+  bool CanMapBootImageMethods() const {
+    return compilation_state_ != nullptr &&
+           *compilation_state_ == ZygoteCompilationState::kNotifiedOk;
+  }
+
  private:
   struct Entry {
     ArtMethod* method;
@@ -116,10 +150,14 @@ class ZygoteMap {
   };
 
   // The map allocated with `region_`.
-  ArrayRef<Entry> map_;
+  ArrayRef<const Entry> map_;
 
   // The region in which the map is allocated.
   JitMemoryRegion* const region_;
+
+  // The current state of compilation in the zygote. Starts with kInProgress,
+  // and should end with kNotifiedOk or kNotifiedFailure.
+  const ZygoteCompilationState* compilation_state_;
 
   DISALLOW_COPY_AND_ASSIGN(ZygoteMap);
 };
@@ -146,6 +184,7 @@ class JitCodeCache {
                            Thread* self,
                            bool osr,
                            bool prejit,
+                           bool baseline,
                            JitMemoryRegion* region)
       REQUIRES_SHARED(Locks::mutator_lock_)
       REQUIRES(!Locks::jit_lock_);
@@ -170,27 +209,6 @@ class JitCodeCache {
       REQUIRES_SHARED(Locks::mutator_lock_)
       REQUIRES(!Locks::jit_lock_);
 
-  // Allocate and write code and its metadata to the code cache.
-  // `cha_single_implementation_list` needs to be registered via CHA (if it's
-  // still valid), since the compiled code still needs to be invalidated if the
-  // single-implementation assumptions are violated later. This needs to be done
-  // even if `has_should_deoptimize_flag` is false, which can happen due to CHA
-  // guard elimination.
-  uint8_t* CommitCode(Thread* self,
-                      JitMemoryRegion* region,
-                      ArtMethod* method,
-                      const uint8_t* code,
-                      size_t code_size,
-                      const uint8_t* stack_map,
-                      size_t stack_map_size,
-                      uint8_t* roots_data,
-                      const std::vector<Handle<mirror::Object>>& roots,
-                      bool osr,
-                      bool has_should_deoptimize_flag,
-                      const ArenaSet<ArtMethod*>& cha_single_implementation_list)
-      REQUIRES_SHARED(Locks::mutator_lock_)
-      REQUIRES(!Locks::jit_lock_);
-
   // Return true if the code cache contains this pc.
   bool ContainsPc(const void* pc) const;
 
@@ -204,20 +222,42 @@ class JitCodeCache {
   // Return the code pointer for a JNI-compiled stub if the method is in the cache, null otherwise.
   const void* GetJniStubCode(ArtMethod* method) REQUIRES(!Locks::jit_lock_);
 
-  // Allocate a region of data that will contain a stack map of size `stack_map_size` and
-  // `number_of_roots` roots accessed by the JIT code.
-  // Return a pointer to where roots will be stored.
-  uint8_t* ReserveData(Thread* self,
-                       JitMemoryRegion* region,
-                       size_t stack_map_size,
-                       size_t number_of_roots,
-                       ArtMethod* method)
+  // Allocate a region for both code and data in the JIT code cache.
+  // The reserved memory is left completely uninitialized.
+  bool Reserve(Thread* self,
+               JitMemoryRegion* region,
+               size_t code_size,
+               size_t stack_map_size,
+               size_t number_of_roots,
+               ArtMethod* method,
+               /*out*/ArrayRef<const uint8_t>* reserved_code,
+               /*out*/ArrayRef<const uint8_t>* reserved_data)
       REQUIRES_SHARED(Locks::mutator_lock_)
       REQUIRES(!Locks::jit_lock_);
 
-  // Clear data from the data portion of the code cache.
-  void ClearData(
-      Thread* self, JitMemoryRegion* region, uint8_t* roots_data)
+  // Initialize code and data of previously allocated memory.
+  //
+  // `cha_single_implementation_list` needs to be registered via CHA (if it's
+  // still valid), since the compiled code still needs to be invalidated if the
+  // single-implementation assumptions are violated later. This needs to be done
+  // even if `has_should_deoptimize_flag` is false, which can happen due to CHA
+  // guard elimination.
+  bool Commit(Thread* self,
+              JitMemoryRegion* region,
+              ArtMethod* method,
+              ArrayRef<const uint8_t> reserved_code,  // Uninitialized destination.
+              ArrayRef<const uint8_t> code,           // Compiler output (source).
+              ArrayRef<const uint8_t> reserved_data,  // Uninitialized destination.
+              const std::vector<Handle<mirror::Object>>& roots,
+              ArrayRef<const uint8_t> stack_map,      // Compiler output (source).
+              bool osr,
+              bool has_should_deoptimize_flag,
+              const ArenaSet<ArtMethod*>& cha_single_implementation_list)
+      REQUIRES_SHARED(Locks::mutator_lock_)
+      REQUIRES(!Locks::jit_lock_);
+
+  // Free the previously allocated memory regions.
+  void Free(Thread* self, JitMemoryRegion* region, const uint8_t* code, const uint8_t* data)
       REQUIRES_SHARED(Locks::mutator_lock_)
       REQUIRES(!Locks::jit_lock_);
 
@@ -271,6 +311,10 @@ class JitCodeCache {
   // Adds to `methods` all profiled methods which are part of any of the given dex locations.
   void GetProfiledMethods(const std::set<std::string>& dex_base_locations,
                           std::vector<ProfileMethodInfo>& methods)
+      REQUIRES(!Locks::jit_lock_)
+      REQUIRES_SHARED(Locks::mutator_lock_);
+
+  void InvalidateAllCompiledCode()
       REQUIRES(!Locks::jit_lock_)
       REQUIRES_SHARED(Locks::mutator_lock_);
 
@@ -342,23 +386,6 @@ class JitCodeCache {
  private:
   JitCodeCache();
 
-  // Internal version of 'CommitCode' that will not retry if the
-  // allocation fails. Return null if the allocation fails.
-  uint8_t* CommitCodeInternal(Thread* self,
-                              JitMemoryRegion* region,
-                              ArtMethod* method,
-                              const uint8_t* code,
-                              size_t code_size,
-                              const uint8_t* stack_map,
-                              size_t stack_map_size,
-                              uint8_t* roots_data,
-                              const std::vector<Handle<mirror::Object>>& roots,
-                              bool osr,
-                              bool has_should_deoptimize_flag,
-                              const ArenaSet<ArtMethod*>& cha_single_implementation_list)
-      REQUIRES(!Locks::jit_lock_)
-      REQUIRES_SHARED(Locks::mutator_lock_);
-
   ProfilingInfo* AddProfilingInfoInternal(Thread* self,
                                           ArtMethod* method,
                                           const std::vector<uint32_t>& entries)
@@ -388,7 +415,8 @@ class JitCodeCache {
       REQUIRES(Locks::mutator_lock_);
 
   // Free code and data allocations for `code_ptr`.
-  void FreeCodeAndData(const void* code_ptr) REQUIRES(Locks::jit_lock_);
+  void FreeCodeAndData(const void* code_ptr, bool free_debug_info = true)
+      REQUIRES(Locks::jit_lock_);
 
   // Number of bytes allocated in the code cache.
   size_t CodeCacheSize() REQUIRES(!Locks::jit_lock_);

@@ -25,11 +25,13 @@
 #include "object-inl.h"
 #include "object.h"
 #include "object_array-inl.h"
+#include "reflective_value_visitor.h"
 #include "runtime.h"
 #include "runtime_globals.h"
 #include "string.h"
 #include "thread.h"
 #include "utils/dex_cache_arrays_layout-inl.h"
+#include "write_barrier.h"
 
 namespace art {
 namespace mirror {
@@ -170,6 +172,47 @@ void DexCache::InitializeDexCache(Thread* self,
                   num_method_types,
                   call_sites,
                   dex_file->NumCallSiteIds());
+}
+
+void DexCache::VisitReflectiveTargets(ReflectiveValueVisitor* visitor) {
+  bool wrote = false;
+  for (size_t i = 0; i < NumResolvedFields(); i++) {
+    auto pair(GetNativePairPtrSize(GetResolvedFields(), i, kRuntimePointerSize));
+    if (pair.index == FieldDexCachePair::InvalidIndexForSlot(i)) {
+      continue;
+    }
+    ArtField* new_val = visitor->VisitField(
+        pair.object, DexCacheSourceInfo(kSourceDexCacheResolvedField, pair.index, this));
+    if (UNLIKELY(new_val != pair.object)) {
+      if (new_val == nullptr) {
+        pair = FieldDexCachePair(nullptr, FieldDexCachePair::InvalidIndexForSlot(i));
+      } else {
+        pair.object = new_val;
+      }
+      SetNativePairPtrSize(GetResolvedFields(), i, pair, kRuntimePointerSize);
+      wrote = true;
+    }
+  }
+  for (size_t i = 0; i < NumResolvedMethods(); i++) {
+    auto pair(GetNativePairPtrSize(GetResolvedMethods(), i, kRuntimePointerSize));
+    if (pair.index == MethodDexCachePair::InvalidIndexForSlot(i)) {
+      continue;
+    }
+    ArtMethod* new_val = visitor->VisitMethod(
+        pair.object, DexCacheSourceInfo(kSourceDexCacheResolvedMethod, pair.index, this));
+    if (UNLIKELY(new_val != pair.object)) {
+      if (new_val == nullptr) {
+        pair = MethodDexCachePair(nullptr, MethodDexCachePair::InvalidIndexForSlot(i));
+      } else {
+        pair.object = new_val;
+      }
+      SetNativePairPtrSize(GetResolvedMethods(), i, pair, kRuntimePointerSize);
+      wrote = true;
+    }
+  }
+  if (wrote) {
+    WriteBarrier::ForEveryFieldWrite(this);
+  }
 }
 
 bool DexCache::AddPreResolvedStringsArray() {

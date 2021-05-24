@@ -299,9 +299,13 @@ const char* select_execution_binary(
 // Namespace for Android Runtime flags applied during boot time.
 static const char* RUNTIME_NATIVE_BOOT_NAMESPACE = "runtime_native_boot";
 // Feature flag name for running the JIT in Zygote experiment, b/119800099.
-static const char* ENABLE_APEX_IMAGE = "enable_apex_image";
-// Location of the apex image.
-static const char* kApexImage = "/system/framework/apex.art";
+static const char* ENABLE_JITZYGOTE_IMAGE = "enable_apex_image";
+// Location of the JIT Zygote image.
+static const char* kJitZygoteImage =
+    "boot.art:/nonx/boot-framework.art!/system/etc/boot-image.prof";
+
+// Phenotype property name for enabling profiling the boot class path.
+static const char* PROFILE_BOOT_CLASS_PATH = "profilebootclasspath";
 
 class RunDex2Oat : public ExecVHelper {
   public:
@@ -336,6 +340,10 @@ class RunDex2Oat : public ExecVHelper {
                 ? "dalvik.vm.dex2oat-threads"
                 : "dalvik.vm.boot-dex2oat-threads";
         std::string dex2oat_threads_arg = MapPropertyToArg(threads_property, "-j%s");
+        const char* cpu_set_property = post_bootcomplete
+                ? "dalvik.vm.dex2oat-cpu-set"
+                : "dalvik.vm.boot-dex2oat-cpu-set";
+        std::string dex2oat_cpu_set_arg = MapPropertyToArg(cpu_set_property, "--cpu-set=%s");
 
         std::string bootclasspath;
         char* dex2oat_bootclasspath = getenv("DEX2OATBOOTCLASSPATH");
@@ -398,14 +406,22 @@ class RunDex2Oat : public ExecVHelper {
                 GetBoolProperty(kMinidebugInfoSystemProperty, kMinidebugInfoSystemPropertyDefault);
 
         std::string boot_image;
-        std::string use_apex_image =
+        std::string use_jitzygote_image =
             server_configurable_flags::GetServerConfigurableFlag(RUNTIME_NATIVE_BOOT_NAMESPACE,
-                                                                 ENABLE_APEX_IMAGE,
+                                                                 ENABLE_JITZYGOTE_IMAGE,
                                                                  /*default_value=*/ "");
-        if (use_apex_image == "true") {
-          boot_image = StringPrintf("-Ximage:%s", kApexImage);
+
+        std::string profile_boot_class_path = GetProperty("dalvik.vm.profilebootclasspath", "");
+        profile_boot_class_path =
+            server_configurable_flags::GetServerConfigurableFlag(
+                RUNTIME_NATIVE_BOOT_NAMESPACE,
+                PROFILE_BOOT_CLASS_PATH,
+                /*default_value=*/ profile_boot_class_path);
+
+        if (use_jitzygote_image == "true" || profile_boot_class_path == "true") {
+          boot_image = StringPrintf("--boot-image=%s", kJitZygoteImage);
         } else {
-          boot_image = MapPropertyToArg("dalvik.vm.boot-image", "-Ximage:%s");
+          boot_image = MapPropertyToArg("dalvik.vm.boot-image", "--boot-image=%s");
         }
 
         // clang FORTIFY doesn't let us use strlen in constant array bounds, so we
@@ -498,7 +514,8 @@ class RunDex2Oat : public ExecVHelper {
         AddArg(instruction_set_variant_arg);
         AddArg(instruction_set_features_arg);
 
-        AddRuntimeArg(boot_image);
+        AddArg(boot_image);
+
         AddRuntimeArg(bootclasspath);
         AddRuntimeArg(dex2oat_Xms_arg);
         AddRuntimeArg(dex2oat_Xmx_arg);
@@ -507,6 +524,7 @@ class RunDex2Oat : public ExecVHelper {
         AddArg(image_block_size_arg);
         AddArg(dex2oat_compiler_filter_arg);
         AddArg(dex2oat_threads_arg);
+        AddArg(dex2oat_cpu_set_arg);
         AddArg(dex2oat_swap_fd);
         AddArg(dex2oat_image_fd);
 
@@ -697,11 +715,13 @@ static void open_profile_files(uid_t uid, const std::string& package_name,
     }
 }
 
-static constexpr int PROFMAN_BIN_RETURN_CODE_COMPILE = 0;
-static constexpr int PROFMAN_BIN_RETURN_CODE_SKIP_COMPILATION = 1;
-static constexpr int PROFMAN_BIN_RETURN_CODE_BAD_PROFILES = 2;
-static constexpr int PROFMAN_BIN_RETURN_CODE_ERROR_IO = 3;
-static constexpr int PROFMAN_BIN_RETURN_CODE_ERROR_LOCKING = 4;
+static constexpr int PROFMAN_BIN_RETURN_CODE_SUCCESS = 0;
+static constexpr int PROFMAN_BIN_RETURN_CODE_COMPILE = 1;
+static constexpr int PROFMAN_BIN_RETURN_CODE_SKIP_COMPILATION = 2;
+static constexpr int PROFMAN_BIN_RETURN_CODE_BAD_PROFILES = 3;
+static constexpr int PROFMAN_BIN_RETURN_CODE_ERROR_IO = 4;
+static constexpr int PROFMAN_BIN_RETURN_CODE_ERROR_LOCKING = 5;
+static constexpr int PROFMAN_BIN_RETURN_CODE_ERROR_DIFFERENT_VERSIONS = 6;
 
 class RunProfman : public ExecVHelper {
   public:
@@ -710,7 +730,8 @@ class RunProfman : public ExecVHelper {
                   const std::vector<unique_fd>& apk_fds,
                   const std::vector<std::string>& dex_locations,
                   bool copy_and_update,
-                  bool store_aggregation_counters) {
+                  bool for_snapshot,
+                  bool for_boot_image) {
 
         // TODO(calin): Assume for now we run in the bg compile job (which is in
         // most of the invocation). With the current data flow, is not very easy or
@@ -742,8 +763,12 @@ class RunProfman : public ExecVHelper {
             AddArg("--copy-and-update-profile-key");
         }
 
-        if (store_aggregation_counters) {
-            AddArg("--store-aggregation-counters");
+        if (for_snapshot) {
+            AddArg("--force-merge");
+        }
+
+        if (for_boot_image) {
+            AddArg("--boot-image-merge");
         }
 
         // Do not add after dex2oat_flags, they should override others for debugging.
@@ -754,13 +779,15 @@ class RunProfman : public ExecVHelper {
                     const unique_fd& reference_profile_fd,
                     const std::vector<unique_fd>& apk_fds = std::vector<unique_fd>(),
                     const std::vector<std::string>& dex_locations = std::vector<std::string>(),
-                    bool store_aggregation_counters = false) {
+                    bool for_snapshot = false,
+                    bool for_boot_image = false) {
         SetupArgs(profiles_fd,
                   reference_profile_fd,
                   apk_fds,
                   dex_locations,
-                  /*copy_and_update=*/false,
-                  store_aggregation_counters);
+                  /*copy_and_update=*/ false,
+                  for_snapshot,
+                  for_boot_image);
     }
 
     void SetupCopyAndUpdate(unique_fd&& profile_fd,
@@ -778,7 +805,8 @@ class RunProfman : public ExecVHelper {
                   apk_fds_,
                   dex_locations,
                   /*copy_and_update=*/true,
-                  /*store_aggregation_counters=*/false);
+                  /*for_snapshot*/false,
+                  /*for_boot_image*/false);
     }
 
     void SetupDump(const std::vector<unique_fd>& profiles_fd,
@@ -793,7 +821,8 @@ class RunProfman : public ExecVHelper {
                   apk_fds,
                   dex_locations,
                   /*copy_and_update=*/false,
-                  /*store_aggregation_counters=*/false);
+                  /*for_snapshot*/false,
+                  /*for_boot_image*/false);
     }
 
     void Exec() {
@@ -868,9 +897,14 @@ static bool analyze_profiles(uid_t uid, const std::string& package_name,
                 should_clear_current_profiles = false;
                 should_clear_reference_profile = false;
                 break;
+            case PROFMAN_BIN_RETURN_CODE_ERROR_DIFFERENT_VERSIONS:
+                need_to_compile = false;
+                should_clear_current_profiles = true;
+                should_clear_reference_profile = true;
+                break;
            default:
                 // Unknown return code or error. Unlink profiles.
-                LOG(WARNING) << "Unknown error code while processing profiles for location "
+                LOG(WARNING) << "Unexpected error code while processing profiles for location "
                         << location << ": " << return_code;
                 need_to_compile = false;
                 should_clear_current_profiles = true;
@@ -2739,7 +2773,7 @@ static bool create_app_profile_snapshot(int32_t app_id,
     }
 
     RunProfman args;
-    args.SetupMerge(profiles_fd, snapshot_fd, apk_fds, dex_locations);
+    args.SetupMerge(profiles_fd, snapshot_fd, apk_fds, dex_locations, /*for_snapshot=*/true);
     pid_t pid = fork();
     if (pid == 0) {
         /* child -- drop privileges before continuing */
@@ -2754,6 +2788,13 @@ static bool create_app_profile_snapshot(int32_t app_id,
         return false;
     }
 
+    // Verify that profman finished successfully.
+    int profman_code = WEXITSTATUS(return_code);
+    if (profman_code != PROFMAN_BIN_RETURN_CODE_SUCCESS) {
+        LOG(WARNING) << "profman error for " << package_name << ":" << profile_name
+                << ":" << profman_code;
+        return false;
+    }
     return true;
 }
 
@@ -2816,20 +2857,29 @@ static bool create_boot_image_profile_snapshot(const std::string& package_name,
     // We do this to avoid opening a huge a amount of files.
     static constexpr size_t kAggregationBatchSize = 10;
 
-    std::vector<unique_fd> profiles_fd;
     for (size_t i = 0; i < profiles.size(); )  {
+        std::vector<unique_fd> profiles_fd;
         for (size_t k = 0; k < kAggregationBatchSize && i < profiles.size(); k++, i++) {
             unique_fd fd = open_profile(AID_SYSTEM, profiles[i], O_RDONLY);
             if (fd.get() >= 0) {
                 profiles_fd.push_back(std::move(fd));
             }
         }
+
+        // We aggregate (read & write) into the same fd multiple times in a row.
+        // We need to reset the cursor every time to ensure we read the whole file every time.
+        if (TEMP_FAILURE_RETRY(lseek(snapshot_fd, 0, SEEK_SET)) == static_cast<off_t>(-1)) {
+            PLOG(ERROR) << "Cannot reset position for snapshot profile";
+            return false;
+        }
+
         RunProfman args;
         args.SetupMerge(profiles_fd,
                         snapshot_fd,
                         apk_fds,
                         dex_locations,
-                        /*store_aggregation_counters=*/true);
+                        /*for_snapshot=*/true,
+                        /*for_boot_image=*/true);
         pid_t pid = fork();
         if (pid == 0) {
             /* child -- drop privileges before continuing */
@@ -2842,12 +2892,21 @@ static bool create_boot_image_profile_snapshot(const std::string& package_name,
 
         /* parent */
         int return_code = wait_child(pid);
+
         if (!WIFEXITED(return_code)) {
             PLOG(WARNING) << "profman failed for " << package_name << ":" << profile_name;
             return false;
         }
-        return true;
+
+        // Verify that profman finished successfully.
+        int profman_code = WEXITSTATUS(return_code);
+        if (profman_code != PROFMAN_BIN_RETURN_CODE_SUCCESS) {
+            LOG(WARNING) << "profman error for " << package_name << ":" << profile_name
+                    << ":" << profman_code;
+            return false;
+        }
     }
+
     return true;
 }
 

@@ -116,11 +116,13 @@ class unique_fd_impl final {
   bool operator<(int rhs) const { return get() < rhs; }
   bool operator==(int rhs) const { return get() == rhs; }
   bool operator!=(int rhs) const { return get() != rhs; }
+  bool operator==(const unique_fd_impl& rhs) const { return get() == rhs.get(); }
+  bool operator!=(const unique_fd_impl& rhs) const { return get() != rhs.get(); }
 
   // Catch bogus error checks (i.e.: "!fd" instead of "fd != -1").
   bool operator!() const = delete;
 
-  bool ok() const { return get() != -1; }
+  bool ok() const { return get() >= 0; }
 
   int release() __attribute__((warn_unused_result)) {
     tag(fd_, this, nullptr);

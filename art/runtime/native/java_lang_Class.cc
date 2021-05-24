@@ -39,6 +39,7 @@
 #include "mirror/object-inl.h"
 #include "mirror/object_array-alloc-inl.h"
 #include "mirror/object_array-inl.h"
+#include "mirror/proxy.h"
 #include "mirror/string-alloc-inl.h"
 #include "mirror/string-inl.h"
 #include "native_util.h"
@@ -48,18 +49,24 @@
 #include "nth_caller_visitor.h"
 #include "obj_ptr-inl.h"
 #include "reflection.h"
+#include "reflective_handle_scope-inl.h"
 #include "scoped_fast_native_object_access-inl.h"
 #include "scoped_thread_state_change-inl.h"
 #include "well_known_classes.h"
 
 namespace art {
 
+// Should be the same as dalvik.system.VMRuntime.PREVENT_META_REFLECTION_BLACKLIST_ACCESS.
+// Corresponds to a bug id.
+static constexpr uint64_t kPreventMetaReflectionBlacklistAccess = 142365358;
+
 // Walks the stack, finds the caller of this reflective call and returns
 // a hiddenapi AccessContext formed from its declaring class.
 static hiddenapi::AccessContext GetReflectionCaller(Thread* self)
     REQUIRES_SHARED(Locks::mutator_lock_) {
-  // Walk the stack and find the first frame not from java.lang.Class and not
-  // from java.lang.invoke. This is very expensive. Save this till the last.
+  // Walk the stack and find the first frame not from java.lang.Class,
+  // java.lang.invoke or java.lang.reflect. This is very expensive.
+  // Save this till the last.
   struct FirstExternalCallerVisitor : public StackVisitor {
     explicit FirstExternalCallerVisitor(Thread* thread)
         : StackVisitor(thread, nullptr, StackVisitor::StackWalkKind::kIncludeInlinedFrames),
@@ -91,6 +98,16 @@ static hiddenapi::AccessContext GetReflectionCaller(Thread* self)
         if ((declaring_class == lookup_class || declaring_class->IsInSamePackage(lookup_class))
             && !m->IsClassInitializer()) {
           return true;
+        }
+        // Check for classes in the java.lang.reflect package, except for java.lang.reflect.Proxy.
+        // java.lang.reflect.Proxy does its own hidden api checks (https://r.android.com/915496),
+        // and walking over this frame would cause a null pointer dereference
+        // (e.g. in 691-hiddenapi-proxy).
+        ObjPtr<mirror::Class> proxy_class = GetClassRoot<mirror::Proxy>();
+        if (declaring_class->IsInSamePackage(proxy_class) && declaring_class != proxy_class) {
+          if (Runtime::Current()->isChangeEnabled(kPreventMetaReflectionBlacklistAccess)) {
+            return true;
+          }
         }
       }
 
@@ -218,6 +235,10 @@ static jobjectArray Class_getInterfacesInternal(JNIEnv* env, jobject javaThis) {
   ScopedFastNativeObjectAccess soa(env);
   StackHandleScope<1> hs(soa.Self());
   Handle<mirror::Class> klass = hs.NewHandle(DecodeClass(soa, javaThis));
+  if (klass->IsObsoleteObject()) {
+    ThrowRuntimeException("Obsolete Object!");
+    return nullptr;
+  }
 
   if (klass->IsProxyClass()) {
     StackHandleScope<1> hs2(soa.Self());
@@ -262,6 +283,10 @@ static ObjPtr<mirror::ObjectArray<mirror::Field>> GetDeclaredFields(
     ObjPtr<mirror::Class> klass,
     bool public_only,
     bool force_resolve) REQUIRES_SHARED(Locks::mutator_lock_) {
+  if (UNLIKELY(klass->IsObsoleteObject())) {
+    ThrowRuntimeException("Obsolete Object!");
+    return nullptr;
+  }
   StackHandleScope<1> hs(self);
   IterationRange<StrideIterator<ArtField>> ifields = klass->GetIFields();
   IterationRange<StrideIterator<ArtField>> sfields = klass->GetSFields();
@@ -386,6 +411,10 @@ ALWAYS_INLINE static inline ObjPtr<mirror::Field> GetDeclaredField(Thread* self,
                                                                    ObjPtr<mirror::Class> c,
                                                                    ObjPtr<mirror::String> name)
     REQUIRES_SHARED(Locks::mutator_lock_) {
+  if (UNLIKELY(c->IsObsoleteObject())) {
+    ThrowRuntimeException("Obsolete Object!");
+    return nullptr;
+  }
   ArtField* art_field = FindFieldByName(name, c->GetIFieldsPtr());
   if (art_field != nullptr) {
     return mirror::Field::CreateFromArtField<kRuntimePointerSize>(self, art_field, true);
@@ -404,6 +433,10 @@ static ObjPtr<mirror::Field> GetPublicFieldRecursive(
   DCHECK(name != nullptr);
   DCHECK(self != nullptr);
 
+  if (UNLIKELY(clazz->IsObsoleteObject())) {
+    ThrowRuntimeException("Obsolete Object!");
+    return nullptr;
+  }
   StackHandleScope<2> hs(self);
   MutableHandle<mirror::Class> h_clazz(hs.NewHandle(clazz));
   Handle<mirror::String> h_name(hs.NewHandle(name));
@@ -501,10 +534,15 @@ static jobject Class_getDeclaredConstructorInternal(
   DCHECK(!Runtime::Current()->IsActiveTransaction());
 
   StackHandleScope<1> hs(soa.Self());
+  ObjPtr<mirror::Class> klass = DecodeClass(soa, javaThis);
+  if (UNLIKELY(klass->IsObsoleteObject())) {
+    ThrowRuntimeException("Obsolete Object!");
+    return nullptr;
+  }
   Handle<mirror::Constructor> result = hs.NewHandle(
       mirror::Class::GetDeclaredConstructorInternal<kRuntimePointerSize, false>(
       soa.Self(),
-      DecodeClass(soa, javaThis),
+      klass,
       soa.Decode<mirror::ObjectArray<mirror::Class>>(args)));
   if (result == nullptr || ShouldDenyAccessToMember(result->GetArtMethod(), soa.Self())) {
     return nullptr;
@@ -529,6 +567,10 @@ static jobjectArray Class_getDeclaredConstructorsInternal(
   bool public_only = (publicOnly != JNI_FALSE);
   hiddenapi::AccessContext hiddenapi_context = GetReflectionCaller(soa.Self());
   Handle<mirror::Class> h_klass = hs.NewHandle(DecodeClass(soa, javaThis));
+  if (UNLIKELY(h_klass->IsObsoleteObject())) {
+    ThrowRuntimeException("Obsolete Object!");
+    return nullptr;
+  }
   size_t constructor_count = 0;
   // Two pass approach for speed.
   for (auto& m : h_klass->GetDirectMethods(kRuntimePointerSize)) {
@@ -563,10 +605,15 @@ static jobject Class_getDeclaredMethodInternal(JNIEnv* env, jobject javaThis,
   StackHandleScope<1> hs(soa.Self());
   DCHECK_EQ(Runtime::Current()->GetClassLinker()->GetImagePointerSize(), kRuntimePointerSize);
   DCHECK(!Runtime::Current()->IsActiveTransaction());
+  ObjPtr<mirror::Class> klass = DecodeClass(soa, javaThis);
+  if (UNLIKELY(klass->IsObsoleteObject())) {
+    ThrowRuntimeException("Obsolete Object!");
+    return nullptr;
+  }
   Handle<mirror::Method> result = hs.NewHandle(
       mirror::Class::GetDeclaredMethodInternal<kRuntimePointerSize, false>(
           soa.Self(),
-          DecodeClass(soa, javaThis),
+          klass,
           soa.Decode<mirror::String>(name),
           soa.Decode<mirror::ObjectArray<mirror::Class>>(args),
           GetHiddenapiAccessContextFunction(soa.Self())));
@@ -585,6 +632,10 @@ static jobjectArray Class_getDeclaredMethodsUnchecked(JNIEnv* env, jobject javaT
   bool public_only = (publicOnly != JNI_FALSE);
 
   Handle<mirror::Class> klass = hs.NewHandle(DecodeClass(soa, javaThis));
+  if (klass->IsObsoleteObject()) {
+    ThrowRuntimeException("Obsolete Object!");
+    return nullptr;
+  }
   size_t num_methods = 0;
   for (ArtMethod& m : klass->GetDeclaredMethods(kRuntimePointerSize)) {
     uint32_t modifiers = m.GetAccessFlags();
@@ -623,6 +674,10 @@ static jobject Class_getDeclaredAnnotation(JNIEnv* env, jobject javaThis, jclass
   ScopedFastNativeObjectAccess soa(env);
   StackHandleScope<2> hs(soa.Self());
   Handle<mirror::Class> klass(hs.NewHandle(DecodeClass(soa, javaThis)));
+  if (klass->IsObsoleteObject()) {
+    ThrowRuntimeException("Obsolete Object!");
+    return nullptr;
+  }
 
   // Handle public contract to throw NPE if the "annotationClass" argument was null.
   if (UNLIKELY(annotationClass == nullptr)) {
@@ -642,6 +697,10 @@ static jobjectArray Class_getDeclaredAnnotations(JNIEnv* env, jobject javaThis) 
   ScopedFastNativeObjectAccess soa(env);
   StackHandleScope<1> hs(soa.Self());
   Handle<mirror::Class> klass(hs.NewHandle(DecodeClass(soa, javaThis)));
+  if (klass->IsObsoleteObject()) {
+    ThrowRuntimeException("Obsolete Object!");
+    return nullptr;
+  }
   if (klass->IsProxyClass() || klass->GetDexCache() == nullptr) {
     // Return an empty array instead of a null pointer.
     ObjPtr<mirror::Class>  annotation_array_class =
@@ -659,6 +718,10 @@ static jobjectArray Class_getDeclaredClasses(JNIEnv* env, jobject javaThis) {
   ScopedFastNativeObjectAccess soa(env);
   StackHandleScope<1> hs(soa.Self());
   Handle<mirror::Class> klass(hs.NewHandle(DecodeClass(soa, javaThis)));
+  if (klass->IsObsoleteObject()) {
+    ThrowRuntimeException("Obsolete Object!");
+    return nullptr;
+  }
   ObjPtr<mirror::ObjectArray<mirror::Class>> classes = nullptr;
   if (!klass->IsProxyClass() && klass->GetDexCache() != nullptr) {
     classes = annotations::GetDeclaredClasses(klass);
@@ -682,6 +745,10 @@ static jclass Class_getEnclosingClass(JNIEnv* env, jobject javaThis) {
   ScopedFastNativeObjectAccess soa(env);
   StackHandleScope<1> hs(soa.Self());
   Handle<mirror::Class> klass(hs.NewHandle(DecodeClass(soa, javaThis)));
+  if (klass->IsObsoleteObject()) {
+    ThrowRuntimeException("Obsolete Object!");
+    return nullptr;
+  }
   if (klass->IsProxyClass() || klass->GetDexCache() == nullptr) {
     return nullptr;
   }
@@ -692,6 +759,10 @@ static jobject Class_getEnclosingConstructorNative(JNIEnv* env, jobject javaThis
   ScopedFastNativeObjectAccess soa(env);
   StackHandleScope<1> hs(soa.Self());
   Handle<mirror::Class> klass(hs.NewHandle(DecodeClass(soa, javaThis)));
+  if (klass->IsObsoleteObject()) {
+    ThrowRuntimeException("Obsolete Object!");
+    return nullptr;
+  }
   if (klass->IsProxyClass() || klass->GetDexCache() == nullptr) {
     return nullptr;
   }
@@ -708,6 +779,10 @@ static jobject Class_getEnclosingMethodNative(JNIEnv* env, jobject javaThis) {
   ScopedFastNativeObjectAccess soa(env);
   StackHandleScope<1> hs(soa.Self());
   Handle<mirror::Class> klass(hs.NewHandle(DecodeClass(soa, javaThis)));
+  if (klass->IsObsoleteObject()) {
+    ThrowRuntimeException("Obsolete Object!");
+    return nullptr;
+  }
   if (klass->IsProxyClass() || klass->GetDexCache() == nullptr) {
     return nullptr;
   }
@@ -724,6 +799,10 @@ static jint Class_getInnerClassFlags(JNIEnv* env, jobject javaThis, jint default
   ScopedFastNativeObjectAccess soa(env);
   StackHandleScope<1> hs(soa.Self());
   Handle<mirror::Class> klass(hs.NewHandle(DecodeClass(soa, javaThis)));
+  if (klass->IsObsoleteObject()) {
+    ThrowRuntimeException("Obsolete Object!");
+    return 0;
+  }
   return mirror::Class::GetInnerClassFlags(klass, defaultValue);
 }
 
@@ -731,6 +810,10 @@ static jstring Class_getInnerClassName(JNIEnv* env, jobject javaThis) {
   ScopedFastNativeObjectAccess soa(env);
   StackHandleScope<1> hs(soa.Self());
   Handle<mirror::Class> klass(hs.NewHandle(DecodeClass(soa, javaThis)));
+  if (klass->IsObsoleteObject()) {
+    ThrowRuntimeException("Obsolete Object!");
+    return nullptr;
+  }
   if (klass->IsProxyClass() || klass->GetDexCache() == nullptr) {
     return nullptr;
   }
@@ -745,6 +828,10 @@ static jobjectArray Class_getSignatureAnnotation(JNIEnv* env, jobject javaThis) 
   ScopedFastNativeObjectAccess soa(env);
   StackHandleScope<1> hs(soa.Self());
   Handle<mirror::Class> klass(hs.NewHandle(DecodeClass(soa, javaThis)));
+  if (klass->IsObsoleteObject()) {
+    ThrowRuntimeException("Obsolete Object!");
+    return nullptr;
+  }
   if (klass->IsProxyClass() || klass->GetDexCache() == nullptr) {
     return nullptr;
   }
@@ -756,6 +843,10 @@ static jboolean Class_isAnonymousClass(JNIEnv* env, jobject javaThis) {
   ScopedFastNativeObjectAccess soa(env);
   StackHandleScope<1> hs(soa.Self());
   Handle<mirror::Class> klass(hs.NewHandle(DecodeClass(soa, javaThis)));
+  if (klass->IsObsoleteObject()) {
+    ThrowRuntimeException("Obsolete Object!");
+    return 0;
+  }
   if (klass->IsProxyClass() || klass->GetDexCache() == nullptr) {
     return false;
   }
@@ -771,6 +862,10 @@ static jboolean Class_isDeclaredAnnotationPresent(JNIEnv* env, jobject javaThis,
   ScopedFastNativeObjectAccess soa(env);
   StackHandleScope<2> hs(soa.Self());
   Handle<mirror::Class> klass(hs.NewHandle(DecodeClass(soa, javaThis)));
+  if (klass->IsObsoleteObject()) {
+    ThrowRuntimeException("Obsolete Object!");
+    return false;
+  }
   if (klass->IsProxyClass() || klass->GetDexCache() == nullptr) {
     return false;
   }
@@ -782,6 +877,10 @@ static jclass Class_getDeclaringClass(JNIEnv* env, jobject javaThis) {
   ScopedFastNativeObjectAccess soa(env);
   StackHandleScope<1> hs(soa.Self());
   Handle<mirror::Class> klass(hs.NewHandle(DecodeClass(soa, javaThis)));
+  if (klass->IsObsoleteObject()) {
+    ThrowRuntimeException("Obsolete Object!");
+    return nullptr;
+  }
   if (klass->IsProxyClass() || klass->GetDexCache() == nullptr) {
     return nullptr;
   }
@@ -796,6 +895,10 @@ static jobject Class_newInstance(JNIEnv* env, jobject javaThis) {
   ScopedFastNativeObjectAccess soa(env);
   StackHandleScope<4> hs(soa.Self());
   Handle<mirror::Class> klass = hs.NewHandle(DecodeClass(soa, javaThis));
+  if (klass->IsObsoleteObject()) {
+    ThrowRuntimeException("Obsolete Object!");
+    return nullptr;
+  }
   if (UNLIKELY(klass->GetPrimitiveType() != 0 || klass->IsInterface() || klass->IsArrayClass() ||
                klass->IsAbstract())) {
     soa.Self()->ThrowNewExceptionF("Ljava/lang/InstantiationException;",
@@ -814,11 +917,10 @@ static jobject Class_newInstance(JNIEnv* env, jobject javaThis) {
       return nullptr;
     }
   }
-  ArtMethod* constructor = klass->GetDeclaredConstructor(
-      soa.Self(),
-      ScopedNullHandle<mirror::ObjectArray<mirror::Class>>(),
-      kRuntimePointerSize);
-  if (UNLIKELY(constructor == nullptr) || ShouldDenyAccessToMember(constructor, soa.Self())) {
+  StackArtMethodHandleScope<1> mhs(soa.Self());
+  ReflectiveHandle<ArtMethod> constructor(mhs.NewMethodHandle(klass->GetDeclaredConstructor(
+      soa.Self(), ScopedNullHandle<mirror::ObjectArray<mirror::Class>>(), kRuntimePointerSize)));
+  if (UNLIKELY(constructor == nullptr) || ShouldDenyAccessToMember(constructor.Get(), soa.Self())) {
     soa.Self()->ThrowNewExceptionF("Ljava/lang/InstantiationException;",
                                    "%s has no zero argument constructor",
                                    klass->PrettyClass().c_str());
@@ -846,9 +948,9 @@ static jobject Class_newInstance(JNIEnv* env, jobject javaThis) {
       caller.Assign(GetCallingClass(soa.Self(), 1));
     }
     if (UNLIKELY(caller != nullptr && !VerifyAccess(receiver.Get(),
-                                                          declaring_class,
-                                                          constructor->GetAccessFlags(),
-                                                          caller.Get()))) {
+                                                    declaring_class,
+                                                    constructor->GetAccessFlags(),
+                                                    caller.Get()))) {
       soa.Self()->ThrowNewExceptionF(
           "Ljava/lang/IllegalAccessException;", "%s is not accessible from %s",
           constructor->PrettyMethod().c_str(), caller->PrettyClass().c_str());
@@ -856,12 +958,15 @@ static jobject Class_newInstance(JNIEnv* env, jobject javaThis) {
     }
   }
   // Ensure that we are initialized.
-  if (UNLIKELY(!declaring_class->IsInitialized())) {
-    if (!Runtime::Current()->GetClassLinker()->EnsureInitialized(
-        soa.Self(), hs.NewHandle(declaring_class), true, true)) {
-      soa.Self()->AssertPendingException();
+  if (UNLIKELY(!declaring_class->IsVisiblyInitialized())) {
+    Thread* self = soa.Self();
+    Handle<mirror::Class> h_class = hs.NewHandle(declaring_class);
+    if (UNLIKELY(!Runtime::Current()->GetClassLinker()->EnsureInitialized(
+                      self, h_class, /*can_init_fields=*/ true, /*can_init_parents=*/ true))) {
+      DCHECK(self->IsExceptionPending());
       return nullptr;
     }
+    DCHECK(h_class->IsInitializing());
   }
   // Invoke the constructor.
   JValue result;

@@ -150,6 +150,14 @@ enum AHardwareBuffer_Format {
      *   OpenGL ES: GL_STENCIL_INDEX8
      */
     AHARDWAREBUFFER_FORMAT_S8_UINT                  = 0x35,
+
+    /**
+     * YUV 420 888 format.
+     * Must have an even width and height. Can be accessed in OpenGL
+     * shaders through an external sampler. Does not support mip-maps
+     * cube-maps or multi-layered textures.
+     */
+    AHARDWAREBUFFER_FORMAT_Y8Cb8Cr8_420             = 0x23,
 };
 
 /**
@@ -194,6 +202,8 @@ enum AHardwareBuffer_UsageFlags {
 
     /// The buffer will be read from by the GPU as a texture.
     AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE      = 1UL << 8,
+    /// The buffer will be written to by the GPU as a framebuffer attachment.
+    AHARDWAREBUFFER_USAGE_GPU_FRAMEBUFFER        = 1UL << 9,
     /**
      * The buffer will be written to by the GPU as a framebuffer
      * attachment.
@@ -201,9 +211,21 @@ enum AHardwareBuffer_UsageFlags {
      * Note that the name of this flag is somewhat misleading: it does
      * not imply that the buffer contains a color format. A buffer with
      * depth or stencil format that will be used as a framebuffer
-     * attachment should also have this flag.
+     * attachment should also have this flag. Use the equivalent flag
+     * AHARDWAREBUFFER_USAGE_GPU_FRAMEBUFFER to avoid this confusion.
      */
-    AHARDWAREBUFFER_USAGE_GPU_COLOR_OUTPUT       = 1UL << 9,
+    AHARDWAREBUFFER_USAGE_GPU_COLOR_OUTPUT       = AHARDWAREBUFFER_USAGE_GPU_FRAMEBUFFER,
+    /**
+     * The buffer will be used as a composer HAL overlay layer.
+     *
+     * This flag is currently only needed when using ASurfaceTransaction_setBuffer
+     * to set a buffer. In all other cases, the framework adds this flag
+     * internally to buffers that could be presented in a composer overlay.
+     * ASurfaceTransaction_setBuffer is special because it uses buffers allocated
+     * directly through AHardwareBuffer_allocate instead of buffers allocated
+     * by the framework.
+     */
+    AHARDWAREBUFFER_USAGE_COMPOSER_OVERLAY       = 1ULL << 11,
     /**
      * The buffer is protected from direct CPU access or being read by
      * non-secure hardware, such as video encoders.
@@ -288,6 +310,24 @@ typedef struct AHardwareBuffer_Desc {
 } AHardwareBuffer_Desc;
 
 /**
+ * Holds data for a single image plane.
+ */
+typedef struct AHardwareBuffer_Plane {
+    void*       data;        ///< Points to first byte in plane
+    uint32_t    pixelStride; ///< Distance in bytes from the color channel of one pixel to the next
+    uint32_t    rowStride;   ///< Distance in bytes from the first value of one row of the image to
+                             ///  the first value of the next row.
+} AHardwareBuffer_Plane;
+
+/**
+ * Holds all image planes that contain the pixel data.
+ */
+typedef struct AHardwareBuffer_Planes {
+    uint32_t               planeCount; ///< Number of distinct planes
+    AHardwareBuffer_Plane  planes[4];     ///< Array of image planes
+} AHardwareBuffer_Planes;
+
+/**
  * Opaque handle for a native hardware buffer.
  */
 typedef struct AHardwareBuffer AHardwareBuffer;
@@ -302,6 +342,8 @@ typedef struct AHardwareBuffer AHardwareBuffer;
  * not compatible with its usage flags, the results are undefined and
  * may include program termination.
  *
+ * Available since API level 26.
+ *
  * \return 0 on success, or an error number of the allocation fails for
  * any reason. The returned buffer has a reference count of 1.
  */
@@ -312,18 +354,24 @@ int AHardwareBuffer_allocate(const AHardwareBuffer_Desc* desc,
  *
  * This prevents the object from being deleted until the last reference
  * is removed.
+ *
+ * Available since API level 26.
  */
 void AHardwareBuffer_acquire(AHardwareBuffer* buffer) __INTRODUCED_IN(26);
 
 /**
  * Remove a reference that was previously acquired with
  * AHardwareBuffer_acquire() or AHardwareBuffer_allocate().
+ *
+ * Available since API level 26.
  */
 void AHardwareBuffer_release(AHardwareBuffer* buffer) __INTRODUCED_IN(26);
 
 /**
  * Return a description of the AHardwareBuffer in the passed
  * AHardwareBuffer_Desc struct.
+ *
+ * Available since API level 26.
  */
 void AHardwareBuffer_describe(const AHardwareBuffer* buffer,
         AHardwareBuffer_Desc* outDesc) __INTRODUCED_IN(26);
@@ -373,6 +421,8 @@ void AHardwareBuffer_describe(const AHardwareBuffer* buffer,
  * simultaneously, and the contents of the buffer behave like shared
  * memory.
  *
+ * Available since API level 26.
+ *
  * \return 0 on success. -EINVAL if \a buffer is NULL, the usage flags
  * are not a combination of AHARDWAREBUFFER_USAGE_CPU_*, or the buffer
  * has more than one layer. Error number if the lock fails for any other
@@ -380,6 +430,36 @@ void AHardwareBuffer_describe(const AHardwareBuffer* buffer,
  */
 int AHardwareBuffer_lock(AHardwareBuffer* buffer, uint64_t usage,
         int32_t fence, const ARect* rect, void** outVirtualAddress) __INTRODUCED_IN(26);
+
+/**
+ * Lock a potentially multi-planar AHardwareBuffer for direct CPU access.
+ *
+ * This function is similar to AHardwareBuffer_lock, but can lock multi-planar
+ * formats. The locked planes are returned in the \a outPlanes argument. Note,
+ * that multi-planar should not be confused with multi-layer images, which this
+ * locking function does not support.
+ *
+ * YUV formats are always represented by three separate planes of data, one for
+ * each color plane. The order of planes in the array is guaranteed such that
+ * plane #0 is always Y, plane #1 is always U (Cb), and plane #2 is always V
+ * (Cr). All other formats are represented by a single plane.
+ *
+ * Additional information always accompanies the buffers, describing the row
+ * stride and the pixel stride for each plane.
+ *
+ * In case the buffer cannot be locked, \a outPlanes will contain zero planes.
+ *
+ * See the AHardwareBuffer_lock documentation for all other locking semantics.
+ *
+ * Available since API level 29.
+ *
+ * \return 0 on success. -EINVAL if \a buffer is NULL, the usage flags
+ * are not a combination of AHARDWAREBUFFER_USAGE_CPU_*, or the buffer
+ * has more than one layer. Error number if the lock fails for any other
+ * reason.
+ */
+int AHardwareBuffer_lockPlanes(AHardwareBuffer* buffer, uint64_t usage,
+        int32_t fence, const ARect* rect, AHardwareBuffer_Planes* outPlanes) __INTRODUCED_IN(29);
 
 /**
  * Unlock the AHardwareBuffer from direct CPU access.
@@ -394,6 +474,8 @@ int AHardwareBuffer_lock(AHardwareBuffer* buffer, uint64_t usage,
  * completed before the function returned and no further operations are
  * necessary.
  *
+ * Available since API level 26.
+ *
  * \return 0 on success. -EINVAL if \a buffer is NULL. Error number if
  * the unlock fails for any reason.
  */
@@ -401,6 +483,8 @@ int AHardwareBuffer_unlock(AHardwareBuffer* buffer, int32_t* fence) __INTRODUCED
 
 /**
  * Send the AHardwareBuffer to an AF_UNIX socket.
+ *
+ * Available since API level 26.
  *
  * \return 0 on success, -EINVAL if \a buffer is NULL, or an error
  * number if the operation fails for any reason.
@@ -410,12 +494,53 @@ int AHardwareBuffer_sendHandleToUnixSocket(const AHardwareBuffer* buffer, int so
 /**
  * Receive an AHardwareBuffer from an AF_UNIX socket.
  *
+ * Available since API level 26.
+ *
  * \return 0 on success, -EINVAL if \a outBuffer is NULL, or an error
  * number if the operation fails for any reason.
  */
 int AHardwareBuffer_recvHandleFromUnixSocket(int socketFd, AHardwareBuffer** outBuffer) __INTRODUCED_IN(26);
 
 #endif // __ANDROID_API__ >= 26
+
+#if __ANDROID_API__ >= 29
+
+/**
+ * Test whether the given format and usage flag combination is
+ * allocatable.
+ *
+ * If this function returns true, it means that a buffer with the given
+ * description can be allocated on this implementation, unless resource
+ * exhaustion occurs. If this function returns false, it means that the
+ * allocation of the given description will never succeed.
+ *
+ * The return value of this function may depend on all fields in the
+ * description, except stride, which is always ignored. For example,
+ * some implementations have implementation-defined limits on texture
+ * size and layer count.
+ *
+ * Available since API level 29.
+ *
+ * \return 1 if the format and usage flag combination is allocatable,
+ *     0 otherwise.
+ */
+int AHardwareBuffer_isSupported(const AHardwareBuffer_Desc* desc) __INTRODUCED_IN(29);
+
+/**
+ * Lock an AHardwareBuffer for direct CPU access.
+ *
+ * This function is the same as the above lock function, but passes back
+ * additional information about the bytes per pixel and the bytes per stride
+ * of the locked buffer.  If the bytes per pixel or bytes per stride are unknown
+ * or variable, or if the underlying mapper implementation does not support returning
+ * additional information, then this call will fail with INVALID_OPERATION
+ *
+ * Available since API level 29.
+ */
+int AHardwareBuffer_lockAndGetInfo(AHardwareBuffer* buffer, uint64_t usage,
+        int32_t fence, const ARect* rect, void** outVirtualAddress,
+        int32_t* outBytesPerPixel, int32_t* outBytesPerStride) __INTRODUCED_IN(29);
+#endif // __ANDROID_API__ >= 29
 
 __END_DECLS
 

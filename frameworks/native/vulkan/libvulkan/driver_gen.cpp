@@ -31,6 +31,23 @@ namespace {
 
 // clang-format off
 
+VKAPI_ATTR VkResult checkedBindImageMemory2(VkDevice device, uint32_t bindInfoCount, const VkBindImageMemoryInfo* pBindInfos) {
+    if (GetData(device).hook_extensions[ProcHook::EXTENSION_CORE_1_1]) {
+        return BindImageMemory2(device, bindInfoCount, pBindInfos);
+    } else {
+        Logger(device).Err(device, "VK_VERSION_1_0 not enabled. vkBindImageMemory2 not executed.");
+        return VK_SUCCESS;
+    }
+}
+
+VKAPI_ATTR void checkedGetDeviceQueue2(VkDevice device, const VkDeviceQueueInfo2* pQueueInfo, VkQueue* pQueue) {
+    if (GetData(device).hook_extensions[ProcHook::EXTENSION_CORE_1_1]) {
+        GetDeviceQueue2(device, pQueueInfo, pQueue);
+    } else {
+        Logger(device).Err(device, "VK_VERSION_1_0 not enabled. vkGetDeviceQueue2 not executed.");
+    }
+}
+
 VKAPI_ATTR VkResult checkedCreateSwapchainKHR(VkDevice device, const VkSwapchainCreateInfoKHR* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSwapchainKHR* pSwapchain) {
     if (GetData(device).hook_extensions[ProcHook::KHR_swapchain]) {
         return CreateSwapchainKHR(device, pCreateInfo, pAllocator, pSwapchain);
@@ -137,6 +154,15 @@ VKAPI_ATTR VkResult checkedGetSwapchainStatusKHR(VkDevice device, VkSwapchainKHR
     }
 }
 
+VKAPI_ATTR VkResult checkedBindImageMemory2KHR(VkDevice device, uint32_t bindInfoCount, const VkBindImageMemoryInfoKHR* pBindInfos) {
+    if (GetData(device).hook_extensions[ProcHook::KHR_bind_memory2]) {
+        return BindImageMemory2KHR(device, bindInfoCount, pBindInfos);
+    } else {
+        Logger(device).Err(device, "VK_KHR_bind_memory2 not enabled. vkBindImageMemory2KHR not executed.");
+        return VK_SUCCESS;
+    }
+}
+
 // clang-format on
 
 const ProcHook g_proc_hooks[] = {
@@ -165,9 +191,23 @@ const ProcHook g_proc_hooks[] = {
     {
         "vkAllocateCommandBuffers",
         ProcHook::DEVICE,
-        ProcHook::EXTENSION_CORE,
+        ProcHook::EXTENSION_CORE_1_0,
         reinterpret_cast<PFN_vkVoidFunction>(AllocateCommandBuffers),
         nullptr,
+    },
+    {
+        "vkBindImageMemory2",
+        ProcHook::DEVICE,
+        ProcHook::EXTENSION_CORE_1_1,
+        reinterpret_cast<PFN_vkVoidFunction>(BindImageMemory2),
+        reinterpret_cast<PFN_vkVoidFunction>(checkedBindImageMemory2),
+    },
+    {
+        "vkBindImageMemory2KHR",
+        ProcHook::DEVICE,
+        ProcHook::KHR_bind_memory2,
+        reinterpret_cast<PFN_vkVoidFunction>(BindImageMemory2KHR),
+        reinterpret_cast<PFN_vkVoidFunction>(checkedBindImageMemory2KHR),
     },
     {
         "vkCreateAndroidSurfaceKHR",
@@ -186,14 +226,14 @@ const ProcHook g_proc_hooks[] = {
     {
         "vkCreateDevice",
         ProcHook::INSTANCE,
-        ProcHook::EXTENSION_CORE,
+        ProcHook::EXTENSION_CORE_1_0,
         reinterpret_cast<PFN_vkVoidFunction>(CreateDevice),
         nullptr,
     },
     {
         "vkCreateInstance",
         ProcHook::GLOBAL,
-        ProcHook::EXTENSION_CORE,
+        ProcHook::EXTENSION_CORE_1_0,
         reinterpret_cast<PFN_vkVoidFunction>(CreateInstance),
         nullptr,
     },
@@ -221,14 +261,14 @@ const ProcHook g_proc_hooks[] = {
     {
         "vkDestroyDevice",
         ProcHook::DEVICE,
-        ProcHook::EXTENSION_CORE,
+        ProcHook::EXTENSION_CORE_1_0,
         reinterpret_cast<PFN_vkVoidFunction>(DestroyDevice),
         nullptr,
     },
     {
         "vkDestroyInstance",
         ProcHook::INSTANCE,
-        ProcHook::EXTENSION_CORE,
+        ProcHook::EXTENSION_CORE_1_0,
         reinterpret_cast<PFN_vkVoidFunction>(DestroyInstance),
         nullptr,
     },
@@ -249,28 +289,28 @@ const ProcHook g_proc_hooks[] = {
     {
         "vkEnumerateDeviceExtensionProperties",
         ProcHook::INSTANCE,
-        ProcHook::EXTENSION_CORE,
+        ProcHook::EXTENSION_CORE_1_0,
         reinterpret_cast<PFN_vkVoidFunction>(EnumerateDeviceExtensionProperties),
         nullptr,
     },
     {
         "vkEnumerateInstanceExtensionProperties",
         ProcHook::GLOBAL,
-        ProcHook::EXTENSION_CORE,
+        ProcHook::EXTENSION_CORE_1_0,
         reinterpret_cast<PFN_vkVoidFunction>(EnumerateInstanceExtensionProperties),
         nullptr,
     },
     {
         "vkEnumeratePhysicalDeviceGroups",
         ProcHook::INSTANCE,
-        ProcHook::EXTENSION_CORE,
+        ProcHook::EXTENSION_CORE_1_1,
         reinterpret_cast<PFN_vkVoidFunction>(EnumeratePhysicalDeviceGroups),
         nullptr,
     },
     {
         "vkEnumeratePhysicalDevices",
         ProcHook::INSTANCE,
-        ProcHook::EXTENSION_CORE,
+        ProcHook::EXTENSION_CORE_1_0,
         reinterpret_cast<PFN_vkVoidFunction>(EnumeratePhysicalDevices),
         nullptr,
     },
@@ -291,28 +331,28 @@ const ProcHook g_proc_hooks[] = {
     {
         "vkGetDeviceProcAddr",
         ProcHook::DEVICE,
-        ProcHook::EXTENSION_CORE,
+        ProcHook::EXTENSION_CORE_1_0,
         reinterpret_cast<PFN_vkVoidFunction>(GetDeviceProcAddr),
         nullptr,
     },
     {
         "vkGetDeviceQueue",
         ProcHook::DEVICE,
-        ProcHook::EXTENSION_CORE,
+        ProcHook::EXTENSION_CORE_1_0,
         reinterpret_cast<PFN_vkVoidFunction>(GetDeviceQueue),
         nullptr,
     },
     {
         "vkGetDeviceQueue2",
         ProcHook::DEVICE,
-        ProcHook::EXTENSION_CORE,
+        ProcHook::EXTENSION_CORE_1_1,
         reinterpret_cast<PFN_vkVoidFunction>(GetDeviceQueue2),
-        nullptr,
+        reinterpret_cast<PFN_vkVoidFunction>(checkedGetDeviceQueue2),
     },
     {
         "vkGetInstanceProcAddr",
         ProcHook::INSTANCE,
-        ProcHook::EXTENSION_CORE,
+        ProcHook::EXTENSION_CORE_1_0,
         reinterpret_cast<PFN_vkVoidFunction>(GetInstanceProcAddr),
         nullptr,
     },
@@ -458,6 +498,7 @@ ProcHook::Extension GetProcHookExtension(const char* name) {
     if (strcmp(name, "VK_KHR_get_surface_capabilities2") == 0) return ProcHook::KHR_get_surface_capabilities2;
     if (strcmp(name, "VK_KHR_get_physical_device_properties2") == 0) return ProcHook::KHR_get_physical_device_properties2;
     if (strcmp(name, "VK_ANDROID_external_memory_android_hardware_buffer") == 0) return ProcHook::ANDROID_external_memory_android_hardware_buffer;
+    if (strcmp(name, "VK_KHR_bind_memory2") == 0) return ProcHook::KHR_bind_memory2;
     // clang-format on
     return ProcHook::EXTENSION_UNKNOWN;
 }
@@ -517,11 +558,13 @@ bool InitDriverTable(VkDevice dev,
     INIT_PROC(true, dev, CreateImage);
     INIT_PROC(true, dev, DestroyImage);
     INIT_PROC(true, dev, AllocateCommandBuffers);
+    INIT_PROC(false, dev, BindImageMemory2);
     INIT_PROC(false, dev, GetDeviceQueue2);
     INIT_PROC_EXT(ANDROID_native_buffer, false, dev, GetSwapchainGrallocUsageANDROID);
     INIT_PROC_EXT(ANDROID_native_buffer, false, dev, GetSwapchainGrallocUsage2ANDROID);
     INIT_PROC_EXT(ANDROID_native_buffer, true, dev, AcquireImageANDROID);
     INIT_PROC_EXT(ANDROID_native_buffer, true, dev, QueueSignalReleaseImageANDROID);
+    INIT_PROC_EXT(KHR_bind_memory2, true, dev, BindImageMemory2KHR);
     // clang-format on
 
     return success;

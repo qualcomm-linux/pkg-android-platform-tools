@@ -19,7 +19,7 @@
 
 #include "Static.h"
 
-#include <binder/BufferedTextOutput.h>
+#include "BufferedTextOutput.h"
 #include <binder/IPCThreadState.h>
 #include <utils/Log.h>
 
@@ -54,7 +54,9 @@ public:
 protected:
     virtual status_t writeLines(const struct iovec& vec, size_t N)
     {
-        writev(mFD, &vec, N);
+        ssize_t ret = writev(mFD, &vec, N);
+        if (ret == -1) return -errno;
+        if (static_cast<size_t>(ret) != N) return UNKNOWN_ERROR;
         return NO_ERROR;
     }
 

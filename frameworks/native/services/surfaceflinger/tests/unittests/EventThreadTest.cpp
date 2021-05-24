@@ -25,7 +25,7 @@
 #include <utils/Errors.h>
 
 #include "AsyncCallRecorder.h"
-#include "EventThread.h"
+#include "Scheduler/EventThread.h"
 
 using namespace std::chrono_literals;
 using namespace std::placeholders;
@@ -36,21 +36,28 @@ using testing::Invoke;
 namespace android {
 namespace {
 
+constexpr PhysicalDisplayId INTERNAL_DISPLAY_ID = 111;
+constexpr PhysicalDisplayId EXTERNAL_DISPLAY_ID = 222;
+constexpr PhysicalDisplayId DISPLAY_ID_64BIT = 0xabcd12349876fedcULL;
+
 class MockVSyncSource : public VSyncSource {
 public:
     MOCK_METHOD1(setVSyncEnabled, void(bool));
     MOCK_METHOD1(setCallback, void(VSyncSource::Callback*));
     MOCK_METHOD1(setPhaseOffset, void(nsecs_t));
+    MOCK_METHOD1(pauseVsyncCallback, void(bool));
 };
 
 } // namespace
 
 class EventThreadTest : public testing::Test {
 protected:
-    class MockEventThreadConnection : public android::impl::EventThread::Connection {
+    class MockEventThreadConnection : public EventThreadConnection {
     public:
-        explicit MockEventThreadConnection(android::impl::EventThread* eventThread)
-              : android::impl::EventThread::Connection(eventThread) {}
+        MockEventThreadConnection(android::impl::EventThread* eventThread,
+                                  ResyncCallback&& resyncCallback,
+                                  ISurfaceComposer::ConfigChanged configChanged)
+              : EventThreadConnection(eventThread, std::move(resyncCallback), configChanged) {}
         MOCK_METHOD1(postEvent, status_t(const DisplayEventReceiver::Event& event));
     };
 
@@ -61,7 +68,8 @@ protected:
     ~EventThreadTest() override;
 
     void createThread();
-    sp<MockEventThreadConnection> createConnection(ConnectionEventRecorder& recorder);
+    sp<MockEventThreadConnection> createConnection(ConnectionEventRecorder& recorder,
+                                                   ISurfaceComposer::ConfigChanged configChanged);
 
     void expectVSyncSetEnabledCallReceived(bool expectedState);
     void expectVSyncSetPhaseOffsetCallReceived(nsecs_t expectedPhaseOffset);
@@ -71,7 +79,10 @@ protected:
                                               ConnectionEventRecorder& connectionEventRecorder,
                                               nsecs_t expectedTimestamp, unsigned expectedCount);
     void expectVsyncEventReceivedByConnection(nsecs_t expectedTimestamp, unsigned expectedCount);
-    void expectHotplugEventReceivedByConnection(int expectedDisplayType, bool expectedConnected);
+    void expectHotplugEventReceivedByConnection(PhysicalDisplayId expectedDisplayId,
+                                                bool expectedConnected);
+    void expectConfigChangedEventReceivedByConnection(PhysicalDisplayId expectedDisplayId,
+                                                      int32_t expectedConfigId);
 
     AsyncCallRecorder<void (*)(bool)> mVSyncSetEnabledCallRecorder;
     AsyncCallRecorder<void (*)(VSyncSource::Callback*)> mVSyncSetCallbackCallRecorder;
@@ -81,6 +92,7 @@ protected:
     ConnectionEventRecorder mConnectionEventCallRecorder{0};
 
     MockVSyncSource mVSyncSource;
+    VSyncSource::Callback* mCallback = nullptr;
     std::unique_ptr<android::impl::EventThread> mThread;
     sp<MockEventThreadConnection> mConnection;
 };
@@ -100,26 +112,39 @@ EventThreadTest::EventThreadTest() {
             .WillRepeatedly(Invoke(mVSyncSetPhaseOffsetCallRecorder.getInvocable()));
 
     createThread();
-    mConnection = createConnection(mConnectionEventCallRecorder);
+    mConnection = createConnection(mConnectionEventCallRecorder,
+                                   ISurfaceComposer::eConfigChangedDispatch);
+
+    // A display must be connected for VSYNC events to be delivered.
+    mThread->onHotplugReceived(INTERNAL_DISPLAY_ID, true);
+    expectHotplugEventReceivedByConnection(INTERNAL_DISPLAY_ID, true);
 }
 
 EventThreadTest::~EventThreadTest() {
     const ::testing::TestInfo* const test_info =
             ::testing::UnitTest::GetInstance()->current_test_info();
     ALOGD("**** Tearing down after %s.%s\n", test_info->test_case_name(), test_info->name());
+
+    // EventThread should unregister itself as VSyncSource callback.
+    EXPECT_TRUE(!mVSyncSetCallbackCallRecorder.waitForUnexpectedCall().has_value());
 }
 
 void EventThreadTest::createThread() {
     mThread =
             std::make_unique<android::impl::EventThread>(&mVSyncSource,
-                                                         mResyncCallRecorder.getInvocable(),
                                                          mInterceptVSyncCallRecorder.getInvocable(),
                                                          "unit-test-event-thread");
+
+    // EventThread should register itself as VSyncSource callback.
+    mCallback = expectVSyncSetCallbackCallReceived();
+    ASSERT_TRUE(mCallback);
 }
 
 sp<EventThreadTest::MockEventThreadConnection> EventThreadTest::createConnection(
-        ConnectionEventRecorder& recorder) {
-    sp<MockEventThreadConnection> connection = new MockEventThreadConnection(mThread.get());
+        ConnectionEventRecorder& recorder, ISurfaceComposer::ConfigChanged configChanged) {
+    sp<MockEventThreadConnection> connection =
+            new MockEventThreadConnection(mThread.get(), mResyncCallRecorder.getInvocable(),
+                                          configChanged);
     EXPECT_CALL(*connection, postEvent(_)).WillRepeatedly(Invoke(recorder.getInvocable()));
     return connection;
 }
@@ -169,14 +194,24 @@ void EventThreadTest::expectVsyncEventReceivedByConnection(nsecs_t expectedTimes
                                          expectedCount);
 }
 
-void EventThreadTest::expectHotplugEventReceivedByConnection(int expectedDisplayType,
+void EventThreadTest::expectHotplugEventReceivedByConnection(PhysicalDisplayId expectedDisplayId,
                                                              bool expectedConnected) {
     auto args = mConnectionEventCallRecorder.waitForCall();
     ASSERT_TRUE(args.has_value());
     const auto& event = std::get<0>(args.value());
     EXPECT_EQ(DisplayEventReceiver::DISPLAY_EVENT_HOTPLUG, event.header.type);
-    EXPECT_EQ(static_cast<unsigned>(expectedDisplayType), event.header.id);
+    EXPECT_EQ(expectedDisplayId, event.header.displayId);
     EXPECT_EQ(expectedConnected, event.hotplug.connected);
+}
+
+void EventThreadTest::expectConfigChangedEventReceivedByConnection(
+        PhysicalDisplayId expectedDisplayId, int32_t expectedConfigId) {
+    auto args = mConnectionEventCallRecorder.waitForCall();
+    ASSERT_TRUE(args.has_value());
+    const auto& event = std::get<0>(args.value());
+    EXPECT_EQ(DisplayEventReceiver::DISPLAY_EVENT_CONFIG_CHANGED, event.header.type);
+    EXPECT_EQ(expectedDisplayId, event.header.displayId);
+    EXPECT_EQ(expectedConfigId, event.config.configId);
 }
 
 namespace {
@@ -194,6 +229,17 @@ TEST_F(EventThreadTest, canCreateAndDestroyThreadWithNoEventsSent) {
     EXPECT_FALSE(mConnectionEventCallRecorder.waitForCall(0us).has_value());
 }
 
+TEST_F(EventThreadTest, vsyncRequestIsIgnoredIfDisplayIsDisconnected) {
+    mThread->onHotplugReceived(INTERNAL_DISPLAY_ID, false);
+    expectHotplugEventReceivedByConnection(INTERNAL_DISPLAY_ID, false);
+
+    // Signal that we want the next vsync event to be posted to the connection.
+    mThread->requestNextVsync(mConnection);
+
+    // EventThread should not enable vsync callbacks.
+    EXPECT_FALSE(mVSyncSetEnabledCallRecorder.waitForUnexpectedCall().has_value());
+}
+
 TEST_F(EventThreadTest, requestNextVsyncPostsASingleVSyncEventToTheConnection) {
     // Signal that we want the next vsync event to be posted to the connection
     mThread->requestNextVsync(mConnection);
@@ -201,22 +247,19 @@ TEST_F(EventThreadTest, requestNextVsyncPostsASingleVSyncEventToTheConnection) {
     // EventThread should immediately request a resync.
     EXPECT_TRUE(mResyncCallRecorder.waitForCall().has_value());
 
-    // EventThread should enable vsync callbacks, and set a callback interface
-    // pointer to use them with the VSync source.
+    // EventThread should enable vsync callbacks.
     expectVSyncSetEnabledCallReceived(true);
-    auto callback = expectVSyncSetCallbackCallReceived();
-    ASSERT_TRUE(callback);
 
     // Use the received callback to signal a first vsync event.
     // The interceptor should receive the event, as well as the connection.
-    callback->onVSyncEvent(123);
+    mCallback->onVSyncEvent(123);
     expectInterceptCallReceived(123);
     expectVsyncEventReceivedByConnection(123, 1u);
 
     // Use the received callback to signal a second vsync event.
     // The interceptor should receive the event, but the the connection should
     // not as it was only interested in the first.
-    callback->onVSyncEvent(456);
+    mCallback->onVSyncEvent(456);
     expectInterceptCallReceived(456);
     EXPECT_FALSE(mConnectionEventCallRecorder.waitForUnexpectedCall().has_value());
 
@@ -228,7 +271,9 @@ TEST_F(EventThreadTest, requestNextVsyncPostsASingleVSyncEventToTheConnection) {
 TEST_F(EventThreadTest, setVsyncRateZeroPostsNoVSyncEventsToThatConnection) {
     // Create a first connection, register it, and request a vsync rate of zero.
     ConnectionEventRecorder firstConnectionEventRecorder{0};
-    sp<MockEventThreadConnection> firstConnection = createConnection(firstConnectionEventRecorder);
+    sp<MockEventThreadConnection> firstConnection =
+            createConnection(firstConnectionEventRecorder,
+                             ISurfaceComposer::eConfigChangedSuppress);
     mThread->setVsyncRate(0, firstConnection);
 
     // By itself, this should not enable vsync events
@@ -238,19 +283,17 @@ TEST_F(EventThreadTest, setVsyncRateZeroPostsNoVSyncEventsToThatConnection) {
     // However if there is another connection which wants events at a nonzero rate.....
     ConnectionEventRecorder secondConnectionEventRecorder{0};
     sp<MockEventThreadConnection> secondConnection =
-            createConnection(secondConnectionEventRecorder);
+            createConnection(secondConnectionEventRecorder,
+                             ISurfaceComposer::eConfigChangedSuppress);
     mThread->setVsyncRate(1, secondConnection);
 
-    // EventThread should enable vsync callbacks, and set a callback interface
-    // pointer to use them with the VSync source.
+    // EventThread should enable vsync callbacks.
     expectVSyncSetEnabledCallReceived(true);
-    auto callback = expectVSyncSetCallbackCallReceived();
-    ASSERT_TRUE(callback);
 
     // Send a vsync event. EventThread should then make a call to the
     // interceptor, and the second connection. The first connection should not
     // get the event.
-    callback->onVSyncEvent(123);
+    mCallback->onVSyncEvent(123);
     expectInterceptCallReceived(123);
     EXPECT_FALSE(firstConnectionEventRecorder.waitForUnexpectedCall().has_value());
     expectVsyncEventReceivedByConnection("secondConnection", secondConnectionEventRecorder, 123,
@@ -260,25 +303,22 @@ TEST_F(EventThreadTest, setVsyncRateZeroPostsNoVSyncEventsToThatConnection) {
 TEST_F(EventThreadTest, setVsyncRateOnePostsAllEventsToThatConnection) {
     mThread->setVsyncRate(1, mConnection);
 
-    // EventThread should enable vsync callbacks, and set a callback interface
-    // pointer to use them with the VSync source.
+    // EventThread should enable vsync callbacks.
     expectVSyncSetEnabledCallReceived(true);
-    auto callback = expectVSyncSetCallbackCallReceived();
-    ASSERT_TRUE(callback);
 
     // Send a vsync event. EventThread should then make a call to the
     // interceptor, and the connection.
-    callback->onVSyncEvent(123);
+    mCallback->onVSyncEvent(123);
     expectInterceptCallReceived(123);
     expectVsyncEventReceivedByConnection(123, 1u);
 
     // A second event should go to the same places.
-    callback->onVSyncEvent(456);
+    mCallback->onVSyncEvent(456);
     expectInterceptCallReceived(456);
     expectVsyncEventReceivedByConnection(456, 2u);
 
     // A third event should go to the same places.
-    callback->onVSyncEvent(789);
+    mCallback->onVSyncEvent(789);
     expectInterceptCallReceived(789);
     expectVsyncEventReceivedByConnection(789, 3u);
 }
@@ -286,29 +326,26 @@ TEST_F(EventThreadTest, setVsyncRateOnePostsAllEventsToThatConnection) {
 TEST_F(EventThreadTest, setVsyncRateTwoPostsEveryOtherEventToThatConnection) {
     mThread->setVsyncRate(2, mConnection);
 
-    // EventThread should enable vsync callbacks, and set a callback interface
-    // pointer to use them with the VSync source.
+    // EventThread should enable vsync callbacks.
     expectVSyncSetEnabledCallReceived(true);
-    auto callback = expectVSyncSetCallbackCallReceived();
-    ASSERT_TRUE(callback);
 
     // The first event will be seen by the interceptor, and not the connection.
-    callback->onVSyncEvent(123);
+    mCallback->onVSyncEvent(123);
     expectInterceptCallReceived(123);
     EXPECT_FALSE(mConnectionEventCallRecorder.waitForUnexpectedCall().has_value());
 
     // The second event will be seen by the interceptor and the connection.
-    callback->onVSyncEvent(456);
+    mCallback->onVSyncEvent(456);
     expectInterceptCallReceived(456);
     expectVsyncEventReceivedByConnection(456, 2u);
 
     // The third event will be seen by the interceptor, and not the connection.
-    callback->onVSyncEvent(789);
+    mCallback->onVSyncEvent(789);
     expectInterceptCallReceived(789);
     EXPECT_FALSE(mConnectionEventCallRecorder.waitForUnexpectedCall().has_value());
 
     // The fourth event will be seen by the interceptor and the connection.
-    callback->onVSyncEvent(101112);
+    mCallback->onVSyncEvent(101112);
     expectInterceptCallReceived(101112);
     expectVsyncEventReceivedByConnection(101112, 4u);
 }
@@ -316,17 +353,14 @@ TEST_F(EventThreadTest, setVsyncRateTwoPostsEveryOtherEventToThatConnection) {
 TEST_F(EventThreadTest, connectionsRemovedIfInstanceDestroyed) {
     mThread->setVsyncRate(1, mConnection);
 
-    // EventThread should enable vsync callbacks, and set a callback interface
-    // pointer to use them with the VSync source.
+    // EventThread should enable vsync callbacks.
     expectVSyncSetEnabledCallReceived(true);
-    auto callback = expectVSyncSetCallbackCallReceived();
-    ASSERT_TRUE(callback);
 
     // Destroy the only (strong) reference to the connection.
     mConnection = nullptr;
 
     // The first event will be seen by the interceptor, and not the connection.
-    callback->onVSyncEvent(123);
+    mCallback->onVSyncEvent(123);
     expectInterceptCallReceived(123);
     EXPECT_FALSE(mConnectionEventCallRecorder.waitForUnexpectedCall().has_value());
 
@@ -336,24 +370,23 @@ TEST_F(EventThreadTest, connectionsRemovedIfInstanceDestroyed) {
 
 TEST_F(EventThreadTest, connectionsRemovedIfEventDeliveryError) {
     ConnectionEventRecorder errorConnectionEventRecorder{NO_MEMORY};
-    sp<MockEventThreadConnection> errorConnection = createConnection(errorConnectionEventRecorder);
+    sp<MockEventThreadConnection> errorConnection =
+            createConnection(errorConnectionEventRecorder,
+                             ISurfaceComposer::eConfigChangedSuppress);
     mThread->setVsyncRate(1, errorConnection);
 
-    // EventThread should enable vsync callbacks, and set a callback interface
-    // pointer to use them with the VSync source.
+    // EventThread should enable vsync callbacks.
     expectVSyncSetEnabledCallReceived(true);
-    auto callback = expectVSyncSetCallbackCallReceived();
-    ASSERT_TRUE(callback);
 
     // The first event will be seen by the interceptor, and by the connection,
     // which then returns an error.
-    callback->onVSyncEvent(123);
+    mCallback->onVSyncEvent(123);
     expectInterceptCallReceived(123);
     expectVsyncEventReceivedByConnection("errorConnection", errorConnectionEventRecorder, 123, 1u);
 
     // A subsequent event will be seen by the interceptor and not by the
     // connection.
-    callback->onVSyncEvent(456);
+    mCallback->onVSyncEvent(456);
     expectInterceptCallReceived(456);
     EXPECT_FALSE(errorConnectionEventRecorder.waitForUnexpectedCall().has_value());
 
@@ -363,24 +396,23 @@ TEST_F(EventThreadTest, connectionsRemovedIfEventDeliveryError) {
 
 TEST_F(EventThreadTest, eventsDroppedIfNonfatalEventDeliveryError) {
     ConnectionEventRecorder errorConnectionEventRecorder{WOULD_BLOCK};
-    sp<MockEventThreadConnection> errorConnection = createConnection(errorConnectionEventRecorder);
+    sp<MockEventThreadConnection> errorConnection =
+            createConnection(errorConnectionEventRecorder,
+                             ISurfaceComposer::eConfigChangedSuppress);
     mThread->setVsyncRate(1, errorConnection);
 
-    // EventThread should enable vsync callbacks, and set a callback interface
-    // pointer to use them with the VSync source.
+    // EventThread should enable vsync callbacks.
     expectVSyncSetEnabledCallReceived(true);
-    auto callback = expectVSyncSetCallbackCallReceived();
-    ASSERT_TRUE(callback);
 
     // The first event will be seen by the interceptor, and by the connection,
     // which then returns an non-fatal error.
-    callback->onVSyncEvent(123);
+    mCallback->onVSyncEvent(123);
     expectInterceptCallReceived(123);
     expectVsyncEventReceivedByConnection("errorConnection", errorConnectionEventRecorder, 123, 1u);
 
     // A subsequent event will be seen by the interceptor, and by the connection,
     // which still then returns an non-fatal error.
-    callback->onVSyncEvent(456);
+    mCallback->onVSyncEvent(456);
     expectInterceptCallReceived(456);
     expectVsyncEventReceivedByConnection("errorConnection", errorConnectionEventRecorder, 456, 2u);
 
@@ -393,29 +425,52 @@ TEST_F(EventThreadTest, setPhaseOffsetForwardsToVSyncSource) {
     expectVSyncSetPhaseOffsetCallReceived(321);
 }
 
-TEST_F(EventThreadTest, postHotplugPrimaryDisconnect) {
-    mThread->onHotplugReceived(DisplayDevice::DISPLAY_PRIMARY, false);
-    expectHotplugEventReceivedByConnection(DisplayDevice::DISPLAY_PRIMARY, false);
+TEST_F(EventThreadTest, postHotplugInternalDisconnect) {
+    mThread->onHotplugReceived(INTERNAL_DISPLAY_ID, false);
+    expectHotplugEventReceivedByConnection(INTERNAL_DISPLAY_ID, false);
 }
 
-TEST_F(EventThreadTest, postHotplugPrimaryConnect) {
-    mThread->onHotplugReceived(DisplayDevice::DISPLAY_PRIMARY, true);
-    expectHotplugEventReceivedByConnection(DisplayDevice::DISPLAY_PRIMARY, true);
+TEST_F(EventThreadTest, postHotplugInternalConnect) {
+    mThread->onHotplugReceived(INTERNAL_DISPLAY_ID, true);
+    expectHotplugEventReceivedByConnection(INTERNAL_DISPLAY_ID, true);
 }
 
 TEST_F(EventThreadTest, postHotplugExternalDisconnect) {
-    mThread->onHotplugReceived(DisplayDevice::DISPLAY_EXTERNAL, false);
-    expectHotplugEventReceivedByConnection(DisplayDevice::DISPLAY_EXTERNAL, false);
+    mThread->onHotplugReceived(EXTERNAL_DISPLAY_ID, false);
+    expectHotplugEventReceivedByConnection(EXTERNAL_DISPLAY_ID, false);
 }
 
 TEST_F(EventThreadTest, postHotplugExternalConnect) {
-    mThread->onHotplugReceived(DisplayDevice::DISPLAY_EXTERNAL, true);
-    expectHotplugEventReceivedByConnection(DisplayDevice::DISPLAY_EXTERNAL, true);
+    mThread->onHotplugReceived(EXTERNAL_DISPLAY_ID, true);
+    expectHotplugEventReceivedByConnection(EXTERNAL_DISPLAY_ID, true);
 }
 
-TEST_F(EventThreadTest, postHotplugVirtualDisconnectIsFilteredOut) {
-    mThread->onHotplugReceived(DisplayDevice::DISPLAY_VIRTUAL, false);
-    EXPECT_FALSE(mConnectionEventCallRecorder.waitForUnexpectedCall().has_value());
+TEST_F(EventThreadTest, postConfigChangedPrimary) {
+    mThread->onConfigChanged(INTERNAL_DISPLAY_ID, 7);
+    expectConfigChangedEventReceivedByConnection(INTERNAL_DISPLAY_ID, 7);
+}
+
+TEST_F(EventThreadTest, postConfigChangedExternal) {
+    mThread->onConfigChanged(EXTERNAL_DISPLAY_ID, 5);
+    expectConfigChangedEventReceivedByConnection(EXTERNAL_DISPLAY_ID, 5);
+}
+
+TEST_F(EventThreadTest, postConfigChangedPrimary64bit) {
+    mThread->onConfigChanged(DISPLAY_ID_64BIT, 7);
+    expectConfigChangedEventReceivedByConnection(DISPLAY_ID_64BIT, 7);
+}
+
+TEST_F(EventThreadTest, suppressConfigChanged) {
+    ConnectionEventRecorder suppressConnectionEventRecorder{0};
+    sp<MockEventThreadConnection> suppressConnection =
+            createConnection(suppressConnectionEventRecorder,
+                             ISurfaceComposer::eConfigChangedSuppress);
+
+    mThread->onConfigChanged(INTERNAL_DISPLAY_ID, 9);
+    expectConfigChangedEventReceivedByConnection(INTERNAL_DISPLAY_ID, 9);
+
+    auto args = suppressConnectionEventRecorder.waitForCall();
+    ASSERT_FALSE(args.has_value());
 }
 
 } // namespace

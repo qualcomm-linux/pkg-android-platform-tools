@@ -41,11 +41,13 @@ cc_library_shared {
         "-DVK_NO_PROTOTYPES",
         "-fvisibility=hidden",
         "-fstrict-aliasing",
-        "-Weverything",
+        "-Wextra",
         "-Werror",
         "-Wno-padded",
+        "-Wno-sign-compare",
         "-Wno-switch-enum",
-        "-Wno-undef",
+        "-Wno-unused-variable",
+        "-Wno-unused-function",
 
         // Have clang emit complete debug_info.
         "-fstandalone-debug",
@@ -87,7 +89,6 @@ cc_library_shared {
         "libbase",
         "libdl_android",
         "libhidlbase",
-        "libhidltransport",
         "liblog",
         "libui",
         "libgraphicsenv",

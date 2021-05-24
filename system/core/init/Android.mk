@@ -52,7 +52,6 @@ LOCAL_SRC_FILES := \
     first_stage_init.cpp \
     first_stage_main.cpp \
     first_stage_mount.cpp \
-    mount_namespace.cpp \
     reboot_utils.cpp \
     selabel.cpp \
     selinux.cpp \
@@ -73,9 +72,8 @@ LOCAL_UNSTRIPPED_PATH := $(TARGET_RAMDISK_OUT_UNSTRIPPED)
 LOCAL_REQUIRED_MODULES := \
    adb_debug.prop \
 
-# Set up the same mount points on the ramdisk that system-as-root contains.
+# Set up the directories that first stage init mounts on.
 LOCAL_POST_INSTALL_CMD := mkdir -p \
-    $(TARGET_RAMDISK_OUT)/apex \
     $(TARGET_RAMDISK_OUT)/debug_ramdisk \
     $(TARGET_RAMDISK_OUT)/dev \
     $(TARGET_RAMDISK_OUT)/mnt \
@@ -91,8 +89,6 @@ LOCAL_STATIC_LIBRARIES := \
     libsquashfs_utils \
     liblogwrap \
     libext4_utils \
-    libfscrypt \
-    libseccomp_policy \
     libcrypto_utils \
     libsparse \
     libavb \
@@ -101,7 +97,7 @@ LOCAL_STATIC_LIBRARIES := \
     libcutils \
     libbase \
     liblog \
-    libcrypto \
+    libcrypto_static \
     libdl \
     libz \
     libselinux \
@@ -109,11 +105,13 @@ LOCAL_STATIC_LIBRARIES := \
     libgsi \
     libcom.android.sysprop.apex \
     liblzma \
-    libdexfile_support \
+    libdexfile_support_static \
     libunwindstack \
     libbacktrace \
     libmodprobe \
     libext2_uuid \
+    libprotobuf-cpp-lite \
+    libsnapshot_init \
 
 LOCAL_SANITIZE := signed-integer-overflow
 # First stage init is weird: it may start without stdout/stderr, and no /proc.
