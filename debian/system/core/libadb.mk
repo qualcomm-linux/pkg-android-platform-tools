@@ -17,12 +17,14 @@ LIBADB_SRC_FILES := \
     transport_fd.cpp \
     transport_local.cpp \
     transport_usb.cpp \
+    types.cpp \
 
 LIBADB_posix_srcs := \
     sysdeps_unix.cpp \
     sysdeps/posix/network.cpp \
 
 LIBADB_linux_SRC_FILES := \
+    fdevent/fdevent_epoll.cpp \
     client/auth.cpp \
     client/usb_dispatch.cpp \
     client/usb_libusb.cpp \
