@@ -132,7 +132,7 @@ CFLAGS += -DHAVE_CONFIG_H -DNDEBUG -D_GNU_SOURCE -Werror -Wno-unused-parameter -
 CPPFLAGS += -Iexternal/libunwind/include -Iexternal/libunwind/src $($(CPU)_INCLUDES) -Idebian/include/external/libunwind/
 LDFLAGS += -shared -Wl,-soname,$(NAME).so.0 \
            -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
-           -lpthread -nostdlib -lc -lgcc -Ldebian/out/external/libunwind/ -l7z
+           -lpthread -nostdlib -lc -lgcc -Ldebian/out/external/libunwind -l7z
 
 debian/out/external/libunwind/$(NAME).so.0: $(SOURCES)
 	mkdir --parents debian/out/external/libunwind/
