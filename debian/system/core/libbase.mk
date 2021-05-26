@@ -15,6 +15,8 @@ SOURCES = \
           strings.cpp \
           threads.cpp \
           test_utils.cpp \
+          \
+          errors_unix.cpp
 
 SOURCES := $(foreach source, $(SOURCES), system/core/base/$(source))
 CXXFLAGS += -std=gnu++17 -D_FILE_OFFSET_BITS=64

@@ -99,7 +99,8 @@ LDFLAGS += -shared -Wl,-soname,$(NAME).so.0 \
            -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
            -Wl,-rpath=debian/out/external/libunwind \
            -Wl,-rpath=debian/out/art \
-           -L/usr/lib/$(DEB_HOST_MULTIARCH)/android -Lsystem/core \
+           -L/usr/lib/$(DEB_HOST_MULTIARCH)/android \
+           -Lsystem/core \
            -Ldebian/out/external/libunwind -Ldebian/out/art \
            -lunwind -lbase -llog -lpthread -l7z -ldexfile_support
 

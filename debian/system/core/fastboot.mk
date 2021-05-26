@@ -41,19 +41,19 @@ CPPFLAGS += \
             -Isystem/core/libsparse/include \
             -Isystem/core/libziparchive/include \
             -Iexternal/boringssl/include \
+            -Iexternal/avb \
             -Isystem/core/libcutils/include \
             -Isystem/core/libsparse/include \
             -Isystem/core/base/include \
             -Isystem/extras/ext4_utils/include \
 
-LDFLAGS += -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
-           -fuse-ld=gold \
+LDFLAGS += -fuse-ld=gold \
+           -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
            -Wl,-rpath-link system/core \
-           -Lsystem/core -Ldebian/out/external/boringssl -Ldebian/out/external/libunwind \
-           -lziparchive -lsparse -lbase -lcutils -ladb -lcrypto -lext4_utils \
            -L/usr/lib/$(DEB_HOST_MULTIARCH)/android \
-           -Ldebian/out/system/extras \
-           -l7z \
+           -Ldebian/out/system/extras -Lsystem/core \
+           -Ldebian/out/external/boringssl -Ldebian/out/external/libunwind \
+           -lziparchive -lsparse -lbase -lcutils -ladb -lcrypto -lext4_utils \
 
 # -latomic should be the last library specified
 # https://github.com/android/ndk/issues/589
