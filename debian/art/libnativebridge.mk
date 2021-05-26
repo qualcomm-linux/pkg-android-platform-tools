@@ -1,13 +1,13 @@
 NAME = libnativebridge
 SOURCES = native_bridge.cc
-SOURCES := $(foreach source, $(SOURCES), system/core/libnativebridge/$(source))
+SOURCES := $(foreach source, $(SOURCES), art/libnativebridge/$(source))
 
 CPPFLAGS += \
   -I/usr/include/android \
   -Ilibnativehelper/include_jni \
   -Isystem/core/include \
   -Isystem/core/base/include \
-  -Isystem/core/libnativebridge/include \
+  -Iart/libnativebridge/include \
   -Isystem/core/liblog/include \
 
 CXXFLAGS += -std=gnu++2a
@@ -19,9 +19,6 @@ LDFLAGS += \
   -Lsystem/core \
   -llog
 
-system/core/$(NAME).so.0: $(SOURCES)
-	$(CXX) $^ -o system/core/$(NAME).so.0 $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
-	ln -s $(NAME).so.0 system/core/$(NAME).so
-
-clean:
-	$(RM) system/core/$(NAME).so*
+debian/out/art/$(NAME).so.0: $(SOURCES)
+	$(CXX) $^ -o $@ $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
+	ln -s $(NAME).so.0 debian/out/art/$(NAME).so

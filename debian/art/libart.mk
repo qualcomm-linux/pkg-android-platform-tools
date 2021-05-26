@@ -456,22 +456,22 @@ CPPFLAGS += \
   -Iart \
   -Ilibnativehelper/include_jni \
   -Iart/cmdline \
-  -Iart/runtime \
   -Iart/libartbase \
   -Iart/libartbase/arch \
   -Iart/libartpalette/include \
   -Iart/libdexfile \
   -Iart/libdexfile/external/include \
   -Iart/libelffile \
+  -Iart/libnativebridge/include \
+  -Iart/libnativeloader/include \
   -Iart/libprofile \
+  -Iart/runtime \
   -Iart/sigchainlib \
   -Iart/tools/cpp-define-generator \
   -Idebian/out/art \
   -I/usr/include/android \
   -Isystem/core/libbacktrace/include \
   -Isystem/core/libziparchive/include \
-  -Isystem/core/libnativeloader/include \
-  -Isystem/core/libnativebridge/include \
   -Isystem/core/libunwindstack/include \
   -Isystem/core/liblog/include \
   -Isystem/core/base/include \

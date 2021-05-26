@@ -1,4 +1,4 @@
 #!/usr/bin/dh-exec
 
-system/core/libnativeloader.so.*   usr/lib/${DEB_HOST_MULTIARCH}/android
-system/core/libnativeloader.so     usr/lib/${DEB_HOST_MULTIARCH}/android
+debian/out/art/libnativeloader.so.*   usr/lib/${DEB_HOST_MULTIARCH}/android
+debian/out/art/libnativeloader.so     usr/lib/${DEB_HOST_MULTIARCH}/android
