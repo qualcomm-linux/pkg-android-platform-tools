@@ -10,3 +10,13 @@ Forwarded: not-needed
  
  #define LOG_TAG "JNIHelp"
  #include "ALog-priv.h"
+--- a/libnativehelper/JniInvocation.cpp
++++ b/libnativehelper/JniInvocation.cpp
+@@ -17,6 +17,7 @@
+ #include "nativehelper/JniInvocation.h"
+ 
+ #include <string>
++#include <cstring>
+ 
+ #ifdef _WIN32
+ #include <windows.h>
