@@ -1,3 +1,3 @@
 #!/usr/bin/dh-exec
 
-system/core/fastboot/fastboot   usr/lib/android-sdk/platform-tools
+debian/out/system/core/fastboot   usr/lib/android-sdk/platform-tools
