@@ -1,9 +1,13 @@
 NAME = libnativehelper
-SOURCES = JNIHelp.cpp \
-          JniConstants.cpp \
-          toStringArray.cpp \
-          JniInvocation.cpp
+
+SOURCES = \
+  JNIHelp.cpp \
+  JniConstants.cpp \
+  toStringArray.cpp \
+  JniInvocation.cpp \
+
 SOURCES := $(foreach source, $(SOURCES), libnativehelper/$(source))
+OBJECTS = $(SOURCES:.cpp=.o)
 
 CXXFLAGS += -std=c++17
 CPPFLAGS += \
@@ -15,10 +19,9 @@ CPPFLAGS += \
   -Isystem/core/liblog/include \
   -Isystem/core/base/include \
 
-LDFLAGS += -shared -Wl,-soname,$(NAME).so.0 -ldl -lpthread \
-           -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
-           -L/usr/lib/$(DEB_HOST_MULTIARCH)/android -Lsystem/core -llog
+debian/out/libnativehelper/$(NAME).a: $(OBJECTS)
+	mkdir --parents debian/out/libnativehelper
+	ar -rcs $@ $^
 
-libnativehelper/$(NAME).so.0: $(SOURCES)
-	$(CXX) $^ -o libnativehelper/$(NAME).so.0 $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
-	ln -s $(NAME).so.0 libnativehelper/$(NAME).so
+$(OBJECTS): %.o: %.cpp
+	$(CXX) -c -o $@ $< $(CXXFLAGS) $(CPPFLAGS)
