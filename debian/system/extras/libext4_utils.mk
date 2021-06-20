@@ -1,16 +1,23 @@
 NAME = libext4_utils
 
-ext4_utils_SOURCES := \
-        ext4_utils.cpp \
-        wipe.cpp \
-        ext4_sb.cpp \
+ext4_utils_SOURCES = \
+  ext4_utils.cpp \
+  wipe.cpp \
+  ext4_sb.cpp \
 
-squashfs_utils_SOURCES := \
-        squashfs_utils.c \
+ext4_utils_SOURCES := $(foreach source, $(ext4_utils_SOURCES), system/extras/ext4_utils/$(source))
 
-SOURCES := \
-  $(foreach source, $(ext4_utils_SOURCES), system/extras/ext4_utils/$(source)) \
-  $(foreach source, $(squashfs_utils_SOURCES), system/extras/squashfs_utils/$(source)) \
+squashfs_utils_SOURCES = \
+  squashfs_utils.c \
+
+squashfs_utils_SOURCES := $(foreach source, $(squashfs_utils_SOURCES), system/extras/squashfs_utils/$(source))
+
+SOURCES = $(ext4_utils_SOURCES) $(squashfs_utils_SOURCES)
+
+SOURCES_C = $(filter %.c,$(SOURCES))
+OBJECTS_C = $(SOURCES_C:.c=.o)
+SOURCES_CXX = $(filter %.cpp,$(SOURCES))
+OBJECTS_CXX = $(SOURCES_CXX:.cpp=.o)
 
 CXXFLAGS += -fno-strict-aliasing -std=g++17
 CPPFLAGS += \
@@ -24,12 +31,12 @@ CPPFLAGS += \
             -Isystem/core/base/include \
             -D_GNU_SOURCE -DFEC_NO_KLOG -DSQUASHFS_NO_KLOG -D_LARGEFILE64_SOURCE \
 
-LDFLAGS += -shared -Wl,-soname,$(NAME).so.0 \
-           -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
-           -L/usr/lib/$(DEB_HOST_MULTIARCH)/android \
-           -Ldebian/out/external/selinux -Lsystem/core -lbase -lsparse -lselinux
+debian/out/system/extras/libext4_utils.a: $(OBJECTS_C) $(OBJECTS_CXX)
+	mkdir --parents debian/out/system/extras
+	ar -rcs $@ $^
 
-debian/out/system/extras/libext4_utils.so: $(SOURCES)
-	mkdir --parents debian/out/system/extras/
-	$(CC) $^ -o debian/out/system/extras/$(NAME).so.0 $(CFLAGS) $(CPPFLAGS) $(LDFLAGS)
-	ln -s $(NAME).so.0 debian/out/system/extras/$(NAME).so
+$(OBJECTS_C): %.o: %.c
+	$(CC) -c -o $@ $< $(CFLAGS) $(CPPFLAGS)
+
+$(OBJECTS_CXX): %.o: %.cpp
+	$(CXX) -c -o $@ $< $(CFLAGS) $(CPPFLAGS)
