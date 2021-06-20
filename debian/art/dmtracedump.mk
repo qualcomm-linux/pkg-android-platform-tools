@@ -1,7 +1,9 @@
 NAME = dmtracedump
-SOURCES = tracedump.cc
-SOURCES := $(foreach source, $(SOURCES), art/tools/dmtracedump/$(source))
+
+SOURCES = art/tools/dmtracedump/tracedump.cc
+
 CPPFLAGS += -Iart/tools/dmtracedump -I/usr/include/android -Umips
 
 debian/out/art/$(NAME): $(SOURCES)
-	$(CXX) $^ -o $@ $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
+	mkdir --parents debian/out/art
+	$(CXX) -o $@ $^ $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)

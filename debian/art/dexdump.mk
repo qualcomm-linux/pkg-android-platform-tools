@@ -1,7 +1,9 @@
 NAME = dexdump
+
 SOURCES = dexdump_cfg.cc dexdump_main.cc dexdump.cc
 SOURCES := $(foreach source, $(SOURCES), art/dexdump/$(source))
 
+CXXFLAGS += -std=gnu++17
 CPPFLAGS += \
   -Iart/libartbase \
   -Iart/dexdump \
@@ -12,25 +14,33 @@ CPPFLAGS += \
   -Isystem/core/base/include \
   -Umips \
 
-CXXFLAGS += -std=gnu++17
-
-# libsigchain defines wrapper functions around sigaction() family. In order to
-# override the ones provided by libc, libsignal must appear in the shared
-# object dependency tree before libc in the breadth-first order.
-LDFLAGS += -nodefaultlibs \
-  -L/usr/lib/$(DEB_HOST_MULTIARCH)/android \
-  -Ldebian/out/art \
-  -Lsystem/core \
-  -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
-  -Wl,-rpath=system/core
-
-LIBRARIES_FLAGS += \
-  -lsigchain \
+# libsigchain defines wrapper functions around sigaction() family.
+# In order to override the ones provided by libc, libsignal must
+# appear before libc in linker command invocation.
+LDFLAGS += \
+  -nodefaultlibs \
+  -ldl \
+  -lpthread \
+  -lz \
+  -llz4 \
+  -Wl,-rpath=/usr/lib/p7zip \
+  -L/usr/lib/p7zip -l:7z.so \
   -lc \
   -lstdc++ \
   -lgcc_s \
-  -lart \
-  -lbase \
+
+STATIC_LIBS = \
+  debian/out/art/libart.a \
+  debian/out/art/libnativeloader.a \
+  debian/out/art/libnativebridge.a \
+  debian/out/system/core/libbacktrace.a \
+  debian/out/system/core/libcutils.a \
+  debian/out/system/core/libziparchive.a \
+  debian/out/system/core/libbase.a \
+  debian/out/system/core/liblog.a \
+  debian/out/art/libdexfile_support.a \
+  debian/out/external/libunwind/libunwind.a \
 
 debian/out/art/$(NAME): $(SOURCES)
-	$(CXX) $^ -o $@ $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS) $(LIBRARIES_FLAGS)
+	mkdir --parents debian/out/art
+	$(CXX) -o $@ $^ $(CXXFLAGS) $(CPPFLAGS) $(STATIC_LIBS) $(LDFLAGS)
