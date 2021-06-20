@@ -1,46 +1,35 @@
 NAME = liblog
 
-# copied from liblog/Android.bp
 liblog_sources = \
-    log_event_list.cpp \
-    log_event_write.cpp \
-    logger_name.cpp \
-    logger_read.cpp \
-    logger_write.cpp \
-    logprint.cpp \
-    properties.cpp \
+  log_event_list.cpp \
+  log_event_write.cpp \
+  logger_name.cpp \
+  logger_read.cpp \
+  logger_write.cpp \
+  logprint.cpp \
+  properties.cpp \
 
-# copied from liblog/Android.bp
 not_windows_sources = \
   event_tag_map.cpp \
 
-SOURCES = $(liblog_sources) $(liblog_host_sources) $(not_windows_sources)
-CSOURCES := $(foreach source, $(filter %.c, $(SOURCES)), system/core/liblog/$(source))
-CXXSOURCES := $(foreach source, $(filter %.cpp, $(SOURCES)), system/core/liblog/$(source))
-COBJECTS := $(CSOURCES:.c=.o)
-CXXOBJECTS := $(CXXSOURCES:.cpp=.o)
-CFLAGS += -c -fvisibility=hidden -fcommon
-CXXFLAGS += -c -std=gnu++17
+SOURCES = $(liblog_sources) $(not_windows_sources)
+SOURCES := $(foreach source, $(SOURCES), system/core/liblog/$(source))
+OBJECTS := $(SOURCES:.cpp=.o)
+
+CFLAGS += -fvisibility=hidden -fcommon
+CXXFLAGS += -std=gnu++17
 CPPFLAGS += \
-            -I/usr/include/android \
-            -Isystem/core/liblog/include \
-            -Isystem/core/include \
-            -Isystem/core/base/include \
-            -DLIBLOG_LOG_TAG=1006 \
-            -DFAKE_LOG_DEVICE=1 \
-            -DSNET_EVENT_LOG_TAG=1397638484
+  -I/usr/include/android \
+  -Isystem/core/liblog/include \
+  -Isystem/core/include \
+  -Isystem/core/base/include \
+  -DLIBLOG_LOG_TAG=1006 \
+  -DFAKE_LOG_DEVICE=1 \
+  -DSNET_EVENT_LOG_TAG=1397638484 \
 
-LDFLAGS += -shared -Wl,-soname,$(NAME).so.0 -lpthread
+debian/out/system/core/$(NAME).a: $(OBJECTS)
+	mkdir --parents debian/out/system/core
+	ar -rcs $@ $^
 
-system/core/$(NAME).so.0: $(COBJECTS) $(CXXOBJECTS)
-	$(CXX) $^ -o system/core/$(NAME).so.0 $(LDFLAGS)
-	ln -s $(NAME).so.0 system/core/$(NAME).so
-
-clean:
-	$(RM) $(COBJECTS) $(CXXOBJECTS) system/core/$(NAME).so*
-
-$(COBJECTS): %.o: %.c
-	$(CC) $< -o $@ $(CFLAGS) $(CPPFLAGS)
-
-$(CXXOBJECTS): %.o: %.cpp
-	$(CXX) $< -o $@  $(CXXFLAGS) $(CPPFLAGS)
+$(OBJECTS): %.o: %.cpp
+	$(CXX) -c -o $@ $< $(CXXFLAGS) $(CPPFLAGS)

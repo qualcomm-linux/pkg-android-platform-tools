@@ -1,34 +1,31 @@
 NAME = libcutils
 
-# copied from libcutils/Android.bp
 libcutils_nonwindows_sources = \
-    fs.cpp \
-    hashmap.cpp \
-    multiuser.cpp \
-    socket_inaddr_any_server_unix.cpp \
-    socket_local_client_unix.cpp \
-    socket_local_server_unix.cpp \
-    socket_network_client_unix.cpp \
-    sockets_unix.cpp \
-    str_parms.cpp \
+  fs.cpp \
+  hashmap.cpp \
+  multiuser.cpp \
+  socket_inaddr_any_server_unix.cpp \
+  socket_local_client_unix.cpp \
+  socket_local_server_unix.cpp \
+  socket_network_client_unix.cpp \
+  sockets_unix.cpp \
+  str_parms.cpp \
 
-# copied from libcutils/Android.bp
 cc_library_srcs = \
-        config_utils.cpp \
-        canned_fs_config.cpp \
-        iosched_policy.cpp \
-        load_file.cpp \
-        native_handle.cpp \
-        record_stream.cpp \
-        sockets.cpp \
-        strlcpy.c \
-        threads.cpp \
+  config_utils.cpp \
+  canned_fs_config.cpp \
+  iosched_policy.cpp \
+  load_file.cpp \
+  native_handle.cpp \
+  record_stream.cpp \
+  sockets.cpp \
+  strlcpy.c \
+  threads.cpp \
 
-# copied from libcutils/Android.bp
 cc_library_target_not_windows_srcs = \
-                ashmem-host.cpp \
-                fs_config.cpp \
-                trace-host.cpp \
+  ashmem-host.cpp \
+  fs_config.cpp \
+  trace-host.cpp \
 
 SOURCES = \
   $(libcutils_nonwindows_sources) \
@@ -36,31 +33,25 @@ SOURCES = \
   $(cc_library_target_not_windows_srcs)
 
 
-CSOURCES := $(foreach source, $(filter %.c, $(SOURCES)), system/core/libcutils/$(source))
-CXXSOURCES := $(foreach source, $(filter %.cpp, $(SOURCES)), system/core/libcutils/$(source))
-COBJECTS := $(CSOURCES:.c=.o)
-CXXOBJECTS := $(CXXSOURCES:.cpp=.o)
-CFLAGS += -c
-CXXFLAGS += -c -std=gnu++17
+SOURCES_C := $(foreach source, $(filter %.c, $(SOURCES)), system/core/libcutils/$(source))
+OBJECTS_C := $(SOURCES_C:.c=.o)
+SOURCES_CXX := $(foreach source, $(filter %.cpp, $(SOURCES)), system/core/libcutils/$(source))
+OBJECTS_CXX := $(SOURCES_CXX:.cpp=.o)
+
+CXXFLAGS += -std=gnu++17
 CPPFLAGS += \
-            -I/usr/include/android \
-            -Isystem/core/base/include \
-            -Isystem/core/libcutils/include \
-            -Isystem/core/liblog/include \
-            -Isystem/core/include \
+  -I/usr/include/android \
+  -Isystem/core/base/include \
+  -Isystem/core/libcutils/include \
+  -Isystem/core/liblog/include \
+  -Isystem/core/include \
 
-LDFLAGS += -shared -Wl,-soname,$(NAME).so.0 \
-           -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android -lpthread -Lsystem/core -llog -lbase
+debian/out/system/core/$(NAME).a: $(OBJECTS_C) $(OBJECTS_CXX)
+	mkdir --parents debian/out/system/core
+	ar -rcs $@ $^
 
-system/core/$(NAME).so.0: $(COBJECTS) $(CXXOBJECTS)
-	$(CXX) $^ -o system/core/$(NAME).so.0 $(LDFLAGS)
-	ln -s $(NAME).so.0 system/core/$(NAME).so
+$(OBJECTS_C): %.o: %.c
+	$(CC) -c -o $@ $< $(CFLAGS) $(CPPFLAGS)
 
-clean:
-	$(RM) $(CXXOBJECTS) $(COBJECTS) system/core/$(NAME).so*
-
-$(COBJECTS): %.o: %.c
-	$(CC) $< -o $@ $(CFLAGS) $(CPPFLAGS)
-
-$(CXXOBJECTS): %.o: %.cpp
-	$(CXX) $< -o $@  $(CXXFLAGS) $(CPPFLAGS)
+$(OBJECTS_CXX): %.o: %.cpp
+	$(CXX) -c -o $@ $< $(CXXFLAGS) $(CPPFLAGS)
