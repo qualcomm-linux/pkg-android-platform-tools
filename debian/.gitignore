@@ -3,7 +3,7 @@
 /.debhelper/
 /.mh/
 /adb/
-/android-*/
+/android-sdk-libsparse-utils/
 /append2simg/
 /build/
 /cmake-obj/
