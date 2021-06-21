@@ -48,22 +48,18 @@ public:
     void writeToParcel(Parcel* parcel);
 
     static bool isValid(const sp<SurfaceControl>& surface) {
-        return (surface != nullptr) && surface->isValid();
+        return (surface != 0) && surface->isValid();
     }
 
     bool isValid() {
-        return mHandle!=nullptr && mClient!=nullptr;
+        return mHandle!=0 && mClient!=0;
     }
 
     static bool isSameSurface(
             const sp<SurfaceControl>& lhs, const sp<SurfaceControl>& rhs);
 
-    // Release the handles assosciated with the SurfaceControl, without reparenting
-    // them off-screen. At the moment if this isn't executed before ~SurfaceControl
-    // is called then the destructor will reparent the layer off-screen for you.
-    void        release();
-    // Reparent off-screen and release. This is invoked by the destructor.
-    void destroy();
+    // release surface data from java
+    void        clear();
 
     // disconnect any api that's connected
     void        disconnect();
@@ -75,17 +71,10 @@ public:
     sp<Surface> createSurface() const;
     sp<IBinder> getHandle() const;
 
-    sp<IGraphicBufferProducer> getIGraphicBufferProducer() const;
-
     status_t clearLayerFrameStats() const;
     status_t getLayerFrameStats(FrameStats* outStats) const;
 
     sp<SurfaceComposerClient> getClient() const;
-    
-    explicit SurfaceControl(const sp<SurfaceControl>& other);
-
-    SurfaceControl(const sp<SurfaceComposerClient>& client, const sp<IBinder>& handle,
-                   const sp<IGraphicBufferProducer>& gbp, bool owned);
 
 private:
     // can't be copied
@@ -95,10 +84,17 @@ private:
     friend class SurfaceComposerClient;
     friend class Surface;
 
+    SurfaceControl(
+            const sp<SurfaceComposerClient>& client,
+            const sp<IBinder>& handle,
+            const sp<IGraphicBufferProducer>& gbp,
+            bool owned);
+
     ~SurfaceControl();
 
     sp<Surface> generateSurfaceLocked() const;
     status_t validate() const;
+    void destroy();
 
     sp<SurfaceComposerClient>   mClient;
     sp<IBinder>                 mHandle;

@@ -2,7 +2,6 @@ NAME = libdexfile_support
 
 SOURCES = art/libdexfile/external/dex_file_supp.cc
 CPPFLAGS += \
-  -DNO_DEXFILE_SUPPORT \
   -Iart/libartbase \
   -Iart/libdexfile \
   -Iart/libdexfile/external/include \

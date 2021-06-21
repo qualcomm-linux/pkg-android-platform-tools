@@ -60,6 +60,7 @@ SOURCES_runtime = \
   gc/task_processor.cc \
   gc/verification.cc \
   hidden_api.cc \
+  hidden_api_jni.cc \
   hprof/hprof.cc \
   image.cc \
   index_bss_mapping.cc \
@@ -88,11 +89,13 @@ SOURCES_runtime = \
   jit/debugger_interface.cc \
   jit/jit.cc \
   jit/jit_code_cache.cc \
+  jit/jit_memory_region.cc \
   jit/profiling_info.cc \
   jit/profile_saver.cc \
   jni/check_jni.cc \
   jni/java_vm_ext.cc \
   jni/jni_env_ext.cc \
+  jni/jni_id_manager.cc \
   jni/jni_internal.cc \
   linear_alloc.cc \
   managed_stack.cc \
@@ -168,6 +171,7 @@ SOURCES_runtime = \
   signal_catcher.cc \
   stack.cc \
   stack_map.cc \
+  string_builder_append.cc \
   thread.cc \
   thread_list.cc \
   thread_pool.cc \
@@ -212,6 +216,7 @@ SOURCES_runtime = \
   entrypoints/quick/quick_jni_entrypoints.cc \
   entrypoints/quick/quick_lock_entrypoints.cc \
   entrypoints/quick/quick_math_entrypoints.cc \
+  entrypoints/quick/quick_string_builder_append_entrypoints.cc \
   entrypoints/quick/quick_thread_entrypoints.cc \
   entrypoints/quick/quick_throw_entrypoints.cc \
   entrypoints/quick/quick_trampoline_entrypoints.cc \
@@ -220,7 +225,7 @@ SOURCES_runtime = \
 SOURCES_runtime += \
   monitor_linux.cc \
   runtime_linux.cc \
-  thread_linux.cc
+  thread_linux.cc \
 
 # Architecture specific sources, which come from runtime/Android.bp
 SOURCES_runtime_arm = \
@@ -349,6 +354,7 @@ SOURCES := $(foreach source, $(SOURCES_libartbase), art/libartbase/$(source)) \
            $(foreach source, $(SOURCES_libdexfile), art/libdexfile/$(source)) \
            $(foreach source, $(SOURCES_runtime), art/runtime/$(source)) \
            art/libartpalette/system/palette_fake.cc \
+           art/libprofile/profile/profile_boot_info.cc \
            art/libprofile/profile/profile_compilation_info.cc \
 
 
@@ -379,6 +385,7 @@ SOURCES_OPERATOR = \
   jdwp_provider.h \
   jdwp/jdwp.h \
   jdwp/jdwp_constants.h \
+  jni_id_type.h \
   lock_word.h \
   oat.h \
   object_callbacks.h \
@@ -389,7 +396,8 @@ SOURCES_OPERATOR = \
   thread_state.h \
   ti/agent.h \
   trace.h \
-  verifier/verifier_enums.h
+  verifier/verifier_enums.h \
+
 SOURCES_OPERATOR := $(foreach source, $(SOURCES_OPERATOR), runtime/$(source))
 
 # from libartbase/Android.bp, and libdexfile/Android.bp
@@ -464,6 +472,7 @@ CPPFLAGS += \
   -Isystem/core/libziparchive/include \
   -Isystem/core/libnativeloader/include \
   -Isystem/core/libnativebridge/include \
+  -Isystem/core/libunwindstack/include \
   -Isystem/core/liblog/include \
   -Isystem/core/base/include \
   -Ilibnativehelper/include_jni \

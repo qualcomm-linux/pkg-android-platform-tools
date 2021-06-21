@@ -21,8 +21,6 @@ cc_library_srcs = \
         native_handle.cpp \
         record_stream.cpp \
         sockets.cpp \
-        strdup16to8.cpp \
-        strdup8to16.cpp \
         strlcpy.c \
         threads.cpp \
 

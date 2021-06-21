@@ -20,6 +20,7 @@ typedef struct DvrSurfaceState DvrSurfaceState;
 typedef struct DvrSurface DvrSurface;
 typedef struct DvrHwcClient DvrHwcClient;
 typedef struct DvrHwcFrame DvrHwcFrame;
+typedef struct DvrVSyncClient DvrVSyncClient;
 
 void dvrBufferDestroy(DvrBuffer* buffer);
 void dvrReadBufferDestroy(DvrReadBuffer* read_buffer);
@@ -31,6 +32,7 @@ void dvrSurfaceStateDestroy(DvrSurfaceState* surface_state);
 void dvrSurfaceDestroy(DvrSurface* surface);
 void dvrHwcClientDestroy(DvrHwcClient* client);
 void dvrHwcFrameDestroy(DvrHwcFrame* frame);
+void dvrVSyncClientDestroy(DvrVSyncClient* client);
 
 __END_DECLS
 
@@ -53,6 +55,7 @@ struct DvrObjectDeleter {
   void operator()(DvrSurface* p) { dvrSurfaceDestroy(p); }
   void operator()(DvrHwcClient* p) { dvrHwcClientDestroy(p); }
   void operator()(DvrHwcFrame* p) { dvrHwcFrameDestroy(p); }
+  void operator()(DvrVSyncClient* p) { dvrVSyncClientDestroy(p); }
 };
 
 // Helper to define unique pointers for DVR object types.
@@ -70,6 +73,7 @@ using UniqueDvrSurfaceState = MakeUniqueDvrPointer<DvrSurfaceState>;
 using UniqueDvrSurface = MakeUniqueDvrPointer<DvrSurface>;
 using UniqueDvrHwcClient = MakeUniqueDvrPointer<DvrHwcClient>;
 using UniqueDvrHwcFrame = MakeUniqueDvrPointer<DvrHwcFrame>;
+using UniqueDvrVSyncClient = MakeUniqueDvrPointer<DvrVSyncClient>;
 
 // TODO(eieio): Add an adapter for std::shared_ptr that injects the deleter into
 // the relevant constructors.

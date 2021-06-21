@@ -89,7 +89,7 @@ endif
 
 EXPORT_GLOBAL_GCOV_OPTIONS :=
 ifeq ($(NATIVE_COVERAGE),true)
-  EXPORT_GLOBAL_GCOV_OPTIONS := export GCOV_PREFIX /data/misc/gcov
+  EXPORT_GLOBAL_GCOV_OPTIONS := export GCOV_PREFIX /data/misc/trace
 endif
 
 # Put it here instead of in init.rc module definition,
@@ -97,7 +97,7 @@ endif
 #
 # create some directories (some are mount points) and symlinks
 LOCAL_POST_INSTALL_CMD := mkdir -p $(addprefix $(TARGET_ROOT_OUT)/, \
-    sbin dev proc sys system data odm oem acct config storage mnt apex debug_ramdisk $(BOARD_ROOT_EXTRA_FOLDERS)); \
+    dev proc sys system data odm oem acct config storage mnt apex debug_ramdisk $(BOARD_ROOT_EXTRA_FOLDERS)); \
     ln -sf /system/bin $(TARGET_ROOT_OUT)/bin; \
     ln -sf /system/etc $(TARGET_ROOT_OUT)/etc; \
     ln -sf /data/user_de/0/com.android.shell/files/bugreports $(TARGET_ROOT_OUT)/bugreports; \
@@ -113,10 +113,10 @@ ifdef BOARD_USES_PRODUCTIMAGE
 else
   LOCAL_POST_INSTALL_CMD += ; ln -sf /system/product $(TARGET_ROOT_OUT)/product
 endif
-ifdef BOARD_USES_PRODUCT_SERVICESIMAGE
-  LOCAL_POST_INSTALL_CMD += ; mkdir -p $(TARGET_ROOT_OUT)/product_services
+ifdef BOARD_USES_SYSTEM_EXTIMAGE
+  LOCAL_POST_INSTALL_CMD += ; mkdir -p $(TARGET_ROOT_OUT)/system_ext
 else
-  LOCAL_POST_INSTALL_CMD += ; ln -sf /system/product_services $(TARGET_ROOT_OUT)/product_services
+  LOCAL_POST_INSTALL_CMD += ; ln -sf /system/system_ext $(TARGET_ROOT_OUT)/system_ext
 endif
 ifdef BOARD_USES_METADATA_PARTITION
   LOCAL_POST_INSTALL_CMD += ; mkdir -p $(TARGET_ROOT_OUT)/metadata
@@ -230,7 +230,7 @@ LOCAL_MODULE_PATH := $(TARGET_OUT_ETC)
 # A symlink can't overwrite a directory and the /system/usr/icu directory once
 # existed so the required structure must be created whatever we find.
 LOCAL_POST_INSTALL_CMD = mkdir -p $(TARGET_OUT)/usr && rm -rf $(TARGET_OUT)/usr/icu
-LOCAL_POST_INSTALL_CMD += && ln -sf /apex/com.android.runtime/etc/icu $(TARGET_OUT)/usr/icu
+LOCAL_POST_INSTALL_CMD += && ln -sf /apex/com.android.i18n/etc/icu $(TARGET_OUT)/usr/icu
 
 # TODO(b/124106384): Clean up compat symlinks for ART binaries.
 ART_BINARIES := \
@@ -376,6 +376,62 @@ $(LOCAL_BUILT_MODULE):
 	$(hide) echo -n > $@
 	$(hide) $(foreach lib,$(PRIVATE_VNDK_SAMEPROCESS_LIBRARIES), \
 		echo $(lib).so >> $@;)
+
+#######################################
+# vndkcore.libraries.txt
+include $(CLEAR_VARS)
+LOCAL_MODULE := vndkcore.libraries.txt
+LOCAL_MODULE_CLASS := ETC
+LOCAL_MODULE_PATH := $(TARGET_OUT_ETC)
+LOCAL_MODULE_STEM := $(call append_vndk_version,$(LOCAL_MODULE))
+include $(BUILD_SYSTEM)/base_rules.mk
+$(LOCAL_BUILT_MODULE): PRIVATE_VNDK_CORE_LIBRARIES := $(VNDK_CORE_LIBRARIES)
+$(LOCAL_BUILT_MODULE):
+	@echo "Generate: $@"
+	@mkdir -p $(dir $@)
+	$(hide) echo -n > $@
+	$(hide) $(foreach lib,$(PRIVATE_VNDK_CORE_LIBRARIES), \
+		echo $(lib).so >> $@;)
+
+#######################################
+# vndkprivate.libraries.txt
+include $(CLEAR_VARS)
+LOCAL_MODULE := vndkprivate.libraries.txt
+LOCAL_MODULE_CLASS := ETC
+LOCAL_MODULE_PATH := $(TARGET_OUT_ETC)
+LOCAL_MODULE_STEM := $(call append_vndk_version,$(LOCAL_MODULE))
+include $(BUILD_SYSTEM)/base_rules.mk
+$(LOCAL_BUILT_MODULE): PRIVATE_VNDK_PRIVATE_LIBRARIES := $(VNDK_PRIVATE_LIBRARIES)
+$(LOCAL_BUILT_MODULE):
+	@echo "Generate: $@"
+	@mkdir -p $(dir $@)
+	$(hide) echo -n > $@
+	$(hide) $(foreach lib,$(PRIVATE_VNDK_PRIVATE_LIBRARIES), \
+		echo $(lib).so >> $@;)
+
+#######################################
+# sanitizer.libraries.txt
+include $(CLEAR_VARS)
+LOCAL_MODULE := sanitizer.libraries.txt
+LOCAL_MODULE_CLASS := ETC
+LOCAL_MODULE_PATH := $(TARGET_OUT_ETC)
+LOCAL_MODULE_STEM := $(LOCAL_MODULE)
+include $(BUILD_SYSTEM)/base_rules.mk
+$(LOCAL_BUILT_MODULE): PRIVATE_SANITIZER_RUNTIME_LIBRARIES := $(addsuffix .so,\
+  $(ADDRESS_SANITIZER_RUNTIME_LIBRARY) \
+  $(HWADDRESS_SANITIZER_RUNTIME_LIBRARY) \
+  $(UBSAN_RUNTIME_LIBRARY) \
+  $(TSAN_RUNTIME_LIBRARY) \
+  $(2ND_ADDRESS_SANITIZER_RUNTIME_LIBRARY) \
+  $(2ND_HWADDRESS_SANITIZER_RUNTIME_LIBRARY) \
+  $(2ND_UBSAN_RUNTIME_LIBRARY) \
+  $(2ND_TSAN_RUNTIME_LIBRARY))
+$(LOCAL_BUILT_MODULE):
+	@echo "Generate: $@"
+	@mkdir -p $(dir $@)
+	$(hide) echo -n > $@
+	$(hide) $(foreach lib,$(PRIVATE_SANITIZER_RUNTIME_LIBRARIES), \
+		echo $(lib) >> $@;)
 
 #######################################
 # adb_debug.prop in debug ramdisk

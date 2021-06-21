@@ -1,6 +1,5 @@
 #include "hardware_composer.h"
 
-#include <binder/IServiceManager.h>
 #include <cutils/properties.h>
 #include <cutils/sched_policy.h>
 #include <fcntl.h>
@@ -52,10 +51,6 @@ const char kDvrStandaloneProperty[] = "ro.boot.vr";
 const char kRightEyeOffsetProperty[] = "dvr.right_eye_offset_ns";
 
 const char kUseExternalDisplayProperty[] = "persist.vr.use_external_display";
-
-// Surface flinger uses "VSYNC-sf" and "VSYNC-app" for its version of these
-// events. Name ours similarly.
-const char kVsyncTraceEventName[] = "VSYNC-vrflinger";
 
 // How long to wait after boot finishes before we turn the display off.
 constexpr int kBootFinishedDisplayOffTimeoutSec = 10;
@@ -136,7 +131,6 @@ HardwareComposer::~HardwareComposer(void) {
   UpdatePostThreadState(PostThreadState::Quit, true);
   if (post_thread_.joinable())
     post_thread_.join();
-  composer_callback_->SetVsyncService(nullptr);
 }
 
 bool HardwareComposer::Initialize(
@@ -152,13 +146,6 @@ bool HardwareComposer::Initialize(
   request_display_callback_ = request_display_callback;
 
   primary_display_ = GetDisplayParams(composer, primary_display_id, true);
-
-  vsync_service_ = new VsyncService;
-  sp<IServiceManager> sm(defaultServiceManager());
-  auto result = sm->addService(String16(VsyncService::GetServiceName()),
-      vsync_service_, false);
-  LOG_ALWAYS_FATAL_IF(result != android::OK,
-      "addService(%s) failed", VsyncService::GetServiceName());
 
   post_thread_event_fd_.Reset(eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK));
   LOG_ALWAYS_FATAL_IF(
@@ -236,7 +223,6 @@ void HardwareComposer::CreateComposer() {
   LOG_ALWAYS_FATAL_IF(!composer_callback_->GotFirstHotplug(),
       "Registered composer callback but didn't get hotplug for primary"
       " display");
-  composer_callback_->SetVsyncService(vsync_service_);
 }
 
 void HardwareComposer::OnPostThreadResumed() {
@@ -256,10 +242,7 @@ void HardwareComposer::OnPostThreadPaused() {
   // Standalones only create the composer client once and then use SetPowerMode
   // to control the screen on pause/resume.
   if (!is_standalone_device_) {
-    if (composer_callback_ != nullptr) {
-      composer_callback_->SetVsyncService(nullptr);
-      composer_callback_ = nullptr;
-    }
+    composer_callback_ = nullptr;
     composer_.reset(nullptr);
   } else {
     EnableDisplay(*target_display_, false);
@@ -353,6 +336,7 @@ HWC::Error HardwareComposer::Present(hwc2_display_t display) {
   // According to the documentation, this fence is signaled at the time of
   // vsync/DMA for physical displays.
   if (error == HWC::Error::None) {
+    ATRACE_INT("HardwareComposer: VsyncFence", present_fence);
     retire_fence_fds_.emplace_back(present_fence);
   } else {
     ATRACE_INT("HardwareComposer: PresentResult", error);
@@ -791,11 +775,6 @@ void HardwareComposer::PostThread() {
       std::unique_lock<std::mutex> lock(post_thread_mutex_);
       ALOGI("HardwareComposer::PostThread: Entering quiescent state.");
 
-      if (was_running) {
-        vsync_trace_parity_ = false;
-        ATRACE_INT(kVsyncTraceEventName, 0);
-      }
-
       // Tear down resources.
       OnPostThreadPaused();
       was_running = false;
@@ -869,9 +848,6 @@ void HardwareComposer::PostThread() {
       vsync_timestamp = status.get();
     }
 
-    vsync_trace_parity_ = !vsync_trace_parity_;
-    ATRACE_INT(kVsyncTraceEventName, vsync_trace_parity_ ? 1 : 0);
-
     // Advance the vsync counter only if the system is keeping up with hardware
     // vsync to give clients an indication of the delays.
     if (vsync_prediction_interval_ == 1)
@@ -890,6 +866,11 @@ void HardwareComposer::PostThread() {
 
       vsync_ring_->Publish(vsync);
     }
+
+    // Signal all of the vsync clients. Because absolute time is used for the
+    // wakeup time below, this can take a little time if necessary.
+    if (vsync_callback_)
+      vsync_callback_(vsync_timestamp, /*frame_time_estimate*/ 0, vsync_count_);
 
     {
       // Sleep until shortly before vsync.
@@ -1082,45 +1063,8 @@ void HardwareComposer::UpdateLayerConfig() {
            layers_.size());
 }
 
-std::vector<sp<IVsyncCallback>>::const_iterator
-HardwareComposer::VsyncService::FindCallback(
-    const sp<IVsyncCallback>& callback) const {
-  sp<IBinder> binder = IInterface::asBinder(callback);
-  return std::find_if(callbacks_.cbegin(), callbacks_.cend(),
-                      [&](const sp<IVsyncCallback>& callback) {
-                        return IInterface::asBinder(callback) == binder;
-                      });
-}
-
-status_t HardwareComposer::VsyncService::registerCallback(
-    const sp<IVsyncCallback> callback) {
-  std::lock_guard<std::mutex> autolock(mutex_);
-  if (FindCallback(callback) == callbacks_.cend()) {
-    callbacks_.push_back(callback);
-  }
-  return OK;
-}
-
-status_t HardwareComposer::VsyncService::unregisterCallback(
-    const sp<IVsyncCallback> callback) {
-  std::lock_guard<std::mutex> autolock(mutex_);
-  auto iter = FindCallback(callback);
-  if (iter != callbacks_.cend()) {
-    callbacks_.erase(iter);
-  }
-  return OK;
-}
-
-void HardwareComposer::VsyncService::OnVsync(int64_t vsync_timestamp) {
-  ATRACE_NAME("VsyncService::OnVsync");
-  std::lock_guard<std::mutex> autolock(mutex_);
-  for (auto iter = callbacks_.begin(); iter != callbacks_.end();) {
-    if ((*iter)->onVsync(vsync_timestamp) == android::DEAD_OBJECT) {
-      iter = callbacks_.erase(iter);
-    } else {
-      ++iter;
-    }
-  }
+void HardwareComposer::SetVSyncCallback(VSyncCallback callback) {
+  vsync_callback_ = callback;
 }
 
 Return<void> HardwareComposer::ComposerCallback::onHotplug(
@@ -1179,24 +1123,14 @@ Return<void> HardwareComposer::ComposerCallback::onRefresh(
 
 Return<void> HardwareComposer::ComposerCallback::onVsync(Hwc2::Display display,
                                                          int64_t timestamp) {
-  TRACE_FORMAT("vsync_callback|display=%" PRIu64 ";timestamp=%" PRId64 "|",
-               display, timestamp);
-  std::lock_guard<std::mutex> lock(mutex_);
   DisplayInfo* display_info = GetDisplayInfo(display);
   if (display_info) {
+    TRACE_FORMAT("vsync_callback|display=%" PRIu64 ";timestamp=%" PRId64 "|",
+                 display, timestamp);
     display_info->callback_vsync_timestamp = timestamp;
-  }
-  if (primary_display_.id == display && vsync_service_ != nullptr) {
-    vsync_service_->OnVsync(timestamp);
   }
 
   return Void();
-}
-
-void HardwareComposer::ComposerCallback::SetVsyncService(
-    const sp<VsyncService>& vsync_service) {
-  std::lock_guard<std::mutex> lock(mutex_);
-  vsync_service_ = vsync_service;
 }
 
 HardwareComposer::ComposerCallback::Displays
@@ -1215,7 +1149,6 @@ HardwareComposer::ComposerCallback::GetDisplays() {
 
 Status<int64_t> HardwareComposer::ComposerCallback::GetVsyncTime(
     hwc2_display_t display) {
-  std::lock_guard<std::mutex> autolock(mutex_);
   DisplayInfo* display_info = GetDisplayInfo(display);
   if (!display_info) {
     ALOGW("Attempt to get vsync time for unknown display %" PRIu64, display);
@@ -1227,6 +1160,7 @@ Status<int64_t> HardwareComposer::ComposerCallback::GetVsyncTime(
   if (!event_fd) {
     // Fall back to returning the last timestamp returned by the vsync
     // callback.
+    std::lock_guard<std::mutex> autolock(mutex_);
     return display_info->callback_vsync_timestamp;
   }
 

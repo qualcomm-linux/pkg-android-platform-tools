@@ -103,12 +103,6 @@ public class JniCodeEmitter {
             if (cfunc.hasEGLHandleArg()) {
                 return;
             }
-            // eglGetPlatformDisplay does not have any EGLHandleArgs
-            // but we do not want to create IOBuffers of this, so
-            // exit
-            if (cfunc.getName().equals("eglGetPlatformDisplay")) {
-                return;
-            }
         }
 
         jfunc = JFunc.convert(cfunc, false);
@@ -775,19 +769,6 @@ public class JniCodeEmitter {
         }
     }
 
-    String getJniDefaultReturn(JType jType) {
-        if (jType.isPrimitive()) {
-            String baseType = jType.getBaseType();
-            if (baseType.equals("boolean")) {
-                return "JNI_FALSE";
-            } else {
-                return "(" + getJniType(jType) + ")0";
-            }
-        } else {
-            return "nullptr";
-        }
-    }
-
     String getJniMangledName(String name) {
         name = name.replaceAll("_", "_1");
         name = name.replaceAll(";", "_2");
@@ -956,15 +937,15 @@ public class JniCodeEmitter {
                         "jniThrowException(_env, \"java/lang/UnsupportedOperationException\",");
             out.println(indent +
                         "    \"" + cfunc.getName() + "\");");
-            if (isVoid) {
-                out.println(indent + "return;");
-            } else {
+            if (!isVoid) {
+                String retval = getErrorReturnValue(cfunc);
                 if (cfunc.getType().isEGLHandle()) {
                     String baseType = cfunc.getType().getBaseType().toLowerCase();
-                    out.println(indent + indent + "return nullptr;");
+                    out.println(indent +
+                                "return toEGLHandle(_env, " + baseType + "Class, " +
+                                baseType + "Constructor, " + retval + ");");
                 } else {
-                    out.println(indent + indent + "return " +
-                                getJniDefaultReturn(jfunc.getType()) + ";");
+                    out.println(indent + "return " + retval + ";");
                 }
             }
             out.println("}");
@@ -1608,17 +1589,8 @@ public class JniCodeEmitter {
             out.println(indent + "if (_exception) {");
             out.println(indent + indent +
                         "jniThrowException(_env, _exceptionType, _exceptionMessage);");
-            if (!isVoid) {
-                if (cfunc.getType().isEGLHandle()) {
-                    String baseType = cfunc.getType().getBaseType().toLowerCase();
-                    out.println(indent + indent + "return nullptr;");
-                } else {
-                    out.println(indent + indent + "return " +
-                                getJniDefaultReturn(jfunc.getType()) + ";");
-                }
-            }
-
             out.println(indent + "}");
+
         }
 
 

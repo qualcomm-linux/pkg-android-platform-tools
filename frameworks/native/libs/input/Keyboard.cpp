@@ -45,22 +45,22 @@ status_t KeyMap::load(const InputDeviceIdentifier& deviceIdenfifier,
         String8 keyLayoutName;
         if (deviceConfiguration->tryGetProperty(String8("keyboard.layout"),
                 keyLayoutName)) {
-            status_t status = loadKeyLayout(deviceIdenfifier, keyLayoutName.c_str());
+            status_t status = loadKeyLayout(deviceIdenfifier, keyLayoutName);
             if (status == NAME_NOT_FOUND) {
                 ALOGE("Configuration for keyboard device '%s' requested keyboard layout '%s' but "
                         "it was not found.",
-                        deviceIdenfifier.name.c_str(), keyLayoutName.string());
+                        deviceIdenfifier.name.string(), keyLayoutName.string());
             }
         }
 
         String8 keyCharacterMapName;
         if (deviceConfiguration->tryGetProperty(String8("keyboard.characterMap"),
                 keyCharacterMapName)) {
-            status_t status = loadKeyCharacterMap(deviceIdenfifier, keyCharacterMapName.c_str());
+            status_t status = loadKeyCharacterMap(deviceIdenfifier, keyCharacterMapName);
             if (status == NAME_NOT_FOUND) {
                 ALOGE("Configuration for keyboard device '%s' requested keyboard character "
                         "map '%s' but it was not found.",
-                        deviceIdenfifier.name.c_str(), keyLayoutName.string());
+                        deviceIdenfifier.name.string(), keyLayoutName.string());
             }
         }
 
@@ -70,30 +70,30 @@ status_t KeyMap::load(const InputDeviceIdentifier& deviceIdenfifier,
     }
 
     // Try searching by device identifier.
-    if (probeKeyMap(deviceIdenfifier, "")) {
+    if (probeKeyMap(deviceIdenfifier, String8::empty())) {
         return OK;
     }
 
     // Fall back on the Generic key map.
     // TODO Apply some additional heuristics here to figure out what kind of
     //      generic key map to use (US English, etc.) for typical external keyboards.
-    if (probeKeyMap(deviceIdenfifier, "Generic")) {
+    if (probeKeyMap(deviceIdenfifier, String8("Generic"))) {
         return OK;
     }
 
     // Try the Virtual key map as a last resort.
-    if (probeKeyMap(deviceIdenfifier, "Virtual")) {
+    if (probeKeyMap(deviceIdenfifier, String8("Virtual"))) {
         return OK;
     }
 
     // Give up!
     ALOGE("Could not determine key map for device '%s' and no default key maps were found!",
-            deviceIdenfifier.name.c_str());
+            deviceIdenfifier.name.string());
     return NAME_NOT_FOUND;
 }
 
 bool KeyMap::probeKeyMap(const InputDeviceIdentifier& deviceIdentifier,
-        const std::string& keyMapName) {
+        const String8& keyMapName) {
     if (!haveKeyLayout()) {
         loadKeyLayout(deviceIdentifier, keyMapName);
     }
@@ -104,10 +104,10 @@ bool KeyMap::probeKeyMap(const InputDeviceIdentifier& deviceIdentifier,
 }
 
 status_t KeyMap::loadKeyLayout(const InputDeviceIdentifier& deviceIdentifier,
-        const std::string& name) {
-    std::string path(getPath(deviceIdentifier, name,
+        const String8& name) {
+    String8 path(getPath(deviceIdentifier, name,
             INPUT_DEVICE_CONFIGURATION_FILE_TYPE_KEY_LAYOUT));
-    if (path.empty()) {
+    if (path.isEmpty()) {
         return NAME_NOT_FOUND;
     }
 
@@ -116,15 +116,15 @@ status_t KeyMap::loadKeyLayout(const InputDeviceIdentifier& deviceIdentifier,
         return status;
     }
 
-    keyLayoutFile = path;
+    keyLayoutFile.setTo(path);
     return OK;
 }
 
 status_t KeyMap::loadKeyCharacterMap(const InputDeviceIdentifier& deviceIdentifier,
-        const std::string& name) {
-    std::string path = getPath(deviceIdentifier, name,
-            INPUT_DEVICE_CONFIGURATION_FILE_TYPE_KEY_CHARACTER_MAP);
-    if (path.empty()) {
+        const String8& name) {
+    String8 path(getPath(deviceIdentifier, name,
+            INPUT_DEVICE_CONFIGURATION_FILE_TYPE_KEY_CHARACTER_MAP));
+    if (path.isEmpty()) {
         return NAME_NOT_FOUND;
     }
 
@@ -134,13 +134,13 @@ status_t KeyMap::loadKeyCharacterMap(const InputDeviceIdentifier& deviceIdentifi
         return status;
     }
 
-    keyCharacterMapFile = path;
+    keyCharacterMapFile.setTo(path);
     return OK;
 }
 
-std::string KeyMap::getPath(const InputDeviceIdentifier& deviceIdentifier,
-        const std::string& name, InputDeviceConfigurationFileType type) {
-    return name.empty()
+String8 KeyMap::getPath(const InputDeviceIdentifier& deviceIdentifier,
+        const String8& name, InputDeviceConfigurationFileType type) {
+    return name.isEmpty()
             ? getInputDeviceConfigurationFilePathByDeviceIdentifier(deviceIdentifier, type)
             : getInputDeviceConfigurationFilePathByName(name, type);
 }
@@ -174,7 +174,7 @@ bool isEligibleBuiltInKeyboard(const InputDeviceIdentifier& deviceIdentifier,
         }
     }
 
-    return strstr(deviceIdentifier.name.c_str(), "-keypad");
+    return strstr(deviceIdentifier.name.string(), "-keypad");
 }
 
 static int32_t setEphemeralMetaState(int32_t mask, bool down, int32_t oldMetaState) {

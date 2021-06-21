@@ -100,7 +100,7 @@ int32_t SensorService::SensorDirectConnection::configureChannel(int handle, int 
         return NO_ERROR;
     }
 
-    if (!mService->isOperationPermitted(mOpPackageName)) {
+    if (mService->isOperationRestricted(mOpPackageName)) {
         return PERMISSION_DENIED;
     }
 

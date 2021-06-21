@@ -46,7 +46,7 @@ namespace android {
 namespace fs_mgr {
 namespace {
 
-const std::string kDefaultAndroidDtDir("/proc/device-tree/firmware/android");
+constexpr char kDefaultAndroidDtDir[] = "/proc/device-tree/firmware/android";
 
 struct FlagList {
     const char *name;
@@ -171,6 +171,18 @@ void ParseMountFlags(const std::string& flags, FstabEntry* entry) {
                 fs_options.append(",");  // appends a comma if not the first
             }
             fs_options.append(flag);
+
+            if (entry->fs_type == "f2fs" && StartsWith(flag, "reserve_root=")) {
+                std::string arg;
+                if (auto equal_sign = flag.find('='); equal_sign != std::string::npos) {
+                    arg = flag.substr(equal_sign + 1);
+                }
+                if (!ParseInt(arg, &entry->reserved_size)) {
+                    LWARNING << "Warning: reserve_root= flag malformed: " << arg;
+                } else {
+                    entry->reserved_size <<= 12;
+                }
+            }
         }
     }
     entry->fs_options = std::move(fs_options);
@@ -262,10 +274,6 @@ void ParseFsMgrFlags(const std::string& flags, FstabEntry* entry) {
                     LWARNING << "Warning: zramsize= flag malformed: " << arg;
                 }
             }
-        } else if (StartsWith(flag, "verify=")) {
-            // If the verify flag is followed by an = and the location for the verity state.
-            entry->fs_mgr_flags.verify = true;
-            entry->verity_loc = arg;
         } else if (StartsWith(flag, "forceencrypt=")) {
             // The forceencrypt flag is followed by an = and the location of the keys.
             entry->fs_mgr_flags.force_crypt = true;
@@ -696,10 +704,9 @@ bool ReadFstabFromDt(Fstab* fstab, bool log) {
     return true;
 }
 
-// For GSI to skip mounting /product and /product_services, until there are
-// well-defined interfaces between them and /system. Otherwise, the GSI flashed
-// on /system might not be able to work with /product and /product_services.
-// When they're skipped here, /system/product and /system/product_services in
+// For GSI to skip mounting /product and /system_ext, until there are well-defined interfaces
+// between them and /system. Otherwise, the GSI flashed on /system might not be able to work with
+// /product and /system_ext. When they're skipped here, /system/product and /system/system_ext in
 // GSI will be used.
 bool SkipMountingPartitions(Fstab* fstab) {
     constexpr const char kSkipMountConfig[] = "/system/etc/init/config/skip_mount.cfg";
@@ -719,6 +726,7 @@ bool SkipMountingPartitions(Fstab* fstab) {
                                  [&skip_mount_point](const auto& entry) {
                                      return entry.mount_point == skip_mount_point;
                                  });
+        if (it == fstab->end()) continue;
         fstab->erase(it, fstab->end());
         LOG(INFO) << "Skip mounting partition: " << skip_mount_point;
     }
@@ -790,16 +798,15 @@ std::set<std::string> GetBootDevices() {
 
 FstabEntry BuildGsiSystemFstabEntry() {
     // .logical_partition_name is required to look up AVB Hashtree descriptors.
-    FstabEntry system = {.blk_device = "system_gsi",
-                         .mount_point = "/system",
-                         .fs_type = "ext4",
-                         .flags = MS_RDONLY,
-                         .fs_options = "barrier=1",
-                         // could add more keys separated by ':'.
-                         .avb_keys =
-                                 "/avb/q-gsi.avbpubkey:/avb/q-developer-gsi.avbpubkey:"
-                                 "/avb/r-gsi.avbpubkey:/avb/s-gsi.avbpubkey",
-                         .logical_partition_name = "system"};
+    FstabEntry system = {
+            .blk_device = "system_gsi",
+            .mount_point = "/system",
+            .fs_type = "ext4",
+            .flags = MS_RDONLY,
+            .fs_options = "barrier=1",
+            // could add more keys separated by ':'.
+            .avb_keys = "/avb/q-gsi.avbpubkey:/avb/r-gsi.avbpubkey:/avb/s-gsi.avbpubkey",
+            .logical_partition_name = "system"};
     system.fs_mgr_flags.wait = true;
     system.fs_mgr_flags.logical = true;
     system.fs_mgr_flags.first_stage_mount = true;
@@ -809,8 +816,11 @@ FstabEntry BuildGsiSystemFstabEntry() {
 std::string GetVerityDeviceName(const FstabEntry& entry) {
     std::string base_device;
     if (entry.mount_point == "/") {
-        // In AVB, the dm device name is vroot instead of system.
-        base_device = entry.fs_mgr_flags.avb ? "vroot" : "system";
+        // When using system-as-root, the device name is fixed as "vroot".
+        if (entry.fs_mgr_flags.avb) {
+            return "vroot";
+        }
+        base_device = "system";
     } else {
         base_device = android::base::Basename(entry.mount_point);
     }

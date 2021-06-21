@@ -20,6 +20,7 @@
 namespace android {
 
 // must be kept in sync with definitions in AudioPlaybackConfiguration.java
+
 #define PLAYER_PIID_INVALID -1
 
 typedef enum {
@@ -38,15 +39,6 @@ typedef enum {
     PLAYER_STATE_PAUSED   = 3,
     PLAYER_STATE_STOPPED  = 4,
 } player_state_t;
-
-// must be kept in sync with definitions in AudioManager.java
-#define RECORD_RIID_INVALID -1
-
-typedef enum {
-    RECORDER_STATE_UNKNOWN  = -1,
-    RECORDER_STATE_STARTED  = 0,
-    RECORDER_STATE_STOPPED  = 1,
-} recorder_state_t;
 
 }; // namespace android
 

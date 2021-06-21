@@ -49,13 +49,13 @@ KeyLayoutMap::KeyLayoutMap() {
 KeyLayoutMap::~KeyLayoutMap() {
 }
 
-status_t KeyLayoutMap::load(const std::string& filename, sp<KeyLayoutMap>* outMap) {
+status_t KeyLayoutMap::load(const String8& filename, sp<KeyLayoutMap>* outMap) {
     outMap->clear();
 
     Tokenizer* tokenizer;
-    status_t status = Tokenizer::open(String8(filename.c_str()), &tokenizer);
+    status_t status = Tokenizer::open(filename, &tokenizer);
     if (status) {
-        ALOGE("Error %d opening key layout map file %s.", status, filename.c_str());
+        ALOGE("Error %d opening key layout map file %s.", status, filename.string());
     } else {
         sp<KeyLayoutMap> map = new KeyLayoutMap();
         if (!map.get()) {
@@ -117,15 +117,14 @@ const KeyLayoutMap::Key* KeyLayoutMap::getKey(int32_t scanCode, int32_t usageCod
             return &mKeysByScanCode.valueAt(index);
         }
     }
-    return nullptr;
+    return NULL;
 }
 
-status_t KeyLayoutMap::findScanCodesForKey(
-        int32_t keyCode, std::vector<int32_t>* outScanCodes) const {
+status_t KeyLayoutMap::findScanCodesForKey(int32_t keyCode, Vector<int32_t>* outScanCodes) const {
     const size_t N = mKeysByScanCode.size();
     for (size_t i=0; i<N; i++) {
         if (mKeysByScanCode.valueAt(i).keyCode == keyCode) {
-            outScanCodes->push_back(mKeysByScanCode.keyAt(i));
+            outScanCodes->add(mKeysByScanCode.keyAt(i));
         }
     }
     return NO_ERROR;

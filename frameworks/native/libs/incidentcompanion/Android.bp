@@ -35,12 +35,8 @@ cc_library_static {
     },
     srcs: [
         ":incidentcompanion_aidl",
-        "src/IncidentManager.cpp",
     ],
-    export_include_dirs: [
-        "binder",
-        "include",
-    ],
+    export_include_dirs: ["binder"],
     cflags: [
         "-Wall",
         "-Werror",

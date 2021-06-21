@@ -47,7 +47,7 @@ public:
         mPid = (thread != nullptr) ? thread->getCallingPid() : -1;
         mUid = (thread != nullptr) ? thread->getCallingUid() : -1;
 
-        time_t rawtime = time(nullptr);
+        time_t rawtime = time(NULL);
         struct tm * timeinfo = localtime(&rawtime);
         mHour = static_cast<int8_t>(timeinfo->tm_hour);
         mMin = static_cast<int8_t>(timeinfo->tm_min);

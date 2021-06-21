@@ -37,9 +37,7 @@
 
 #define TAG "fscrypt"
 
-static const std::string arbitrary_sequence_number = "42";
-
-static int set_policy_on(char const* ref_basename, char const* dir);
+static int set_system_de_policy_on(char const* dir);
 
 int fscrypt_install_keyring()
 {
@@ -65,7 +63,7 @@ int fscrypt_set_directory_policy(const char* dir)
     // Special-case /data/media/obb per b/64566063
     if (strcmp(dir, "/data/media/obb") == 0) {
         // Try to set policy on this directory, but if it is non-empty this may fail.
-        set_policy_on(fscrypt_key_ref, dir);
+        set_system_de_policy_on(dir);
         return 0;
     }
 
@@ -97,20 +95,11 @@ int fscrypt_set_directory_policy(const char* dir)
             return 0;
         }
     }
-    std::vector<std::string> per_boot_directories = {
-        "per_boot",
-    };
-    for (const auto& d : per_boot_directories) {
-        if ((prefix + d) == dir) {
-            LOG(INFO) << "Setting per_boot key on " << dir;
-            return set_policy_on(fscrypt_key_per_boot_ref, dir);
-        }
-    }
-    return set_policy_on(fscrypt_key_ref, dir);
+    return set_system_de_policy_on(dir);
 }
 
-static int set_policy_on(char const* ref_basename, char const* dir) {
-    std::string ref_filename = std::string("/data") + ref_basename;
+static int set_system_de_policy_on(char const* dir) {
+    std::string ref_filename = std::string("/data") + fscrypt_key_ref;
     std::string policy;
     if (!android::base::ReadFileToString(ref_filename, &policy)) {
         LOG(ERROR) << "Unable to read system policy to set on " << dir;

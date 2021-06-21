@@ -69,7 +69,7 @@ void BufferHubQueue::Initialize() {
       .data = {.u64 = Stuff(-1, BufferHubQueue::kEpollQueueEventIndex)}};
   ret = epoll_fd_.Control(EPOLL_CTL_ADD, event_fd(), &event);
   if (ret < 0) {
-    ALOGE("%s: Failed to add event fd to epoll set: %s", __FUNCTION__,
+    ALOGE("BufferHubQueue::Initialize: Failed to add event fd to epoll set: %s",
           strerror(-ret));
   }
 }
@@ -77,7 +77,7 @@ void BufferHubQueue::Initialize() {
 Status<void> BufferHubQueue::ImportQueue() {
   auto status = InvokeRemoteMethod<BufferHubRPC::GetQueueInfo>();
   if (!status) {
-    ALOGE("%s: Failed to import queue: %s", __FUNCTION__,
+    ALOGE("BufferHubQueue::ImportQueue: Failed to import queue: %s",
           status.GetErrorMessage().c_str());
     return ErrorStatus(status.error());
   } else {
@@ -136,7 +136,9 @@ BufferHubQueue::CreateConsumerQueueParcelable(bool silent) {
       consumer_queue->GetChannel()->TakeChannelParcelable());
 
   if (!queue_parcelable.IsValid()) {
-    ALOGE("%s: Failed to create consumer queue parcelable.", __FUNCTION__);
+    ALOGE(
+        "BufferHubQueue::CreateConsumerQueueParcelable: Failed to create "
+        "consumer queue parcelable.");
     return ErrorStatus(EINVAL);
   }
 
@@ -167,7 +169,8 @@ bool BufferHubQueue::WaitForBuffers(int timeout) {
     }
 
     if (ret < 0 && ret != -EINTR) {
-      ALOGE("%s: Failed to wait for buffers: %s", __FUNCTION__, strerror(-ret));
+      ALOGE("BufferHubQueue::WaitForBuffers: Failed to wait for buffers: %s",
+            strerror(-ret));
       return false;
     }
 
@@ -261,26 +264,27 @@ Status<void> BufferHubQueue::HandleQueueEvent(int poll_event) {
     // wait will be tried again to acquire the newly imported buffer.
     auto buffer_status = OnBufferAllocated();
     if (!buffer_status) {
-      ALOGE("%s: Failed to import buffer: %s", __FUNCTION__,
+      ALOGE("BufferHubQueue::HandleQueueEvent: Failed to import buffer: %s",
             buffer_status.GetErrorMessage().c_str());
     }
   } else if (events & EPOLLHUP) {
-    ALOGD_IF(TRACE, "%s: hang up event!", __FUNCTION__);
+    ALOGD_IF(TRACE, "BufferHubQueue::HandleQueueEvent: hang up event!");
     hung_up_ = true;
   } else {
-    ALOGW("%s: Unknown epoll events=%x", __FUNCTION__, events);
+    ALOGW("BufferHubQueue::HandleQueueEvent: Unknown epoll events=%x", events);
   }
 
   return {};
 }
 
 Status<void> BufferHubQueue::AddBuffer(
-    const std::shared_ptr<BufferHubBase>& buffer, size_t slot) {
-  ALOGD_IF(TRACE, "%s: buffer_id=%d slot=%zu", __FUNCTION__, buffer->id(),
-           slot);
+    const std::shared_ptr<BufferHubBuffer>& buffer, size_t slot) {
+  ALOGD_IF(TRACE, "BufferHubQueue::AddBuffer: buffer_id=%d slot=%zu",
+           buffer->id(), slot);
 
   if (is_full()) {
-    ALOGE("%s: queue is at maximum capacity: %zu", __FUNCTION__, capacity_);
+    ALOGE("BufferHubQueue::AddBuffer queue is at maximum capacity: %zu",
+          capacity_);
     return ErrorStatus(E2BIG);
   }
 
@@ -299,7 +303,7 @@ Status<void> BufferHubQueue::AddBuffer(
     const int ret =
         epoll_fd_.Control(EPOLL_CTL_ADD, event_source.event_fd, &event);
     if (ret < 0) {
-      ALOGE("%s: Failed to add buffer to epoll set: %s", __FUNCTION__,
+      ALOGE("BufferHubQueue::AddBuffer: Failed to add buffer to epoll set: %s",
             strerror(-ret));
       return ErrorStatus(-ret);
     }
@@ -311,15 +315,17 @@ Status<void> BufferHubQueue::AddBuffer(
 }
 
 Status<void> BufferHubQueue::RemoveBuffer(size_t slot) {
-  ALOGD_IF(TRACE, "%s: slot=%zu", __FUNCTION__, slot);
+  ALOGD_IF(TRACE, "BufferHubQueue::RemoveBuffer: slot=%zu", slot);
 
   if (buffers_[slot]) {
     for (const auto& event_source : buffers_[slot]->GetEventSources()) {
       const int ret =
           epoll_fd_.Control(EPOLL_CTL_DEL, event_source.event_fd, nullptr);
       if (ret < 0) {
-        ALOGE("%s: Failed to remove buffer from epoll set: %s", __FUNCTION__,
-              strerror(-ret));
+        ALOGE(
+            "BufferHubQueue::RemoveBuffer: Failed to remove buffer from epoll "
+            "set: %s",
+            strerror(-ret));
         return ErrorStatus(-ret);
       }
     }
@@ -337,15 +343,6 @@ Status<void> BufferHubQueue::RemoveBuffer(size_t slot) {
 
 Status<void> BufferHubQueue::Enqueue(Entry entry) {
   if (!is_full()) {
-    // Find and remove the enqueued buffer from unavailable_buffers_slot if
-    // exist.
-    auto enqueued_buffer_iter = std::find_if(
-        unavailable_buffers_slot_.begin(), unavailable_buffers_slot_.end(),
-        [&entry](size_t slot) -> bool { return slot == entry.slot; });
-    if (enqueued_buffer_iter != unavailable_buffers_slot_.end()) {
-      unavailable_buffers_slot_.erase(enqueued_buffer_iter);
-    }
-
     available_buffers_.push(std::move(entry));
 
     // Trigger OnBufferAvailable callback if registered.
@@ -354,16 +351,17 @@ Status<void> BufferHubQueue::Enqueue(Entry entry) {
 
     return {};
   } else {
-    ALOGE("%s: Buffer queue is full!", __FUNCTION__);
+    ALOGE("BufferHubQueue::Enqueue: Buffer queue is full!");
     return ErrorStatus(E2BIG);
   }
 }
 
-Status<std::shared_ptr<BufferHubBase>> BufferHubQueue::Dequeue(int timeout,
-                                                               size_t* slot) {
-  ALOGD_IF(TRACE, "%s: count=%zu, timeout=%d", __FUNCTION__, count(), timeout);
+Status<std::shared_ptr<BufferHubBuffer>> BufferHubQueue::Dequeue(int timeout,
+                                                                 size_t* slot) {
+  ALOGD_IF(TRACE, "BufferHubQueue::Dequeue: count=%zu, timeout=%d", count(),
+           timeout);
 
-  PDX_TRACE_FORMAT("%s|count=%zu|", __FUNCTION__, count());
+  PDX_TRACE_FORMAT("BufferHubQueue::Dequeue|count=%zu|", count());
 
   if (count() == 0) {
     if (!WaitForBuffers(timeout))
@@ -374,11 +372,10 @@ Status<std::shared_ptr<BufferHubBase>> BufferHubQueue::Dequeue(int timeout,
   PDX_TRACE_FORMAT("buffer|buffer_id=%d;slot=%zu|", entry.buffer->id(),
                    entry.slot);
 
-  std::shared_ptr<BufferHubBase> buffer = std::move(entry.buffer);
+  std::shared_ptr<BufferHubBuffer> buffer = std::move(entry.buffer);
   *slot = entry.slot;
 
   available_buffers_.pop();
-  unavailable_buffers_slot_.push_back(*slot);
 
   return {std::move(buffer)};
 }
@@ -443,10 +440,6 @@ ProducerQueue::ProducerQueue(const ProducerQueueConfig& config,
 Status<std::vector<size_t>> ProducerQueue::AllocateBuffers(
     uint32_t width, uint32_t height, uint32_t layer_count, uint32_t format,
     uint64_t usage, size_t buffer_count) {
-  if (buffer_count == 0) {
-    return {std::vector<size_t>()};
-  }
-
   if (capacity() + buffer_count > kMaxQueueCapacity) {
     ALOGE(
         "ProducerQueue::AllocateBuffers: queue is at capacity: %zu, cannot "
@@ -480,7 +473,7 @@ Status<std::vector<size_t>> ProducerQueue::AllocateBuffers(
 
     // Note that import might (though very unlikely) fail. If so, buffer_handle
     // will be closed and included in returned buffer_slots.
-    if (AddBuffer(ProducerBuffer::Import(std::move(buffer_handle)),
+    if (AddBuffer(BufferProducer::Import(std::move(buffer_handle)),
                   buffer_slot)) {
       ALOGD_IF(TRACE, "ProducerQueue::AllocateBuffers: new buffer at slot: %zu",
                buffer_slot);
@@ -488,13 +481,10 @@ Status<std::vector<size_t>> ProducerQueue::AllocateBuffers(
     }
   }
 
-  if (buffer_slots.size() != buffer_count) {
-    // Error out if the count of imported buffer(s) is not correct.
-    ALOGE(
-        "ProducerQueue::AllocateBuffers: requested to import %zu "
-        "buffers, but actually imported %zu buffers.",
-        buffer_count, buffer_slots.size());
-    return ErrorStatus(ENOMEM);
+  if (buffer_slots.size() == 0) {
+    // Error out if no buffer is allocated and improted.
+    ALOGE_IF(TRACE, "ProducerQueue::AllocateBuffers: no buffer allocated.");
+    ErrorStatus(ENOMEM);
   }
 
   return {std::move(buffer_slots)};
@@ -513,11 +503,16 @@ Status<size_t> ProducerQueue::AllocateBuffer(uint32_t width, uint32_t height,
     return status.error_status();
   }
 
+  if (status.get().size() == 0) {
+    ALOGE_IF(TRACE, "ProducerQueue::AllocateBuffer: no buffer allocated.");
+    ErrorStatus(ENOMEM);
+  }
+
   return {status.get()[0]};
 }
 
 Status<void> ProducerQueue::AddBuffer(
-    const std::shared_ptr<ProducerBuffer>& buffer, size_t slot) {
+    const std::shared_ptr<BufferProducer>& buffer, size_t slot) {
   ALOGD_IF(TRACE, "ProducerQueue::AddBuffer: queue_id=%d buffer_id=%d slot=%zu",
            id(), buffer->id(), slot);
   // For producer buffer, we need to enqueue the newly added buffer
@@ -529,46 +524,11 @@ Status<void> ProducerQueue::AddBuffer(
   return BufferHubQueue::Enqueue({buffer, slot, 0ULL});
 }
 
-Status<size_t> ProducerQueue::InsertBuffer(
-    const std::shared_ptr<ProducerBuffer>& buffer) {
-  if (buffer == nullptr ||
-      !BufferHubDefs::isClientGained(buffer->buffer_state(),
-                                     buffer->client_state_mask())) {
-    ALOGE(
-        "ProducerQueue::InsertBuffer: Can only insert a buffer when it's in "
-        "gained state.");
-    return ErrorStatus(EINVAL);
-  }
-
-  auto status_or_slot =
-      InvokeRemoteMethod<BufferHubRPC::ProducerQueueInsertBuffer>(
-          buffer->cid());
-  if (!status_or_slot) {
-    ALOGE(
-        "ProducerQueue::InsertBuffer: Failed to insert producer buffer: "
-        "buffer_cid=%d, error: %s.",
-        buffer->cid(), status_or_slot.GetErrorMessage().c_str());
-    return status_or_slot.error_status();
-  }
-
-  size_t slot = status_or_slot.get();
-
-  // Note that we are calling AddBuffer() from the base class to explicitly
-  // avoid Enqueue() the ProducerBuffer.
-  auto status = BufferHubQueue::AddBuffer(buffer, slot);
-  if (!status) {
-    ALOGE("ProducerQueue::InsertBuffer: Failed to add buffer: %s.",
-          status.GetErrorMessage().c_str());
-    return status.error_status();
-  }
-  return {slot};
-}
-
 Status<void> ProducerQueue::RemoveBuffer(size_t slot) {
   auto status =
       InvokeRemoteMethod<BufferHubRPC::ProducerQueueRemoveBuffer>(slot);
   if (!status) {
-    ALOGE("%s: Failed to remove producer buffer: %s", __FUNCTION__,
+    ALOGE("ProducerQueue::RemoveBuffer: Failed to remove producer buffer: %s",
           status.GetErrorMessage().c_str());
     return status.error_status();
   }
@@ -576,89 +536,39 @@ Status<void> ProducerQueue::RemoveBuffer(size_t slot) {
   return BufferHubQueue::RemoveBuffer(slot);
 }
 
-Status<std::shared_ptr<ProducerBuffer>> ProducerQueue::Dequeue(
+Status<std::shared_ptr<BufferProducer>> ProducerQueue::Dequeue(
     int timeout, size_t* slot, LocalHandle* release_fence) {
   DvrNativeBufferMetadata canonical_meta;
   return Dequeue(timeout, slot, &canonical_meta, release_fence);
 }
 
-pdx::Status<std::shared_ptr<ProducerBuffer>> ProducerQueue::Dequeue(
+pdx::Status<std::shared_ptr<BufferProducer>> ProducerQueue::Dequeue(
     int timeout, size_t* slot, DvrNativeBufferMetadata* out_meta,
-    pdx::LocalHandle* release_fence, bool gain_posted_buffer) {
+    pdx::LocalHandle* release_fence) {
   ATRACE_NAME("ProducerQueue::Dequeue");
   if (slot == nullptr || out_meta == nullptr || release_fence == nullptr) {
-    ALOGE("%s: Invalid parameter.", __FUNCTION__);
+    ALOGE("ProducerQueue::Dequeue: Invalid parameter.");
     return ErrorStatus(EINVAL);
   }
 
-  std::shared_ptr<ProducerBuffer> buffer;
-  Status<std::shared_ptr<BufferHubBase>> dequeue_status =
-      BufferHubQueue::Dequeue(timeout, slot);
-  if (dequeue_status.ok()) {
-    buffer = std::static_pointer_cast<ProducerBuffer>(dequeue_status.take());
-  } else {
-    if (gain_posted_buffer) {
-      Status<std::shared_ptr<ProducerBuffer>> dequeue_unacquired_status =
-          ProducerQueue::DequeueUnacquiredBuffer(slot);
-      if (!dequeue_unacquired_status.ok()) {
-        ALOGE("%s: DequeueUnacquiredBuffer returned error: %d", __FUNCTION__,
-              dequeue_unacquired_status.error());
-        return dequeue_unacquired_status.error_status();
-      }
-      buffer = dequeue_unacquired_status.take();
-    } else {
-      return dequeue_status.error_status();
-    }
-  }
-  const int ret =
-      buffer->GainAsync(out_meta, release_fence, gain_posted_buffer);
+  auto status = BufferHubQueue::Dequeue(timeout, slot);
+  if (!status)
+    return status.error_status();
+
+  auto buffer = std::static_pointer_cast<BufferProducer>(status.take());
+  const int ret = buffer->GainAsync(out_meta, release_fence);
   if (ret < 0 && ret != -EALREADY)
     return ErrorStatus(-ret);
 
   return {std::move(buffer)};
 }
 
-Status<std::shared_ptr<ProducerBuffer>> ProducerQueue::DequeueUnacquiredBuffer(
-    size_t* slot) {
-  if (unavailable_buffers_slot_.size() < 1) {
-    ALOGE(
-        "%s: Failed to dequeue un-acquired buffer. All buffer(s) are in "
-        "acquired state if exist.",
-        __FUNCTION__);
-    return ErrorStatus(ENOMEM);
-  }
-
-  // Find the first buffer that is not in acquired state from
-  // unavailable_buffers_slot_.
-  for (auto iter = unavailable_buffers_slot_.begin();
-       iter != unavailable_buffers_slot_.end(); iter++) {
-    std::shared_ptr<ProducerBuffer> buffer = ProducerQueue::GetBuffer(*iter);
-    if (buffer == nullptr) {
-      ALOGE("%s failed. Buffer slot %d is  null.", __FUNCTION__,
-            static_cast<int>(*slot));
-      return ErrorStatus(EIO);
-    }
-    if (!BufferHubDefs::isAnyClientAcquired(buffer->buffer_state())) {
-      *slot = *iter;
-      unavailable_buffers_slot_.erase(iter);
-      unavailable_buffers_slot_.push_back(*slot);
-      ALOGD("%s: Producer queue dequeue unacquired buffer in slot %d",
-            __FUNCTION__, static_cast<int>(*slot));
-      return {std::move(buffer)};
-    }
-  }
-  ALOGE(
-      "%s: Failed to dequeue un-acquired buffer. No un-acquired buffer exist.",
-      __FUNCTION__);
-  return ErrorStatus(EBUSY);
-}
-
 pdx::Status<ProducerQueueParcelable> ProducerQueue::TakeAsParcelable() {
   if (capacity() != 0) {
     ALOGE(
-        "%s: producer queue can only be taken out as a parcelable when empty. "
-        "Current queue capacity: %zu",
-        __FUNCTION__, capacity());
+        "ProducerQueue::TakeAsParcelable: producer queue can only be taken out"
+        " as a parcelable when empty. Current queue capacity: %zu",
+        capacity());
     return ErrorStatus(EINVAL);
   }
 
@@ -682,16 +592,17 @@ ConsumerQueue::ConsumerQueue(LocalChannelHandle handle)
     : BufferHubQueue(std::move(handle)) {
   auto status = ImportQueue();
   if (!status) {
-    ALOGE("%s: Failed to import queue: %s", __FUNCTION__,
+    ALOGE("ConsumerQueue::ConsumerQueue: Failed to import queue: %s",
           status.GetErrorMessage().c_str());
     Close(-status.error());
   }
 
   auto import_status = ImportBuffers();
   if (import_status) {
-    ALOGI("%s: Imported %zu buffers.", __FUNCTION__, import_status.get());
+    ALOGI("ConsumerQueue::ConsumerQueue: Imported %zu buffers.",
+          import_status.get());
   } else {
-    ALOGE("%s: Failed to import buffers: %s", __FUNCTION__,
+    ALOGE("ConsumerQueue::ConsumerQueue: Failed to import buffers: %s",
           import_status.GetErrorMessage().c_str());
   }
 }
@@ -700,11 +611,14 @@ Status<size_t> ConsumerQueue::ImportBuffers() {
   auto status = InvokeRemoteMethod<BufferHubRPC::ConsumerQueueImportBuffers>();
   if (!status) {
     if (status.error() == EBADR) {
-      ALOGI("%s: Queue is silent, no buffers imported.", __FUNCTION__);
+      ALOGI(
+          "ConsumerQueue::ImportBuffers: Queue is silent, no buffers "
+          "imported.");
       return {0};
     } else {
-      ALOGE("%s: Failed to import consumer buffer: %s", __FUNCTION__,
-            status.GetErrorMessage().c_str());
+      ALOGE(
+          "ConsumerQueue::ImportBuffers: Failed to import consumer buffer: %s",
+          status.GetErrorMessage().c_str());
       return status.error_status();
     }
   }
@@ -715,22 +629,22 @@ Status<size_t> ConsumerQueue::ImportBuffers() {
 
   auto buffer_handle_slots = status.take();
   for (auto& buffer_handle_slot : buffer_handle_slots) {
-    ALOGD_IF(TRACE, ": buffer_handle=%d", __FUNCTION__,
+    ALOGD_IF(TRACE, "ConsumerQueue::ImportBuffers: buffer_handle=%d",
              buffer_handle_slot.first.value());
 
-    std::unique_ptr<ConsumerBuffer> consumer_buffer =
-        ConsumerBuffer::Import(std::move(buffer_handle_slot.first));
-    if (!consumer_buffer) {
-      ALOGE("%s: Failed to import buffer: slot=%zu", __FUNCTION__,
+    std::unique_ptr<BufferConsumer> buffer_consumer =
+        BufferConsumer::Import(std::move(buffer_handle_slot.first));
+    if (!buffer_consumer) {
+      ALOGE("ConsumerQueue::ImportBuffers: Failed to import buffer: slot=%zu",
             buffer_handle_slot.second);
       last_error = ErrorStatus(EPIPE);
       continue;
     }
 
     auto add_status =
-        AddBuffer(std::move(consumer_buffer), buffer_handle_slot.second);
+        AddBuffer(std::move(buffer_consumer), buffer_handle_slot.second);
     if (!add_status) {
-      ALOGE("%s: Failed to add buffer: %s", __FUNCTION__,
+      ALOGE("ConsumerQueue::ImportBuffers: Failed to add buffer: %s",
             add_status.GetErrorMessage().c_str());
       last_error = add_status;
     } else {
@@ -745,20 +659,20 @@ Status<size_t> ConsumerQueue::ImportBuffers() {
 }
 
 Status<void> ConsumerQueue::AddBuffer(
-    const std::shared_ptr<ConsumerBuffer>& buffer, size_t slot) {
-  ALOGD_IF(TRACE, "%s: queue_id=%d buffer_id=%d slot=%zu", __FUNCTION__, id(),
-           buffer->id(), slot);
+    const std::shared_ptr<BufferConsumer>& buffer, size_t slot) {
+  ALOGD_IF(TRACE, "ConsumerQueue::AddBuffer: queue_id=%d buffer_id=%d slot=%zu",
+           id(), buffer->id(), slot);
   return BufferHubQueue::AddBuffer(buffer, slot);
 }
 
-Status<std::shared_ptr<ConsumerBuffer>> ConsumerQueue::Dequeue(
+Status<std::shared_ptr<BufferConsumer>> ConsumerQueue::Dequeue(
     int timeout, size_t* slot, void* meta, size_t user_metadata_size,
     LocalHandle* acquire_fence) {
   if (user_metadata_size != user_metadata_size_) {
     ALOGE(
-        "%s: Metadata size (%zu) for the dequeuing buffer does not match "
-        "metadata size (%zu) for the queue.",
-        __FUNCTION__, user_metadata_size, user_metadata_size_);
+        "ConsumerQueue::Dequeue: Metadata size (%zu) for the dequeuing buffer "
+        "does not match metadata size (%zu) for the queue.",
+        user_metadata_size, user_metadata_size_);
     return ErrorStatus(EINVAL);
   }
 
@@ -773,19 +687,19 @@ Status<std::shared_ptr<ConsumerBuffer>> ConsumerQueue::Dequeue(
     if (metadata_src) {
       memcpy(meta, metadata_src, user_metadata_size);
     } else {
-      ALOGW("%s: no user-defined metadata.", __FUNCTION__);
+      ALOGW("ConsumerQueue::Dequeue: no user-defined metadata.");
     }
   }
 
   return status;
 }
 
-Status<std::shared_ptr<ConsumerBuffer>> ConsumerQueue::Dequeue(
+Status<std::shared_ptr<BufferConsumer>> ConsumerQueue::Dequeue(
     int timeout, size_t* slot, DvrNativeBufferMetadata* out_meta,
     pdx::LocalHandle* acquire_fence) {
   ATRACE_NAME("ConsumerQueue::Dequeue");
   if (slot == nullptr || out_meta == nullptr || acquire_fence == nullptr) {
-    ALOGE("%s: Invalid parameter.", __FUNCTION__);
+    ALOGE("ConsumerQueue::Dequeue: Invalid parameter.");
     return ErrorStatus(EINVAL);
   }
 
@@ -793,7 +707,7 @@ Status<std::shared_ptr<ConsumerBuffer>> ConsumerQueue::Dequeue(
   if (!status)
     return status.error_status();
 
-  auto buffer = std::static_pointer_cast<ConsumerBuffer>(status.take());
+  auto buffer = std::static_pointer_cast<BufferConsumer>(status.take());
   const int ret = buffer->AcquireAsync(out_meta, acquire_fence);
   if (ret < 0)
     return ErrorStatus(-ret);
@@ -802,18 +716,19 @@ Status<std::shared_ptr<ConsumerBuffer>> ConsumerQueue::Dequeue(
 }
 
 Status<void> ConsumerQueue::OnBufferAllocated() {
-  ALOGD_IF(TRACE, "%s: queue_id=%d", __FUNCTION__, id());
+  ALOGD_IF(TRACE, "ConsumerQueue::OnBufferAllocated: queue_id=%d", id());
 
   auto status = ImportBuffers();
   if (!status) {
-    ALOGE("%s: Failed to import buffers: %s", __FUNCTION__,
+    ALOGE("ConsumerQueue::OnBufferAllocated: Failed to import buffers: %s",
           status.GetErrorMessage().c_str());
     return ErrorStatus(status.error());
   } else if (status.get() == 0) {
-    ALOGW("%s: No new buffers allocated!", __FUNCTION__);
+    ALOGW("ConsumerQueue::OnBufferAllocated: No new buffers allocated!");
     return ErrorStatus(ENOBUFS);
   } else {
-    ALOGD_IF(TRACE, "%s: Imported %zu consumer buffers.", __FUNCTION__,
+    ALOGD_IF(TRACE,
+             "ConsumerQueue::OnBufferAllocated: Imported %zu consumer buffers.",
              status.get());
     return {};
   }

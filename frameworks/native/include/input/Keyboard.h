@@ -21,9 +21,19 @@
 #include <input/InputDevice.h>
 #include <input/InputEventLabels.h>
 #include <utils/Errors.h>
+#include <utils/String8.h>
 #include <utils/PropertyMap.h>
 
 namespace android {
+
+enum {
+    /* Device id of the built in keyboard. */
+    DEVICE_ID_BUILT_IN_KEYBOARD = 0,
+
+    /* Device id of a generic virtual keyboard with a full layout that can be used
+     * to synthesize key events. */
+    DEVICE_ID_VIRTUAL_KEYBOARD = -1,
+};
 
 class KeyLayoutMap;
 class KeyCharacterMap;
@@ -33,10 +43,10 @@ class KeyCharacterMap;
  */
 class KeyMap {
 public:
-    std::string keyLayoutFile;
+    String8 keyLayoutFile;
     sp<KeyLayoutMap> keyLayoutMap;
 
-    std::string keyCharacterMapFile;
+    String8 keyCharacterMapFile;
     sp<KeyCharacterMap> keyCharacterMap;
 
     KeyMap();
@@ -46,11 +56,11 @@ public:
             const PropertyMap* deviceConfiguration);
 
     inline bool haveKeyLayout() const {
-        return !keyLayoutFile.empty();
+        return !keyLayoutFile.isEmpty();
     }
 
     inline bool haveKeyCharacterMap() const {
-        return !keyCharacterMapFile.empty();
+        return !keyCharacterMapFile.isEmpty();
     }
 
     inline bool isComplete() const {
@@ -58,12 +68,12 @@ public:
     }
 
 private:
-    bool probeKeyMap(const InputDeviceIdentifier& deviceIdentifier, const std::string& name);
-    status_t loadKeyLayout(const InputDeviceIdentifier& deviceIdentifier, const std::string& name);
+    bool probeKeyMap(const InputDeviceIdentifier& deviceIdentifier, const String8& name);
+    status_t loadKeyLayout(const InputDeviceIdentifier& deviceIdentifier, const String8& name);
     status_t loadKeyCharacterMap(const InputDeviceIdentifier& deviceIdentifier,
-            const std::string& name);
-    std::string getPath(const InputDeviceIdentifier& deviceIdentifier,
-            const std::string& name, InputDeviceConfigurationFileType type);
+            const String8& name);
+    String8 getPath(const InputDeviceIdentifier& deviceIdentifier,
+            const String8& name, InputDeviceConfigurationFileType type);
 };
 
 /**

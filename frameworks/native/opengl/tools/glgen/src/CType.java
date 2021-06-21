@@ -57,9 +57,7 @@ public class CType {
         if(baseType.equals("EGLContext")
            || baseType.equals("EGLConfig")
            || baseType.equals("EGLSurface")
-           || baseType.equals("EGLDisplay")
-           || baseType.equals("EGLImage")
-           || baseType.equals("EGLSync")) {
+           || baseType.equals("EGLDisplay")) {
                return true;
         }
         return false;

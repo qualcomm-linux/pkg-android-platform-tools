@@ -98,7 +98,7 @@ libcrypto_utils.so: debian/system/core/libcrypto_utils.mk libcrypto.so
 libadb.so: debian/system/core/libadb.mk libcutils.so libbase.so libcrypto_utils.so libcrypto.so
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
-libbacktrace.so: debian/system/core/libbacktrace.mk libcutils.so libbase.so liblog.so libunwind.so
+libbacktrace.so: debian/system/core/libbacktrace.mk libcutils.so libbase.so liblog.so libunwind.so debian/out/art/libdexfile_support.so
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
 libbase.so: debian/system/core/libbase.mk liblog.so
@@ -170,7 +170,7 @@ debian/out/art/%.1: debian/out/art/%
 debian/out/art/dmtracedump: debian/art/dmtracedump.mk
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
-debian/out/art/libdexfile_support.so: debian/art/libdexfile_support.mk
+debian/out/art/libdexfile_support.so: debian/art/libdexfile_support.mk debian/out/art
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
 debian/out/art/libsigchain.so: debian/art/libsigchain.mk

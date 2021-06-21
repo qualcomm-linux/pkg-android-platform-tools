@@ -17,15 +17,11 @@
 #ifndef ANDROID_SF_VIRTUAL_DISPLAY_SURFACE_H
 #define ANDROID_SF_VIRTUAL_DISPLAY_SURFACE_H
 
-#include <optional>
-#include <string>
+#include "DisplaySurface.h"
+#include "HWComposerBufferCache.h"
 
-#include <compositionengine/DisplaySurface.h>
-#include <compositionengine/impl/HwcBufferCache.h>
 #include <gui/ConsumerBase.h>
 #include <gui/IGraphicBufferProducer.h>
-
-#include "DisplayIdentification.h"
 
 // ---------------------------------------------------------------------------
 namespace android {
@@ -73,14 +69,15 @@ class IProducerListener;
  * the HWC output buffer. When HWC composition is complete, the scratch buffer
  * is released and the output buffer is queued to the sink.
  */
-class VirtualDisplaySurface : public compositionengine::DisplaySurface,
+class VirtualDisplaySurface : public DisplaySurface,
                               public BnGraphicBufferProducer,
                               private ConsumerBase {
 public:
-    VirtualDisplaySurface(HWComposer& hwc, const std::optional<DisplayId>& displayId,
-                          const sp<IGraphicBufferProducer>& sink,
-                          const sp<IGraphicBufferProducer>& bqProducer,
-                          const sp<IGraphicBufferConsumer>& bqConsumer, const std::string& name);
+    VirtualDisplaySurface(HWComposer& hwc, int32_t dispId,
+            const sp<IGraphicBufferProducer>& sink,
+            const sp<IGraphicBufferProducer>& bqProducer,
+            const sp<IGraphicBufferConsumer>& bqConsumer,
+            const String8& name);
 
     //
     // DisplaySurface interface
@@ -155,8 +152,8 @@ private:
     // Immutable after construction
     //
     HWComposer& mHwc;
-    const std::optional<DisplayId> mDisplayId;
-    const std::string mDisplayName;
+    const int32_t mDisplayId;
+    const String8 mDisplayName;
     sp<IGraphicBufferProducer> mSource[2]; // indexed by SOURCE_*
     uint32_t mDefaultOutputFormat;
 
@@ -253,7 +250,7 @@ private:
 
     bool mMustRecompose;
 
-    compositionengine::impl::HwcBufferCache mHwcBufferCache;
+    HWComposerBufferCache mHwcBufferCache;
 
     bool mForceHwcCopy;
 };

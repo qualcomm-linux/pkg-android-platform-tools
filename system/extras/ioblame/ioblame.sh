@@ -44,7 +44,7 @@ getmodel() {
 	aosp_gobo | gobo | gobo_512)
 	    get_go_devnames
             ;;
-	marlin | sailfish | walleye | taimen | blueline | crosshatch)
+	marlin | sailfish)
 	    get_marlin_sailfish_devnames
 	    ;;
 	angler)
@@ -57,8 +57,8 @@ getmodel() {
 	    get_volantis_devnames
 	    ;;
 	*)
-	    echo Unknown Device $model -- trying Pixel config
-	    get_marlin_sailfish_devnames
+	    echo Unknown Device $model
+	    exit 1
 	    ;;
     esac
 }

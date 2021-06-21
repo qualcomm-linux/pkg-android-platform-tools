@@ -43,14 +43,12 @@ class egl_context_t;
 struct egl_connection_t;
 
 bool findExtension(const char* exts, const char* name, size_t nameLen = 0);
-bool needsAndroidPEglMitigation();
 
 // ----------------------------------------------------------------------------
 
 class EGLAPI egl_display_t { // marked as EGLAPI for testing purposes
     static egl_display_t sDisplay[NUM_DISPLAYS];
     EGLDisplay getDisplay(EGLNativeDisplayType display);
-    EGLDisplay getPlatformDisplay(EGLNativeDisplayType display, const EGLAttrib* attrib_list);
     void loseCurrentImpl(egl_context_t * cur_c);
 
 public:
@@ -74,7 +72,7 @@ public:
     bool getObject(egl_object_t* object) const;
 
     static egl_display_t* get(EGLDisplay dpy);
-    static EGLDisplay getFromNativeDisplay(EGLNativeDisplayType disp, const EGLAttrib* attrib_list);
+    static EGLDisplay getFromNativeDisplay(EGLNativeDisplayType disp);
 
     EGLBoolean makeCurrent(egl_context_t* c, egl_context_t* cur_c,
             EGLSurface draw, EGLSurface read, EGLContext ctx,
@@ -162,7 +160,7 @@ public:
     const egl_display_t* get() const { return mDpy; }
           egl_display_t* get()       { return mDpy; }
 
-    operator bool() const { return mDpy != nullptr; }
+    operator bool() const { return mDpy != NULL; }
 
 private:
     egl_display_t* mDpy;

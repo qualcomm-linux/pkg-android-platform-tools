@@ -10,6 +10,7 @@ cc_library_static {
         "-Wimplicit-fallthrough",
     ],
     cppflags: [
+        "-std=c++11",
         "-Wno-sign-compare",
     ],
     export_include_dirs: [
@@ -36,6 +37,7 @@ cc_library_static {
         "-Wimplicit-fallthrough",
     ],
     cppflags: [
+        "-std=c++11",
         "-Wno-sign-compare",
     ],
     export_include_dirs: [

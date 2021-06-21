@@ -36,7 +36,7 @@ LocalChannelHandle ChannelParcelable::TakeChannelHandle() {
 }
 
 status_t ChannelParcelable::writeToParcel(Parcel* parcel) const {
-  status_t res = OK;
+  status_t res = NO_ERROR;
 
   if (!IsValid()) {
     ALOGE("ChannelParcelable::writeToParcel: Invalid channel parcel.");
@@ -44,20 +44,20 @@ status_t ChannelParcelable::writeToParcel(Parcel* parcel) const {
   }
 
   res = parcel->writeUint32(kUdsMagicParcelHeader);
-  if (res != OK) {
+  if (res != NO_ERROR) {
     ALOGE("ChannelParcelable::writeToParcel: Cannot write magic: res=%d.", res);
     return res;
   }
 
   res = parcel->writeFileDescriptor(data_fd_.Get());
-  if (res != OK) {
+  if (res != NO_ERROR) {
     ALOGE("ChannelParcelable::writeToParcel: Cannot write data fd: res=%d.",
           res);
     return res;
   }
 
   res = parcel->writeFileDescriptor(pollin_event_fd_.Get());
-  if (res != OK) {
+  if (res != NO_ERROR) {
     ALOGE(
         "ChannelParcelable::writeToParcel: Cannot write pollin event fd: "
         "res=%d.",
@@ -66,7 +66,7 @@ status_t ChannelParcelable::writeToParcel(Parcel* parcel) const {
   }
 
   res = parcel->writeFileDescriptor(pollhup_event_fd_.Get());
-  if (res != OK) {
+  if (res != NO_ERROR) {
     ALOGE(
         "ChannelParcelable::writeToParcel: Cannot write pollhup event fd: "
         "res=%d.",
@@ -79,7 +79,7 @@ status_t ChannelParcelable::writeToParcel(Parcel* parcel) const {
 
 status_t ChannelParcelable::readFromParcel(const Parcel* parcel) {
   uint32_t magic = 0;
-  status_t res = OK;
+  status_t res = NO_ERROR;
 
   if (IsValid()) {
     ALOGE(
@@ -89,7 +89,7 @@ status_t ChannelParcelable::readFromParcel(const Parcel* parcel) {
   }
 
   res = parcel->readUint32(&magic);
-  if (res != OK) {
+  if (res != NO_ERROR) {
     ALOGE("ChannelParcelable::readFromParcel: Failed to read magic: res=%d.",
           res);
     return res;

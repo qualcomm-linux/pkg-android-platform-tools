@@ -157,7 +157,7 @@ sp<Looper> SensorManager::getLooper() {
             JavaVMAttachArgs args{
                 .version = JNI_VERSION_1_2,
                 .name = POLL_THREAD_NAME,
-                .group = nullptr
+                .group = NULL
             };
             JNIEnv* env;
             if (javaVm->AttachCurrentThread(&env, &args) != JNI_OK) {

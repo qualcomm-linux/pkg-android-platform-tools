@@ -59,9 +59,9 @@ Bug: https://reviews.llvm.org/D45470
 +#else
  #include <stdatomic.h>
 +#endif
- #include <stdbool.h>
  
  #include <cutils/list.h>
+ #include <log/log.h>
 --- a/system/core/liblog/logger_write.cpp
 +++ b/system/core/liblog/logger_write.cpp
 @@ -15,7 +15,6 @@

@@ -19,6 +19,9 @@
       "name": "libbase_test"
     },
     {
+      "name": "libpackagelistparser_test"
+    },
+    {
       "name": "libprocinfo_test"
     },
     {
@@ -26,6 +29,13 @@
     },
     {
       "name": "memunreachable_test"
+    },
+    {
+      "name": "memunreachable_unit_test"
+    },
+    {
+      "name": "memunreachable_unit_test",
+      "host": true
     },
     {
       "name": "memunreachable_binder_test"

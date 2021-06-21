@@ -28,12 +28,9 @@
 #include "base/enums.h"
 #include "base/macros.h"
 #include "base/runtime_debug.h"
-#include "dex/code_item_accessors.h"
 #include "dex/dex_file_structs.h"
-#include "dex/dex_instruction_iterator.h"
 #include "dex/modifiers.h"
 #include "dex/primitive.h"
-#include "dex/signature.h"
 #include "gc_root.h"
 #include "obj_ptr.h"
 #include "offsets.h"
@@ -41,6 +38,9 @@
 
 namespace art {
 
+class CodeItemDataAccessor;
+class CodeItemDebugInfoAccessor;
+class CodeItemInstructionAccessor;
 class DexFile;
 template<class T> class Handle;
 class ImtConflictTable;
@@ -50,6 +50,7 @@ class OatQuickMethodHeader;
 class ProfilingInfo;
 class ScopedObjectAccessAlreadyRunnable;
 class ShadowFrame;
+class Signature;
 
 namespace mirror {
 class Array;
@@ -200,9 +201,9 @@ class ArtMethod final {
   }
 
   bool IsMiranda() {
-    // The kAccMiranda flag value is used with a different meaning for native methods,
-    // so we need to check the kAccNative flag as well.
-    return (GetAccessFlags() & (kAccNative | kAccMiranda)) == kAccMiranda;
+    // The kAccMiranda flag value is used with a different meaning for native methods and methods
+    // marked kAccCompileDontBother, so we need to check these flags as well.
+    return (GetAccessFlags() & (kAccNative | kAccMiranda | kAccCompileDontBother)) == kAccMiranda;
   }
 
   // Returns true if invoking this method will not throw an AbstractMethodError or
@@ -211,15 +212,34 @@ class ArtMethod final {
     return !IsAbstract() && !IsDefaultConflicting();
   }
 
+  bool IsPreCompiled() {
+    uint32_t expected = (kAccPreCompiled | kAccCompileDontBother);
+    return (GetAccessFlags() & expected) == expected;
+  }
+
+  void SetPreCompiled() {
+    DCHECK(IsInvokable());
+    DCHECK(IsCompilable());
+    AddAccessFlags(kAccPreCompiled | kAccCompileDontBother);
+  }
+
+  void ClearPreCompiled() {
+    ClearAccessFlags(kAccPreCompiled | kAccCompileDontBother);
+  }
+
   bool IsCompilable() {
     if (IsIntrinsic()) {
       // kAccCompileDontBother overlaps with kAccIntrinsicBits.
+      return true;
+    }
+    if (IsPreCompiled()) {
       return true;
     }
     return (GetAccessFlags() & kAccCompileDontBother) == 0;
   }
 
   void SetDontCompile() {
+    DCHECK(!IsMiranda());
     AddAccessFlags(kAccCompileDontBother);
   }
 
@@ -691,12 +711,6 @@ class ArtMethod final {
       REQUIRES_SHARED(Locks::mutator_lock_);
   // Returns the JNI native function name for the overloaded method 'm'.
   std::string JniLongName()
-      REQUIRES_SHARED(Locks::mutator_lock_);
-
-  // Update heap objects and non-entrypoint pointers by the passed in visitor for image relocation.
-  // Does not use read barrier.
-  template <typename Visitor>
-  ALWAYS_INLINE void UpdateObjectsForImageRelocation(const Visitor& visitor)
       REQUIRES_SHARED(Locks::mutator_lock_);
 
   // Update entry points by passing them through the visitor.

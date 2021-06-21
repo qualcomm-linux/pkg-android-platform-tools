@@ -24,6 +24,7 @@
 using namespace android::surfaceflinger;
 
 namespace android {
+class String8;
 
 class LayerStats {
 public:
@@ -32,12 +33,12 @@ public:
     void clear();
     bool isEnabled();
     void logLayerStats(const LayersProto& layersProto);
-    void dump(std::string& result);
+    void dump(String8& result);
 
 private:
     // Traverse layer tree to get all visible layers' stats
     void traverseLayerTreeStatsLocked(
-            const std::vector<LayerProtoParser::Layer*>& layerTree,
+            const std::vector<std::unique_ptr<LayerProtoParser::Layer>>& layerTree,
             const LayerProtoParser::LayerGlobal& layerGlobal,
             std::vector<std::string>* const outLayerShapeVec);
     // Convert layer's top-left position into 8x8 percentage of the display

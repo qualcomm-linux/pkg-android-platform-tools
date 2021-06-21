@@ -21,7 +21,6 @@ cc_test {
 
     srcs: [
         "Sensor_test.cpp",
-        "SensorEventQueue_test.cpp",
     ],
 
     shared_libs: [

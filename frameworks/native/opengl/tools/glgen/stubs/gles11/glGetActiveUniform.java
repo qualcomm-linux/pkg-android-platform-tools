@@ -17,7 +17,6 @@
     // C function void glGetActiveUniform ( GLuint program, GLuint index, GLsizei bufsize, GLsizei *length, GLint *size, GLenum *type, char *name )
 
     /** @hide Method is broken, but used to be public (b/6006380) */
-    @UnsupportedAppUsage
     public static native void glGetActiveUniform(
         int program,
         int index,
