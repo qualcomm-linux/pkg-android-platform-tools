@@ -1,4 +1,0 @@
-#!/usr/bin/dh-exec
-
-system/core/libziparchive.so.*   usr/lib/${DEB_HOST_MULTIARCH}/android
-system/core/libziparchive.so     usr/lib/${DEB_HOST_MULTIARCH}/android

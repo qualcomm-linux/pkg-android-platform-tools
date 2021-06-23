@@ -1,1 +1,3 @@
+#!/usr/bin/dh-exec
+
 debian/out/art/dexdump           usr/lib/android-sdk/build-tools/debian

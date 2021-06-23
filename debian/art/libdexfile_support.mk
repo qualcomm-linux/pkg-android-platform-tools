@@ -1,6 +1,8 @@
 NAME = libdexfile_support
 
 SOURCES = art/libdexfile/external/dex_file_supp.cc
+OBJECTS = $(SOURCES:.cc=.o)
+
 CPPFLAGS += \
   -Iart/libartbase \
   -Iart/libdexfile \
@@ -11,13 +13,10 @@ CPPFLAGS += \
   -Umips \
 
 CXXFLAGS += -std=gnu++17
-LDFLAGS += \
-  -shared \
-  -Wl,-soname,$(NAME).so.0
-LIBRARIES_FLAGS = \
-  -ldl \
-  -lpthread \
 
-debian/out/art/$(NAME).so.0: $(SOURCES)
-	$(CXX) -o $@ $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS) $^ $(LIBRARIES_FLAGS)
-	ln -s $(NAME).so.0 debian/out/art/$(NAME).so
+debian/out/art/$(NAME).a: $(OBJECTS)
+	mkdir --parents debian/out/art
+	ar -rcs $@ $^
+
+$(OBJECTS): %.o: %.cc
+	$(CXX) -c -o $@ $< $(CXXFLAGS) $(CPPFLAGS)

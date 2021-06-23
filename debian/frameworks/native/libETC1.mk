@@ -1,10 +1,13 @@
 NAME = libETC1
-SOURCES = etc1.cpp
-SOURCES := $(foreach source, $(SOURCES), frameworks/native/opengl/libs/ETC1/$(source))
-CPPFLAGS += -Iframeworks/native/opengl/include
-LDFLAGS += -shared -Wl,-soname,$(NAME).so.0
 
-debian/out/frameworks/native/$(NAME).so.0: $(SOURCES)
+SOURCES = frameworks/native/opengl/libs/ETC1/etc1.cpp
+OBJECTS = $(SOURCES:.cpp=.o)
+
+CPPFLAGS += -Iframeworks/native/opengl/include
+
+debian/out/frameworks/native/$(NAME).a: $(OBJECTS)
 	mkdir --parents debian/out/frameworks/native
-	$(CXX) $^ -o $@ $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
-	ln -s $(NAME).so.0 debian/out/frameworks/native/$(NAME).so
+	ar -rcs $@ $^
+
+$(OBJECTS): %.o: %.cpp
+	$(CXX) -c -o $@ $< $(CXXFLAGS) $(CPPFLAGS)

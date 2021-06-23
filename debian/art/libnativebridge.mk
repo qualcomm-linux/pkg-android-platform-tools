@@ -1,6 +1,7 @@
 NAME = libnativebridge
-SOURCES = native_bridge.cc
-SOURCES := $(foreach source, $(SOURCES), art/libnativebridge/$(source))
+
+SOURCES = art/libnativebridge/native_bridge.cc
+OBJECTS = $(SOURCES:.cc=.o)
 
 CPPFLAGS += \
   -I/usr/include/android \
@@ -12,13 +13,9 @@ CPPFLAGS += \
 
 CXXFLAGS += -std=gnu++2a
 
-LDFLAGS += \
-  -shared -Wl,-soname,$(NAME).so.0 \
-  -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
-  -ldl \
-  -Lsystem/core \
-  -llog
+debian/out/art/$(NAME).a: $(OBJECTS)
+	mkdir --parents debian/out/art
+	ar -rcs $@ $^
 
-debian/out/art/$(NAME).so.0: $(SOURCES)
-	$(CXX) $^ -o $@ $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
-	ln -s $(NAME).so.0 debian/out/art/$(NAME).so
+$(OBJECTS): %.o: %.cc
+	$(CXX) -c -o $@ $< $(CXXFLAGS) $(CPPFLAGS)

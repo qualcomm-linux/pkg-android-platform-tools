@@ -1,49 +1,48 @@
-
 include /usr/share/dpkg/architecture.mk
 
 NAME = libbacktrace
 
 libbacktrace_SOURCES = \
-          Backtrace.cpp \
-          BacktraceCurrent.cpp \
-          BacktraceMap.cpp \
-          BacktracePtrace.cpp \
-          ThreadEntry.cpp \
-          UnwindMap.cpp \
-          UnwindStack.cpp \
-          UnwindStackMap.cpp \
+  Backtrace.cpp \
+  BacktraceCurrent.cpp \
+  BacktraceMap.cpp \
+  BacktracePtrace.cpp \
+  ThreadEntry.cpp \
+  UnwindMap.cpp \
+  UnwindStack.cpp \
+  UnwindStackMap.cpp \
 
 libunwindstack_SOURCES := \
-        ArmExidx.cpp \
-        DwarfCfa.cpp \
-        DwarfEhFrameWithHdr.cpp \
-        DwarfMemory.cpp \
-        DwarfOp.cpp \
-        DwarfSection.cpp \
-        Elf.cpp \
-        ElfInterface.cpp \
-        ElfInterfaceArm.cpp \
-        Global.cpp \
-        JitDebug.cpp \
-        Log.cpp \
-        MapInfo.cpp \
-        Maps.cpp \
-        Memory.cpp \
-        LocalUnwinder.cpp \
-        Regs.cpp \
-        RegsArm.cpp \
-        RegsArm64.cpp \
-        RegsX86.cpp \
-        RegsX86_64.cpp \
-        RegsMips.cpp \
-        RegsMips64.cpp \
-        Unwinder.cpp \
-        Symbols.cpp \
+  ArmExidx.cpp \
+  DwarfCfa.cpp \
+  DwarfEhFrameWithHdr.cpp \
+  DwarfMemory.cpp \
+  DwarfOp.cpp \
+  DwarfSection.cpp \
+  Elf.cpp \
+  ElfInterface.cpp \
+  ElfInterfaceArm.cpp \
+  Global.cpp \
+  JitDebug.cpp \
+  Log.cpp \
+  MapInfo.cpp \
+  Maps.cpp \
+  Memory.cpp \
+  LocalUnwinder.cpp \
+  Regs.cpp \
+  RegsArm.cpp \
+  RegsArm64.cpp \
+  RegsX86.cpp \
+  RegsX86_64.cpp \
+  RegsMips.cpp \
+  RegsMips64.cpp \
+  Unwinder.cpp \
+  Symbols.cpp \
 
 # these might still be needed by libart/dexdump/dexlist
 libunwindstack_dexfile_SOURCES := \
-        DexFile.cpp \
-        DexFiles.cpp \
+  DexFile.cpp \
+  DexFiles.cpp \
 
 ifeq ($(DEB_HOST_ARCH), amd64)
   SOURCES_ASSEMBLY = libunwindstack/AsmGetRegsX86_64.S
@@ -75,57 +74,33 @@ SOURCES = \
   $(foreach source, $(filter %.cpp, $(libunwindstack_SOURCES)), libunwindstack/$(source)) \
   $(foreach source, $(filter %.cpp, $(libunwindstack_dexfile_SOURCES)), libunwindstack/$(source)) \
   $(demangle_srcs)
+
 SOURCES := $(foreach source, $(SOURCES), system/core/$(source))
+OBJECTS_CXX = $(SOURCES:.cpp=.o)
 SOURCES_ASSEMBLY := $(foreach source, $(SOURCES_ASSEMBLY), system/core/$(source))
-
-CXXOBJECTS = $(SOURCES:.cpp=.o)
 OBJECTS_ASSEMBLY := $(SOURCES_ASSEMBLY:.S=.o)
-CXXFLAGS += -c -std=gnu++2a -fno-omit-frame-pointer
+
+CXXFLAGS += -std=gnu++2a -fno-omit-frame-pointer
 CPPFLAGS += \
-            -I/usr/include/android \
-            -Isystem/core/include \
-            -Isystem/core/base/include \
-            -Isystem/core/demangle/include \
-            -Isystem/core/libprocinfo/include \
-            -Isystem/core/libunwindstack/include \
-            -I/usr/include/android/lzma \
-            -Iexternal/libunwind/include \
-            -Idebian/include/external/libunwind \
-            -Isystem/core/liblog/include \
-            -Isystem/core/base/include \
-            -Iart/libdexfile/external/include \
+  -I/usr/include/android \
+  -Isystem/core/include \
+  -Isystem/core/base/include \
+  -Isystem/core/demangle/include \
+  -Isystem/core/libprocinfo/include \
+  -Isystem/core/libunwindstack/include \
+  -I/usr/include/android/lzma \
+  -Iexternal/libunwind/include \
+  -Idebian/include/external/libunwind \
+  -Isystem/core/liblog/include \
+  -Isystem/core/base/include \
+  -Iart/libdexfile/external/include \
 
-LDFLAGS += -shared -Wl,-soname,$(NAME).so.0 \
-           -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
-           -Wl,-rpath=debian/out/external/libunwind \
-           -Wl,-rpath=debian/out/art \
-           -L/usr/lib/$(DEB_HOST_MULTIARCH)/android \
-           -Lsystem/core \
-           -Ldebian/out/external/libunwind -Ldebian/out/art \
-           -lunwind -lbase -llog -lpthread -l7z -ldexfile_support
+debian/out/system/core/$(NAME).a: $(OBJECTS_CXX) $(OBJECTS_ASSEMBLY)
+	mkdir --parents debian/out/system/core
+	ar -rcs $@ $^
 
-# -latomic should be the last library specified
-# https://github.com/android/ndk/issues/589
-ifeq ($(DEB_HOST_ARCH), armel)
-  LDFLAGS += -latomic
-endif
-ifeq ($(DEB_HOST_ARCH), mipsel)
-  LDFLAGS += -latomic
-endif
-
-system/core/$(NAME).so.0: $(COBJECTS) $(CXXOBJECTS) $(OBJECTS_ASSEMBLY)
-	$(CXX) $^ -o system/core/$(NAME).so.0 $(LDFLAGS)
-	ln -s $(NAME).so.0 system/core/$(NAME).so
-
-clean:
-	$(RM) $(COBJECTS) $(CXXOBJECTS) system/core/$(NAME).so*
-
-$(CXXOBJECTS): %.o: %.cpp
-	$(CXX) $< -o $@ $(CXXFLAGS) $(CPPFLAGS)
-
-$(COBJECTS): %.o: %.c
-	$(CC) $< -o $@ $(CFLAGS) $(CPPFLAGS)
+$(OBJECTS_CXX): %.o: %.cpp
+	$(CXX) -c -o $@ $< $(CXXFLAGS) $(CPPFLAGS)
 
 $(OBJECTS_ASSEMBLY): %.o: %.S
-	$(CC) -c -o $@ $(CFLAGS) $(CPPFLAGS) -D__ASSEMBLY__ $^
-
+	$(CC) -c -o $@ $< $(CFLAGS) $(CPPFLAGS) -D__ASSEMBLY__

@@ -37,62 +37,6 @@ Rules-Requires-Root: no
 Vcs-Git: https://salsa.debian.org/android-tools-team/android-platform-tools.git
 Vcs-Browser: https://salsa.debian.org/android-tools-team/android-platform-tools
 
-Package: android-libboringssl
-Architecture: armel armhf arm64 amd64 i386 ppc64el
-Depends: ${misc:Depends}, ${shlibs:Depends}
-Description: Google's internal fork of OpenSSL for the Android SDK
- The Android SDK builds against a static version of BoringSSL,
- Google's internal fork of OpenSSL.  This package should never be used
- for anything but Android SDK packages that already depend on it.
- .
- BoringSSL arose because Google used OpenSSL for many years in various
- ways and, over time, built up a large number of patches that were
- maintained while tracking upstream OpenSSL. As Google’s product
- portfolio became more complex, more copies of OpenSSL sprung up and
- the effort involved in maintaining all these patches in multiple
- places was growing steadily.
- .
- This is the Android AOSP fork of BoringSSL which is designed to be
- used by Android and its SDK.  BoringSSL is only ever statically linked
- into apps, and pinned to a commit version.  Upstream has no official
- releases of BoringSSL on its own, so it must be included separately
- for each project that uses it.
-
-Package: android-libselinux
-Architecture: linux-any
-Depends: ${misc:Depends},
-         ${shlibs:Depends}
-Description: Security-Enhanced Linux for Android
- This library provides an API for SELinux applications to get and set process
- and file security contexts and to obtain security policy decisions.
- .
- This library is an AOSP fork of libselinux, adding features specifically for
- Android and is intended for Android libraries only.
-
-Package: android-libsepol
-Architecture: linux-any
-Depends: ${misc:Depends},
-         ${shlibs:Depends}
-Description: Security-Policy Linux for Android
- This library provides an API for setting, checking sepolicy.
-
-Package: android-libunwind
-Architecture: amd64 i386 arm64 armel armhf mips mipsel mips64el
-Depends: p7zip-full, ${shlibs:Depends}, ${misc:Depends}
-Description: libunwind for Android
- This library is the AOSP fork of libunwind. It is used by libbacktrace.
- .
- This package is only available on x86, ARM and MIPS because the AOSP
- modifications only apply on these platforms.
- .
- This library is only used by Android SDK currently.
-
-Package: android-libnativehelper
-Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: Support functions for Android's class libraries
- This library is only used by Android SDK currently.
-
 Package: android-sdk-libsparse-utils
 Architecture: any
 Multi-Arch: foreign
@@ -110,33 +54,10 @@ Description: Android sparse image creation tool
  Command line tools to create sparse images for usage with Android devices.
  Includes simg2img, img2simg, simg2simg, simg_dump and append2simg tools.
 
-Package: android-liblog
-Section: libs
-Architecture: any
-Depends: ${misc:Depends}, ${shlibs:Depends}
-Description: Android NDK logger interfaces
- liblog represents an interface to the volatile Android Logging system for NDK
- (Native) applications and libraries. Interfaces for either writing or reading
- logs. The log buffers are divided up in Main, System, Radio and Events
- sub-logs.
-
-Package: android-libcutils
-Section: libs
-Architecture: any
-Depends: android-liblog (= ${binary:Version}),
-         libbsd0,
-         ${shlibs:Depends},
-         ${misc:Depends}
-Description: Android utils library for C
- This library provides common functionalities for android related tools.
- .
- This library is only used by Android SDK currently.
-
 Package: adb
 Architecture: amd64 i386 armel armhf arm64
 Multi-Arch: foreign
-Depends: android-libadb (= ${binary:Version}),
-         android-sdk-platform-tools-common (>= 28.0.2~),
+Depends: android-sdk-platform-tools-common (>= 28.0.2~),
          ${misc:Depends},
          ${shlibs:Depends},
 Suggests: android-sdk-platform-tools-common
@@ -150,73 +71,6 @@ Description: Android Debug Bridge
  This package recommends "android-sdk-platform-tools-common" which contains
  the udev rules for Android devices. Without this package, adb and fastboot need
  to be running with root permission.
-
-Package: android-libsparse
-Section: libs
-Architecture: any
-Depends: ${misc:Depends}, ${shlibs:Depends}
-Description: Library for sparse files
- This library provides APIs for creating, manipulating and destroying sparse
- files.
- .
- This library is only used by Android SDK currently.
-
-Package: android-libutils
-Section: libs
-Architecture: amd64 i386 armel armhf arm64 mips mipsel mips64el
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: Android Utility Function Library
- This library provides miscellaneous utility functions.
- .
- This library is only used by Android SDK currently.
-
-Package: android-libziparchive
-Section: libs
-Architecture: amd64 i386 armel armhf arm64 mips mipsel mips64el
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: Library for ZIP archives
- This library provides APIs for creating and manipulating ZIP archives.
- .
- This library is only used by Android SDK currently.
-
-Package: android-libbacktrace
-Section: libs
-Architecture: amd64 i386 armel armhf arm64 mips mipsel mips64el
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: Android backtrace library
- This library is only used by Android SDK currently.
-
-Package: android-libadb
-Section: libs
-Architecture: amd64 i386 armel armhf arm64
-Depends: android-libbase (= ${binary:Version}),
-         ${shlibs:Depends},
-         ${misc:Depends}
-Description: Library for Android Debug Bridge
- This library provides APIs for accessing and controlling Android devices.
- .
- This library is only used by Android SDK currently.
-
-Package: android-libbase
-Section: libs
-Architecture: any
-Depends: android-liblog (= ${binary:Version}),
-         ${shlibs:Depends},
-         ${misc:Depends}
-Description: Android base library
- This library provides APIs for basic tasks like handling files, Unicode
- strings, logging, memory allocation, integer parsing, etc..
- .
- This library is only used by Android SDK currently.
-
-Package: android-libcrypto-utils
-Section: libs
-Architecture: amd64 i386 armel armhf arm64
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: Android crypto-utils library
- This library provides utility APIs for cryptography.
- .
- This library is only used by Android SDK currently.
 
 Package: simg2img
 Depends: android-sdk-libsparse-utils, ${misc:Depends}
@@ -259,10 +113,9 @@ Description: Creates Android boot images
 Package: fastboot
 Architecture: amd64 i386 armel armhf arm64
 Multi-Arch: foreign
-Depends: android-libunwind (>= 10.0.0+r36-4~),
-         android-sdk-platform-tools-common (>= 28.0.2~),
-	 ${misc:Depends},
-	 ${shlibs:Depends},
+Depends: android-sdk-platform-tools-common (>= 28.0.2~),
+         ${misc:Depends},
+         ${shlibs:Depends},
 Suggests: android-sdk-platform-tools
 Breaks: android-tools-fastboot (<< 6.0~)
 Replaces: android-tools-fastboot (<< 6.0~)
@@ -270,20 +123,6 @@ Provides: android-tools-fastboot
 Description: Android fastboot tool
  A command line tool for flashing an Android device, boot an Android device to
  fastboot mode, etc..
-
-Package: android-libnativebridge
-Section: libs
-Architecture: amd64 i386 armel armhf arm64 mips mipsel mips64el
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: Android native bridge library
- This library is only used by Android SDK currently.
-
-Package: android-libnativeloader
-Section: libs
-Architecture: amd64 i386 armel armhf arm64 mips mipsel mips64el
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: Android native loader library
- This library is only used by Android SDK currently.
 
 Package: etc1tool
 Architecture: amd64 i386 armel armhf arm64 mips mipsel mips64el
@@ -339,20 +178,6 @@ Description: Generates graphical call-stack diagrams from Android trace logs
  each node represents a method call. It shows call flow (from parent
  node to child nodes) using arrows.
 
-Package: android-libart
-Architecture: amd64 i386 armhf arm64
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: Android Runtime
- Android Runtime (ART) is the managed runtime used by applications and
- some system services on Android. ART and its predecessor Dalvik were
- originally created specifically for the Android project. ART as the
- runtime executes the Dalvik Executable format and DEX bytecode
- specification.
- .
- This package provides `libart` and `libsigchain`.
- .
- This library is only used by Android SDK and uses a customized RPATH.
-
 Package: dexlist
 Architecture: amd64 i386 armhf arm64
 Multi-Arch: foreign
@@ -363,34 +188,6 @@ Description: Lists all methods in all concrete classes in Android DEX files
  based on ART functions in `libart` instead. The output is very similar
  to the original for correct DEX files. Error messages may differ,
  however. Also, ODEX files are no longer supported.
-
-Package: android-libetc1
-Section: libs
-Architecture: amd64 i386 armel armhf arm64 mips mipsel mips64el
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: ETC1 compression library
- Ericsson Texture Compression (ETC) is a lossy texture compression technique
- developed in collaboration with Ericsson Research in early 2005. libETC1
- provides the encoding and decoding of ETC1 compression algorithm.
-
-Package: android-libext4-utils
-Section: libs
-Architecture: i386 amd64 armel armhf arm64 mips mipsel mips64el
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: Android ext4 utility library
- Android ext4 filesystem utility library, which is only used by fastboot
- currently.
-
-Package: android-libfec
-Section: libs
-Architecture: i386 amd64 armel armhf arm64 mips mipsel mips64el
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: Android libfec library
- Android libfec library, which read files or partitions with
- error-correcting codes appended to them. Uses verity metadata to speed
- up I/O and improve error correction effectiveness.
- .
- This is only used by fastboot currently.
 
 Package: hprof-conv
 Architecture: any

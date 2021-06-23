@@ -1,13 +1,12 @@
 NAME = etc1tool
-SOURCES = etc1tool.cpp
-SOURCES := $(foreach source, $(SOURCES), development/tools/etc1tool/$(source))
+
+SOURCES = development/tools/etc1tool/etc1tool.cpp
+
 CPPFLAGS += -Idevelopment/include -I/usr/include/android -Iframeworks/native/opengl/include
-LDFLAGS += -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
-           -lpng -L/usr/lib/$(DEB_HOST_MULTIARCH)/android \
-           -Ldebian/out/frameworks/native -lETC1
 
-development/$(NAME): $(SOURCES)
-	$(CXX) $^ -o $@ $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
+LDFLAGS += -lpng
+STATIC_LIBS = debian/out/frameworks/native/libETC1.a
 
-clean:
-	$(RM) development/$(NAME)
+debian/out/development/$(NAME): $(SOURCES)
+	mkdir --parents debian/out/development
+	$(CXX) -o $@ $^ $(CXXFLAGS) $(CPPFLAGS) $(STATIC_LIBS) $(LDFLAGS)

@@ -303,56 +303,56 @@ SOURCES_runtime += $(SOURCES_runtime_$(CPU))
 
 # From libartbase/Android.bp
 SOURCES_libartbase = \
-         arch/instruction_set.cc \
-         base/allocator.cc \
-         base/arena_allocator.cc \
-         base/arena_bit_vector.cc \
-         base/bit_vector.cc \
-         base/enums.cc \
-         base/file_magic.cc \
-         base/file_utils.cc \
-         base/hex_dump.cc \
-         base/hiddenapi_flags.cc \
-         base/logging.cc \
-         base/malloc_arena_pool.cc \
-         base/membarrier.cc \
-         base/memfd.cc \
-         base/memory_region.cc \
-         base/mem_map.cc \
-         base/os_linux.cc \
-         base/runtime_debug.cc \
-         base/safe_copy.cc \
-         base/scoped_arena_allocator.cc \
-         base/scoped_flock.cc \
-         base/socket_peer_is_trusted.cc \
-         base/time_utils.cc \
-         base/unix_file/fd_file.cc \
-         base/unix_file/random_access_file_utils.cc \
-         base/utils.cc \
-         base/zip_archive.cc \
-         base/mem_map_unix.cc \
+  arch/instruction_set.cc \
+  base/allocator.cc \
+  base/arena_allocator.cc \
+  base/arena_bit_vector.cc \
+  base/bit_vector.cc \
+  base/enums.cc \
+  base/file_magic.cc \
+  base/file_utils.cc \
+  base/hex_dump.cc \
+  base/hiddenapi_flags.cc \
+  base/logging.cc \
+  base/malloc_arena_pool.cc \
+  base/membarrier.cc \
+  base/memfd.cc \
+  base/memory_region.cc \
+  base/mem_map.cc \
+  base/os_linux.cc \
+  base/runtime_debug.cc \
+  base/safe_copy.cc \
+  base/scoped_arena_allocator.cc \
+  base/scoped_flock.cc \
+  base/socket_peer_is_trusted.cc \
+  base/time_utils.cc \
+  base/unix_file/fd_file.cc \
+  base/unix_file/random_access_file_utils.cc \
+  base/utils.cc \
+  base/zip_archive.cc \
+  base/mem_map_unix.cc \
 
 # From libdexfile/Android.bp
 SOURCES_libdexfile = \
-         dex/art_dex_file_loader.cc \
-         dex/compact_dex_file.cc \
-         dex/compact_offset_table.cc \
-         dex/descriptors_names.cc \
-         dex/dex_file.cc \
-         dex/dex_file_exception_helpers.cc \
-         dex/dex_file_layout.cc \
-         dex/dex_file_loader.cc \
-         dex/dex_file_tracking_registrar.cc \
-         dex/dex_file_verifier.cc \
-         dex/dex_instruction.cc \
-         dex/modifiers.cc \
-         dex/primitive.cc \
-         dex/signature.cc \
-         dex/standard_dex_file.cc \
-         dex/type_lookup_table.cc \
-         dex/utf.cc \
-         external/dex_file_ext.cc \
-         external/dex_file_supp.cc \
+  dex/art_dex_file_loader.cc \
+  dex/compact_dex_file.cc \
+  dex/compact_offset_table.cc \
+  dex/descriptors_names.cc \
+  dex/dex_file.cc \
+  dex/dex_file_exception_helpers.cc \
+  dex/dex_file_layout.cc \
+  dex/dex_file_loader.cc \
+  dex/dex_file_tracking_registrar.cc \
+  dex/dex_file_verifier.cc \
+  dex/dex_instruction.cc \
+  dex/modifiers.cc \
+  dex/primitive.cc \
+  dex/signature.cc \
+  dex/standard_dex_file.cc \
+  dex/type_lookup_table.cc \
+  dex/utf.cc \
+  external/dex_file_ext.cc \
+  external/dex_file_supp.cc \
 
 SOURCES := $(foreach source, $(SOURCES_libartbase), art/libartbase/$(source)) \
            $(foreach source, $(SOURCES_libdexfile), art/libdexfile/$(source)) \
@@ -422,15 +422,15 @@ SOURCES_OPERATOR := $(foreach source, $(SOURCES_OPERATOR), art/$(source))
 # and potentially huge amount of memory. Not good for devel-time.
 # On the other hand, individual compiling every source allows incremental
 # compilation and multi-thread accelration.
-OBJECTS_ASSEMBLY = $(SOURCES_ASSEMBLY:.S=.o)
+SOURCES_CXX = $(filter %.cc,$(SOURCES))
 OBJECTS_CXX = $(SOURCES_CXX:.cc=.o)
 SOURCES_ASSEMBLY = $(filter %.S,$(SOURCES))
-SOURCES_CXX = $(filter %.cc,$(SOURCES))
+OBJECTS_ASSEMBLY = $(SOURCES_ASSEMBLY:.S=.o)
 
-CFLAGS += -c -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE=1 -Wa,--noexecstack -fcommon \
+CFLAGS += -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE=1 -Wa,--noexecstack -fcommon \
   -fno-rtti -fstrict-aliasing -fvisibility=protected \
 
-CXXFLAGS += -c -std=gnu++17 \
+CXXFLAGS += -std=gnu++17 \
   -Wno-invalid-offsetof -Wno-invalid-partial-specialization \
   -D__STDC_FORMAT_MACROS -D__STDC_CONSTANT_MACROS \
   -fno-rtti -fstrict-aliasing -fvisibility=protected -fno-omit-frame-pointer \
@@ -484,63 +484,39 @@ CPPFLAGS += \
   -Ilibnativehelper/platform_include \
   -Umips \
 
-LDFLAGS += \
-  -fuse-ld=gold \
-  -L/usr/lib/$(DEB_HOST_MULTIARCH)/android \
-  -Lsystem/core \
-  -Ldebian/out/art \
-  -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
-  -Wl,-rpath=system/core \
-  -Wl,-rpath=debian/out/art \
-  -shared -Wl,-soname,$(NAME).so.0
-LIBRARIES_FLAGS = \
-  -latomic \
-  -lbacktrace \
-  -lbase \
-  -ldl \
-  -llz4 \
-  -lnativebridge \
-  -lnativeloader \
-  -lpthread \
-  -lsigchain \
-  -lz \
-  -lziparchive \
-
 CC_ASSEMBLY = clang
 ifeq ($(CPU),arm)
   # Clang does not support the `ADRL` instruction. See <https://bugs.llvm.org/show_bug.cgi?id=24350>
   CC_ASSEMBLY = gcc
 endif
 
-debian/out/art/$(NAME).so.0: $(OBJECTS_CXX) $(OBJECTS_ASSEMBLY)
-	$(CXX) -o $@ $(LDFLAGS) $^ $(LIBRARIES_FLAGS)
-	ln -s $(NAME).so.0 debian/out/art/$(NAME).so
+debian/out/art/$(NAME).a: $(OBJECTS_CXX) $(OBJECTS_ASSEMBLY)
+	mkdir --parents debian/out/art
+	ar -rcs $@ $^
 
 clean:
-	$(RM) $(NAME).so* debian/out/art/operator_out.cc debian/out/art/mterp.S
-	$(RM) $(OBJECTS_CXX)
-	$(RM) $(OBJECTS_ASSEMBLY)
+	$(RM) $(OBJECTS_CXX) $(OBJECTS_ASSEMBLY)
 
 .PHONY: clean
 
 $(OBJECTS_CXX): %.o: %.cc
-	$(CXX) -o $@ $(CXXFLAGS) $(CPPFLAGS) $^
+	$(CXX) -c -o $@ $< $(CXXFLAGS) $(CPPFLAGS)
 
 $(OBJECTS_ASSEMBLY): %.o: %.S
-	$(CC_ASSEMBLY) -o $@ $(CFLAGS) $(CPPFLAGS) $^
+	$(CC_ASSEMBLY) -c -o $@ $< $(CFLAGS) $(CPPFLAGS)
 
 debian/out/art/operator_out.cc: $(SOURCES_OPERATOR)
+	mkdir --parents debian/out/art
 	python3 art/tools/generate_operator_out.py art/libartbase $^ > $@
 
 debian/out/art/mterp.S: art/runtime/interpreter/mterp/$(CPU)/*.S
+	mkdir --parents debian/out/art
 	python3 art/runtime/interpreter/mterp/gen_mterp.py $@ $^
 
 debian/out/art/asm_defines.h: debian/out/art/asm_defines.output
+	mkdir --parents debian/out/art
 	python3 art/tools/cpp-define-generator/make_header.py $^ > $@
 
 debian/out/art/asm_defines.output: art/tools/cpp-define-generator/asm_defines.cc
-	$(CXX) \
-		$(CPPFLAGS) \
-		$(CXXFLAGS) \
-		-S \
-		-o $@ $^
+	mkdir --parents debian/out/art
+	$(CXX) -S -o $@ $^ $(CPPFLAGS) $(CXXFLAGS)

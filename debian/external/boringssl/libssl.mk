@@ -1,4 +1,5 @@
 NAME = libssl
+
 SOURCES = \
   src/ssl/bio_ssl.cc \
   src/ssl/d1_both.cc \
@@ -38,6 +39,7 @@ SOURCES = \
   src/ssl/tls_record.cc \
 
 SOURCES := $(foreach source, $(SOURCES), external/boringssl/$(source))
+OBJECTS = $(SOURCES:.cc=.o)
 
 CXXFLAGS += \
   -D_XOPEN_SOURCE=700 \
@@ -49,11 +51,9 @@ CXXFLAGS += \
 
 CPPFLAGS += -Iexternal/boringssl/src/include
 
-LDFLAGS += -shared -Wl,-soname,$(NAME).so.0 \
-           -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
-           -lpthread -Ldebian/out/external/boringssl -lcrypto
-
-debian/out/external/boringssl/$(NAME).so.0: $(SOURCES)
+debian/out/external/boringssl/$(NAME).a: $(OBJECTS)
 	mkdir --parents debian/out/external/boringssl
-	$(CXX) $^ -o debian/out/external/boringssl/$(NAME).so.0 $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
-	ln -s $(NAME).so.0 debian/out/external/boringssl/$(NAME).so
+	ar -rcs $@ $^
+
+$(OBJECTS): %.o: %.cc
+	$(CXX) -c -o $@ $< $(CXXLAGS) $(CPPFLAGS)

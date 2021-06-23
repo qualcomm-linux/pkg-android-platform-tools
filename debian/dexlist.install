@@ -1,1 +1,3 @@
+#!/usr/bin/dh-exec
+
 debian/out/art/dexlist   usr/bin

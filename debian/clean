@@ -1,5 +1,4 @@
 debian/out/
-libnativehelper/*.so*
+*.o
 debian/manpages/development/*.1
-development/etc1tool
 debian/.gradle/

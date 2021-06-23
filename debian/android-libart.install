@@ -1,8 +1,0 @@
-#!/usr/bin/dh-exec
-
-art/libdexfile/external/include/art_api/dex_file_support.h   /usr/include/android/art_api
-art/libdexfile/external/include/art_api/dex_file_external.h  /usr/include/android/art_api
-debian/out/art/libart.so*               usr/lib/${DEB_HOST_MULTIARCH}/android
-debian/out/art/libdexfile_external.so*  usr/lib/${DEB_HOST_MULTIARCH}/android
-debian/out/art/libdexfile_support.so*   usr/lib/${DEB_HOST_MULTIARCH}/android
-debian/out/art/libsigchain.so*          usr/lib/${DEB_HOST_MULTIARCH}/android

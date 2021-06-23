@@ -1,6 +1,7 @@
 NAME = libnativeloader
-SOURCES = native_loader.cpp
-SOURCES := $(foreach source, $(SOURCES), art/libnativeloader/$(source))
+
+SOURCES = art/libnativeloader/native_loader.cpp
+OBJECTS = $(SOURCES:.cpp=.o)
 
 CPPFLAGS += \
   -I/usr/include/android \
@@ -14,14 +15,9 @@ CPPFLAGS += \
 
 CXXFLAGS += -std=gnu++2a
 
-LDFLAGS += \
-  -shared -Wl,-soname,$(NAME).so.0 \
-  -ldl \
-  -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
-  -Lsystem/core \
-  -Ldebian/out/art \
-  -lnativebridge -lbase
+debian/out/art/$(NAME).a: $(OBJECTS)
+	mkdir --parents debian/out/art
+	ar -rcs $@ $^
 
-debian/out/art/$(NAME).so.0: $(SOURCES)
-	$(CXX) $^ -o $@ $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS)
-	ln -s $(NAME).so.0 debian/out/art/$(NAME).so
+$(OBJECTS): %.o: %.cpp
+	$(CXX) -c -o $@ $< $(CXXFLAGS) $(CPPFLAGS)

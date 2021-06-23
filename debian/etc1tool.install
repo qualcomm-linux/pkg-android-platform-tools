@@ -1,1 +1,3 @@
-development/etc1tool   usr/lib/android-sdk/platform-tools
+#!/usr/bin/dh-exec
+
+debian/out/development/etc1tool   usr/lib/android-sdk/platform-tools

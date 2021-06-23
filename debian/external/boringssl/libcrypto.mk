@@ -1,7 +1,6 @@
 include external/boringssl/sources.mk
 
 NAME = libcrypto
-SOURCES = $(crypto_sources)
 
 amd64_SOURCES = $(linux_x86_64_sources)
 arm64_SOURCES = $(linux_aarch64_sources)
@@ -10,11 +9,15 @@ armhf_SOURCES = $(linux_arm_sources)
 i386_SOURCES = $(linux_x86_sources)
 ppcel64_SOURCES = $(linux_ppc64le_sources)
 
-SOURCES += $($(DEB_HOST_ARCH)_SOURCES)
-
+SOURCES = $(crypto_sources) $($(DEB_HOST_ARCH)_SOURCES)
 SOURCES := $(foreach source, $(SOURCES), external/boringssl/$(source))
 
-CFLAGS+= \
+SOURCES_C = $(filter %.c,$(SOURCES))
+OBJECTS_C = $(SOURCES_C:.c=.o)
+SOURCES_ASSEMBLY = $(filter %.S,$(SOURCES))
+OBJECTS_ASSEMBLY = $(SOURCES_ASSEMBLY:.S=.o)
+
+CFLAGS += \
   -D_XOPEN_SOURCE=700 \
   -DBORINGSSL_ANDROID_SYSTEM \
   -DBORINGSSL_IMPLEMENTATION \
@@ -25,9 +28,12 @@ CFLAGS+= \
 
 CPPFLAGS += -Iexternal/boringssl/src/include -Iexternal/boringssl/src/crypto
 
-LDFLAGS += -shared -Wl,-soname,$(NAME).so.0 -lpthread
-
-debian/out/external/boringssl/$(NAME).so.0: $(SOURCES)
+debian/out/external/boringssl/$(NAME).a: $(OBJECTS_C) $(OBJECTS_ASSEMBLY)
 	mkdir --parents debian/out/external/boringssl
-	$(CC) $^ -o debian/out/external/boringssl/$(NAME).so.0 $(CFLAGS) $(CPPFLAGS) $(LDFLAGS)
-	ln -s $(NAME).so.0 debian/out/external/boringssl/$(NAME).so
+	ar -rcs $@ $^
+
+$(OBJECTS_C): %.o: %.c
+	$(CC) -c -o $@ $< $(CFLAGS) $(CPPFLAGS)
+
+$(OBJECTS_ASSEMBLY): %.o: %.S
+	$(CC) -c -o $@ $< $(CFLAGS) $(CPPFLAGS)
