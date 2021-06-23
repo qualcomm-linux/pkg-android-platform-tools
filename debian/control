@@ -57,8 +57,7 @@ Description: Android sparse image creation tool
 Package: adb
 Architecture: amd64 i386 armel armhf arm64
 Multi-Arch: foreign
-Depends: android-libadb (= ${binary:Version}),
-         android-sdk-platform-tools-common (>= 28.0.2~),
+Depends: android-sdk-platform-tools-common (>= 28.0.2~),
          ${misc:Depends},
          ${shlibs:Depends},
 Suggests: android-sdk-platform-tools-common
@@ -114,10 +113,9 @@ Description: Creates Android boot images
 Package: fastboot
 Architecture: amd64 i386 armel armhf arm64
 Multi-Arch: foreign
-Depends: android-libunwind (>= 10.0.0+r36-4~),
-         android-sdk-platform-tools-common (>= 28.0.2~),
-	 ${misc:Depends},
-	 ${shlibs:Depends},
+Depends: android-sdk-platform-tools-common (>= 28.0.2~),
+         ${misc:Depends},
+         ${shlibs:Depends},
 Suggests: android-sdk-platform-tools
 Breaks: android-tools-fastboot (<< 6.0~)
 Replaces: android-tools-fastboot (<< 6.0~)
