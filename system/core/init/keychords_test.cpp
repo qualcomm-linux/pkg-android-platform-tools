@@ -204,7 +204,7 @@ class TestFrame {
 
 TestFrame::TestFrame(const std::vector<const std::vector<int>>& chords, EventHandler* ev)
     : ev_(ev) {
-    if (!epoll_.Open()) return;
+    if (!epoll_.Open().ok()) return;
     for (const auto& keycodes : chords) keychords_.Register(keycodes);
     keychords_.Start(&epoll_, [this](const std::vector<int>& keycodes) {
         this->keycodes_.emplace_back(keycodes);
@@ -212,7 +212,11 @@ TestFrame::TestFrame(const std::vector<const std::vector<int>>& chords, EventHan
 }
 
 void TestFrame::RelaxForMs(std::chrono::milliseconds wait) {
-    epoll_.Wait(wait);
+    auto pending_functions = epoll_.Wait(wait);
+    ASSERT_RESULT_OK(pending_functions);
+    for (const auto& function : *pending_functions) {
+        (*function)();
+    }
 }
 
 void TestFrame::SetChord(int key, bool value) {

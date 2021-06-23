@@ -24,7 +24,6 @@
 #include <android-base/logging.h>
 #include <android-base/parsedouble.h>
 #include <android-base/parseint.h>
-#include <android-base/quick_exit.h>
 
 #include "utils.h"
 
@@ -88,6 +87,7 @@ const std::vector<std::string> GetAllCommandNames() {
 
 extern void RegisterDumpRecordCommand();
 extern void RegisterHelpCommand();
+extern void RegisterInjectCommand();
 extern void RegisterListCommand();
 extern void RegisterKmemCommand();
 extern void RegisterRecordCommand();
@@ -103,6 +103,7 @@ class CommandRegister {
   CommandRegister() {
     RegisterDumpRecordCommand();
     RegisterHelpCommand();
+    RegisterInjectCommand();
     RegisterKmemCommand();
     RegisterReportCommand();
     RegisterReportSampleCommand();
@@ -175,9 +176,9 @@ bool RunSimpleperfCmd(int argc, char** argv) {
   bool result = command->Run(args);
   LOG(DEBUG) << "command '" << command_name << "' "
              << (result ? "finished successfully" : "failed");
-  // Quick exit to avoid cost freeing memory and closing files.
+  // Quick exit to avoid the cost of freeing memory and closing files.
   fflush(stdout);
   fflush(stderr);
-  android::base::quick_exit(result ? 0 : 1);
+  _Exit(result ? 0 : 1);
   return result;
 }

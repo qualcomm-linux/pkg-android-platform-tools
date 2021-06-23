@@ -17,12 +17,17 @@
 #ifndef ART_RUNTIME_JIT_JIT_H_
 #define ART_RUNTIME_JIT_JIT_H_
 
+#include <android-base/unique_fd.h>
+
 #include "base/histogram-inl.h"
 #include "base/macros.h"
 #include "base/mutex.h"
 #include "base/runtime_debug.h"
 #include "base/timing_logger.h"
 #include "handle.h"
+#include "offsets.h"
+#include "interpreter/mterp/mterp.h"
+#include "jit/debugger_interface.h"
 #include "jit/profile_saver_options.h"
 #include "obj_ptr.h"
 #include "thread_pool.h"
@@ -111,6 +116,16 @@ class JitOptions {
     return use_jit_compilation_;
   }
 
+  bool UseTieredJitCompilation() const {
+    return use_tiered_jit_compilation_;
+  }
+
+  bool CanCompileBaseline() const {
+    return use_tiered_jit_compilation_ ||
+           use_baseline_compiler_ ||
+           interpreter::IsNterpSupported();
+  }
+
   void SetUseJitCompilation(bool b) {
     use_jit_compilation_ = b;
   }
@@ -123,13 +138,17 @@ class JitOptions {
     profile_saver_options_.SetWaitForJitNotificationsToSave(value);
   }
 
-  void SetProfileAOTCode(bool value) {
-    profile_saver_options_.SetProfileAOTCode(value);
-  }
-
   void SetJitAtFirstUse() {
     use_jit_compilation_ = true;
     compile_threshold_ = 0;
+  }
+
+  void SetUseBaselineCompiler() {
+    use_baseline_compiler_ = true;
+  }
+
+  bool UseBaselineCompiler() const {
+    return use_baseline_compiler_;
   }
 
  private:
@@ -138,6 +157,8 @@ class JitOptions {
   static uint32_t RoundUpThreshold(uint32_t threshold);
 
   bool use_jit_compilation_;
+  bool use_tiered_jit_compilation_;
+  bool use_baseline_compiler_;
   size_t code_cache_initial_capacity_;
   size_t code_cache_max_capacity_;
   uint32_t compile_threshold_;
@@ -151,6 +172,8 @@ class JitOptions {
 
   JitOptions()
       : use_jit_compilation_(false),
+        use_tiered_jit_compilation_(false),
+        use_baseline_compiler_(false),
         code_cache_initial_capacity_(0),
         code_cache_max_capacity_(0),
         compile_threshold_(0),
@@ -175,6 +198,35 @@ class JitCompilerInterface {
       REQUIRES_SHARED(Locks::mutator_lock_) = 0;
   virtual bool GenerateDebugInfo() = 0;
   virtual void ParseCompilerOptions() = 0;
+
+  virtual std::vector<uint8_t> PackElfFileForJIT(ArrayRef<const JITCodeEntry*> elf_files,
+                                                 ArrayRef<const void*> removed_symbols,
+                                                 bool compress,
+                                                 /*out*/ size_t* num_symbols) = 0;
+};
+
+// Data structure holding information to perform an OSR.
+struct OsrData {
+  // The native PC to jump to.
+  const uint8_t* native_pc;
+
+  // The frame size of the compiled code to jump to.
+  size_t frame_size;
+
+  // The dynamically allocated memory of size `frame_size` to copy to stack.
+  void* memory[0];
+
+  static constexpr MemberOffset NativePcOffset() {
+    return MemberOffset(OFFSETOF_MEMBER(OsrData, native_pc));
+  }
+
+  static constexpr MemberOffset FrameSizeOffset() {
+    return MemberOffset(OFFSETOF_MEMBER(OsrData, frame_size));
+  }
+
+  static constexpr MemberOffset MemoryOffset() {
+    return MemberOffset(OFFSETOF_MEMBER(OsrData, memory));
+  }
 };
 
 class Jit {
@@ -200,6 +252,10 @@ class Jit {
 
   JitCodeCache* GetCodeCache() {
     return code_cache_;
+  }
+
+  JitCompilerInterface* GetJitCompiler() const {
+    return jit_compiler_;
   }
 
   void CreateThreadPool();
@@ -296,6 +352,11 @@ class Jit {
   // Return whether the runtime should use a priority thread weight when sampling.
   static bool ShouldUsePriorityThreadWeight(Thread* self);
 
+  // Return the information required to do an OSR jump. Return null if the OSR
+  // cannot be done.
+  OsrData* PrepareForOsr(ArtMethod* method, uint32_t dex_pc, uint32_t* vregs)
+      REQUIRES_SHARED(Locks::mutator_lock_);
+
   // If an OSR compiled version is available for `method`,
   // and `dex_pc + dex_pc_offset` is an entry point of that compiled
   // version, this method will jump to the compiled code, let it run,
@@ -368,6 +429,18 @@ class Jit {
   bool CanAssumeInitialized(ObjPtr<mirror::Class> cls, bool is_for_shared_region) const
       REQUIRES_SHARED(Locks::mutator_lock_);
 
+  // Map boot image methods after all compilation in zygote has been done.
+  void MapBootImageMethods() REQUIRES(Locks::mutator_lock_);
+
+  // Notify to other processes that the zygote is done profile compiling boot
+  // class path methods.
+  void NotifyZygoteCompilationDone();
+
+  void EnqueueOptimizedCompilation(ArtMethod* method, Thread* self);
+
+  void EnqueueCompilationFromNterp(ArtMethod* method, Thread* self)
+      REQUIRES_SHARED(Locks::mutator_lock_);
+
  private:
   Jit(JitCodeCache* code_cache, JitOptions* options);
 
@@ -414,6 +487,26 @@ class Jit {
   CumulativeLogger cumulative_timings_;
   Histogram<uint64_t> memory_use_ GUARDED_BY(lock_);
   Mutex lock_ DEFAULT_MUTEX_ACQUIRED_AFTER;
+
+  // In the JIT zygote configuration, after all compilation is done, the zygote
+  // will copy its contents of the boot image to the zygote_mapping_methods_,
+  // which will be picked up by processes that will map the memory
+  // in-place within the boot image mapping.
+  //
+  // zygote_mapping_methods_ is shared memory only usable by the zygote and not
+  // inherited by child processes. We create it eagerly to ensure other
+  // processes cannot seal writable the file.
+  MemMap zygote_mapping_methods_;
+
+  // The file descriptor created through memfd_create pointing to memory holding
+  // boot image methods. Created by the zygote, and inherited by child
+  // processes. The descriptor will be closed in each process (including the
+  // zygote) once they don't need it.
+  android::base::unique_fd fd_methods_;
+
+  // The size of the memory pointed by `fd_methods_`. Cached here to avoid
+  // recomputing it.
+  size_t fd_methods_size_;
 
   DISALLOW_COPY_AND_ASSIGN(Jit);
 };

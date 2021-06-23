@@ -244,10 +244,6 @@ std::string create_data_media_path(const char* volume_uuid, userid_t userid) {
     return StringPrintf("%s/media/%u", create_data_path(volume_uuid).c_str(), userid);
 }
 
-std::string create_data_media_obb_path(const char* volume_uuid, const char* package_name) {
-    return StringPrintf("%s/media/obb/%s", create_data_path(volume_uuid).c_str(), package_name);
-}
-
 std::string create_data_media_package_path(const char* volume_uuid, userid_t userid,
         const char* data_type, const char* package_name) {
     return StringPrintf("%s/Android/%s/%s", create_data_media_path(volume_uuid, userid).c_str(),
@@ -949,11 +945,11 @@ static int validate_apk_path_internal(const std::string& path, int maxSubdirs) {
 }
 
 int validate_apk_path(const char* path) {
-    return validate_apk_path_internal(path, 1 /* maxSubdirs */);
+    return validate_apk_path_internal(path, 2 /* maxSubdirs */);
 }
 
 int validate_apk_path_subdirs(const char* path) {
-    return validate_apk_path_internal(path, 3 /* maxSubdirs */);
+    return validate_apk_path_internal(path, 4 /* maxSubdirs */);
 }
 
 int ensure_config_user_dirs(userid_t userid) {

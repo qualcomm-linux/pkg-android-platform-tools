@@ -108,6 +108,9 @@ cc_defaults {
         "libartbase_static_defaults",
         "libdexfile_static_base_defaults",
     ],
+    defaults_visibility: [
+        "//art:__subpackages__",
+    ],
     static_libs: ["libdexfile"],
 }
 
@@ -137,12 +140,10 @@ gensrcs {
 
 art_cc_library {
     name: "libdexfile",
-    defaults: ["libdexfile_defaults"],
-    // Leave the symbols in the shared library so that stack unwinders can
-    // produce meaningful name resolution.
-    strip: {
-        keep_symbols: true,
-    },
+    defaults: [
+        "libdexfile_defaults",
+        "libart_nativeunwind_defaults",
+    ],
     target: {
         android: {
             shared_libs: [
@@ -173,6 +174,15 @@ art_cc_library {
             ],
         },
     },
+    apex_available: [
+        "com.android.art.release",
+        "com.android.art.debug",
+        // TODO(b/142944931): remove this
+        "com.android.runtime", // due to the transitive dependency from linker
+        // TODO(b/142944931) Clean this up. This is due to the dependency to libdexfile_support_static
+        // from /system/core, etc.
+        "//apex_available:platform",
+    ],
 }
 
 art_cc_library {
@@ -211,6 +221,9 @@ art_cc_library {
             ],
         },
     },
+    apex_available: [
+        "com.android.art.debug",
+    ],
 }
 
 art_cc_test {
@@ -242,6 +255,7 @@ art_cc_test {
 
 cc_library_headers {
     name: "libdexfile_external_headers",
+    visibility: ["//visibility:public"],
     host_supported: true,
     vendor_available: true,
     recovery_available: true,
@@ -278,6 +292,7 @@ cc_defaults {
         symbol_file: "external/libdexfile_external.map.txt",
         versions: ["1"],
     },
+    export_header_lib_headers: ["libdexfile_external_headers"],
 }
 
 cc_library {
@@ -286,6 +301,7 @@ cc_library {
         "art_defaults",
         "libdexfile_external-defaults",
     ],
+    visibility: ["//visibility:public"],
     target: {
         darwin: {
             enabled: true,
@@ -293,6 +309,15 @@ cc_library {
     },
     shared_libs: [
         "libdexfile",
+    ],
+    apex_available: [
+        "com.android.art.release",
+        "com.android.art.debug",
+        // TODO(b/142944931): remove this
+        "com.android.runtime", // due to the transitive dependency from linker
+        // TODO(b/142944931) Clean this up. This is due to the dependency to libdexfile_support_static
+        // from /system/core, etc.
+        "//apex_available:platform",
     ],
 }
 
@@ -309,6 +334,9 @@ cc_library {
     },
     shared_libs: [
         "libdexfiled",
+    ],
+    apex_available: [
+        "com.android.art.debug",
     ],
 }
 
@@ -331,6 +359,7 @@ art_cc_test {
 // stack frames.
 cc_library {
     name: "libdexfile_support",
+    visibility: ["//visibility:public"],
     host_supported: true,
     vendor_available: true,
     recovery_available: true,
@@ -371,10 +400,9 @@ art_cc_test {
     ],
 }
 
-cc_library_static {
-    name: "libdexfile_support_static",
+cc_defaults {
+    name: "libdexfile_support_static_defaults",
     host_supported: true,
-    defaults: ["libdexfile_static_defaults"],
     srcs: [
         "external/dex_file_supp.cc",
     ],
@@ -382,14 +410,43 @@ cc_library_static {
     // Using whole_static_libs here only as a "poor man's transitivity" kludge.
     whole_static_libs: [
         "libbase",
-        "libdexfile",
-        "libdexfile_external",
         "liblog",
         "libz",
         "libziparchive",
     ],
     header_libs: ["libdexfile_external_headers"],
     export_header_lib_headers: ["libdexfile_external_headers"],
+}
+
+cc_library_static {
+    name: "libdexfile_support_static",
+    visibility: [
+        "//art:__subpackages__",
+        // TODO(b/133140750): Clean this up.
+        "//system/core/debuggerd",
+        "//system/core/init", // Dependency from Android.mk file, so not enforced.
+        "//system/extras/simpleperf",
+    ],
+    defaults: [
+        "libdexfile_static_defaults",
+        "libdexfile_support_static_defaults",
+    ],
+    whole_static_libs: [
+        "libdexfile",
+        "libdexfile_external",
+    ],
+}
+
+cc_library_static {
+    name: "libdexfiled_support_static",
+    defaults: [
+        "libdexfile_support_static_defaults",
+        "libdexfiled_static_defaults",
+    ],
+    whole_static_libs: [
+        "libdexfiled",
+        "libdexfiled_external",
+    ],
 }
 
 // The same source file is used in two tests here, so unlike other ART gtests it

@@ -747,6 +747,18 @@ class CodeGeneratorARMVIXL : public CodeGenerator {
                                  vixl::aarch32::Register in,
                                  vixl::aarch32::Register temp = vixl32::Register());
 
+  void MaybeRecordImplicitNullCheck(HInstruction* instr) final {
+    // The function must be only be called within special scopes
+    // (EmissionCheckScope, ExactAssemblyScope) which prevent generation of
+    // veneer/literal pools by VIXL assembler.
+    CHECK_EQ(GetVIXLAssembler()->ArePoolsBlocked(), true)
+        << "The function must only be called within EmissionCheckScope or ExactAssemblyScope";
+    CodeGenerator::MaybeRecordImplicitNullCheck(instr);
+  }
+
+  void MaybeGenerateInlineCacheCheck(HInstruction* instruction, vixl32::Register klass);
+  void MaybeIncrementHotness(bool is_frame_entry);
+
  private:
   // Encoding of thunk type and data for link-time generated thunks for Baker read barriers.
 

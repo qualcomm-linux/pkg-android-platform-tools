@@ -51,6 +51,7 @@
 #include <utility>
 #include <vector>
 
+#include <android-base/endian.h>
 #include <android-base/file.h>
 #include <android-base/macros.h>
 #include <android-base/parseint.h>
@@ -59,6 +60,7 @@
 #include <android-base/strings.h>
 #include <android-base/unique_fd.h>
 #include <build/version.h>
+#include <libavb/libavb.h>
 #include <liblp/liblp.h>
 #include <platform_tools_version.h>
 #include <sparse/sparse.h>
@@ -160,6 +162,10 @@ static Image images[] = {
                                                       "vbmeta_system",
                                                                   true,  ImageType::BootCritical },
     { "vendor",   "vendor.img",       "vendor.sig",   "vendor",   true,  ImageType::Normal },
+    { "vendor_boot",
+                  "vendor_boot.img",  "vendor_boot.sig",
+                                                      "vendor_boot",
+                                                                  true,  ImageType::BootCritical },
     { nullptr,    "vendor_other.img", "vendor.sig",   "vendor",   true,  ImageType::Normal },
         // clang-format on
 };
@@ -390,6 +396,12 @@ static int show_help() {
             " gsi wipe|disable           Wipe or disable a GSI installation (fastbootd only).\n"
             " wipe-super [SUPER_EMPTY]   Wipe the super partition. This will reset it to\n"
             "                            contain an empty set of default dynamic partitions.\n"
+            " snapshot-update cancel     On devices that support snapshot-based updates, cancel\n"
+            "                            an in-progress update. This may make the device\n"
+            "                            unbootable until it is reflashed.\n"
+            " snapshot-update merge      On devices that support snapshot-based updates, finish\n"
+            "                            an in-progress update if it is in the \"merging\"\n"
+            "                            phase.\n"
             "\n"
             "boot image:\n"
             " boot KERNEL [RAMDISK [SECOND]]\n"
@@ -870,7 +882,7 @@ static bool load_buf_fd(int fd, struct fastboot_buffer* buf) {
         return false;
     }
 
-    if (sparse_file* s = sparse_file_import_auto(fd, false, false)) {
+    if (sparse_file* s = sparse_file_import(fd, false, false)) {
         buf->image_size = sparse_file_len(s, false, false);
         sparse_file_destroy(s);
     } else {
@@ -915,19 +927,34 @@ static bool load_buf(const char* fname, struct fastboot_buffer* buf) {
     return load_buf_fd(fd.release(), buf);
 }
 
-static void rewrite_vbmeta_buffer(struct fastboot_buffer* buf) {
+static void rewrite_vbmeta_buffer(struct fastboot_buffer* buf, bool vbmeta_in_boot) {
     // Buffer needs to be at least the size of the VBMeta struct which
     // is 256 bytes.
     if (buf->sz < 256) {
         return;
     }
 
-    int fd = make_temporary_fd("vbmeta rewriting");
-
     std::string data;
     if (!android::base::ReadFdToString(buf->fd, &data)) {
         die("Failed reading from vbmeta");
     }
+
+    uint64_t vbmeta_offset = 0;
+    if (vbmeta_in_boot) {
+        // Tries to locate top-level vbmeta from boot.img footer.
+        uint64_t footer_offset = buf->sz - AVB_FOOTER_SIZE;
+        if (0 != data.compare(footer_offset, AVB_FOOTER_MAGIC_LEN, AVB_FOOTER_MAGIC)) {
+            die("Failed to find AVB_FOOTER at offset: %" PRId64, footer_offset);
+        }
+        const AvbFooter* footer = reinterpret_cast<const AvbFooter*>(data.c_str() + footer_offset);
+        vbmeta_offset = be64toh(footer->vbmeta_offset);
+    }
+    // Ensures there is AVB_MAGIC at vbmeta_offset.
+    if (0 != data.compare(vbmeta_offset, AVB_MAGIC_LEN, AVB_MAGIC)) {
+        die("Failed to find AVB_MAGIC at offset: %" PRId64, vbmeta_offset);
+    }
+
+    fprintf(stderr, "Rewriting vbmeta struct at offset: %" PRId64 "\n", vbmeta_offset);
 
     // There's a 32-bit big endian |flags| field at offset 120 where
     // bit 0 corresponds to disable-verity and bit 1 corresponds to
@@ -935,13 +962,15 @@ static void rewrite_vbmeta_buffer(struct fastboot_buffer* buf) {
     //
     // See external/avb/libavb/avb_vbmeta_image.h for the layout of
     // the VBMeta struct.
+    uint64_t flags_offset = 123 + vbmeta_offset;
     if (g_disable_verity) {
-        data[123] |= 0x01;
+        data[flags_offset] |= 0x01;
     }
     if (g_disable_verification) {
-        data[123] |= 0x02;
+        data[flags_offset] |= 0x02;
     }
 
+    int fd = make_temporary_fd("vbmeta rewriting");
     if (!android::base::WriteStringToFd(data, fd)) {
         die("Failed writing to modified vbmeta");
     }
@@ -950,14 +979,25 @@ static void rewrite_vbmeta_buffer(struct fastboot_buffer* buf) {
     lseek(fd, 0, SEEK_SET);
 }
 
+static bool has_vbmeta_partition() {
+    std::string partition_type;
+    return fb->GetVar("partition-type:vbmeta", &partition_type) == fastboot::SUCCESS ||
+           fb->GetVar("partition-type:vbmeta_a", &partition_type) == fastboot::SUCCESS ||
+           fb->GetVar("partition-type:vbmeta_b", &partition_type) == fastboot::SUCCESS;
+}
+
 static void flash_buf(const std::string& partition, struct fastboot_buffer *buf)
 {
     sparse_file** s;
 
     // Rewrite vbmeta if that's what we're flashing and modification has been requested.
-    if ((g_disable_verity || g_disable_verification) &&
-        (partition == "vbmeta" || partition == "vbmeta_a" || partition == "vbmeta_b")) {
-        rewrite_vbmeta_buffer(buf);
+    if (g_disable_verity || g_disable_verification) {
+        if (partition == "vbmeta" || partition == "vbmeta_a" || partition == "vbmeta_b") {
+            rewrite_vbmeta_buffer(buf, false /* vbmeta_in_boot */);
+        } else if (!has_vbmeta_partition() &&
+                   (partition == "boot" || partition == "boot_a" || partition == "boot_b")) {
+            rewrite_vbmeta_buffer(buf, true /* vbmeta_in_boot */ );
+        }
     }
 
     switch (buf->type) {
@@ -1182,6 +1222,14 @@ static void reboot_to_userspace_fastboot() {
     target_sparse_limit = -1;
 }
 
+static void CancelSnapshotIfNeeded() {
+    std::string merge_status = "none";
+    if (fb->GetVar(FB_VAR_SNAPSHOT_UPDATE_STATUS, &merge_status) == fastboot::SUCCESS &&
+        merge_status != "none") {
+        fb->SnapshotUpdateCommand("cancel");
+    }
+}
+
 class ImageSource {
   public:
     virtual bool ReadFile(const std::string& name, std::vector<char>* out) const = 0;
@@ -1233,6 +1281,8 @@ void FlashAllTool::Flash() {
 
     DetermineSecondarySlot();
     CollectImages();
+
+    CancelSnapshotIfNeeded();
 
     // First flash boot partitions. We allow this to happen either in userspace
     // or in bootloader fastboot.
@@ -2037,12 +2087,24 @@ int FastBootTool::Main(int argc, char* argv[]) {
                 image = next_arg(&args);
             }
             do_wipe_super(image, slot_override);
+        } else if (command == "snapshot-update") {
+            std::string arg;
+            if (!args.empty()) {
+                arg = next_arg(&args);
+            }
+            if (!arg.empty() && (arg != "cancel" && arg != "merge")) {
+                syntax_error("expected: snapshot-update [cancel|merge]");
+            }
+            fb->SnapshotUpdateCommand(arg);
         } else {
             syntax_error("unknown command %s", command.c_str());
         }
     }
 
     if (wants_wipe) {
+        if (force_flash) {
+            CancelSnapshotIfNeeded();
+        }
         std::vector<std::string> partitions = { "userdata", "cache", "metadata" };
         for (const auto& partition : partitions) {
             std::string partition_type;
@@ -2054,10 +2116,10 @@ int FastBootTool::Main(int argc, char* argv[]) {
             if (partition == "userdata" && set_fbe_marker) {
                 fprintf(stderr, "setting FBE marker on initial userdata...\n");
                 std::string initial_userdata_dir = create_fbemarker_tmpdir();
-                fb_perform_format(partition, 1, "", "", initial_userdata_dir);
+                fb_perform_format(partition, 1, partition_type, "", initial_userdata_dir);
                 delete_fbemarker_tmpdir(initial_userdata_dir);
             } else {
-                fb_perform_format(partition, 1, "", "", "");
+                fb_perform_format(partition, 1, partition_type, "", "");
             }
         }
     }

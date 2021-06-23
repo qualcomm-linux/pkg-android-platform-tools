@@ -34,7 +34,7 @@
 namespace openjdkjvmti {
 
 struct ArtJvmTiEnv;
-class JvmtiAllocationListener;
+class JvmtiEventAllocationListener;
 class JvmtiDdmChunkListener;
 class JvmtiGcPauseListener;
 class JvmtiMethodTraceListener;
@@ -80,7 +80,9 @@ enum class ArtJvmtiEvent : jint {
     // capability.
     kClassFileLoadHookRetransformable = JVMTI_MAX_EVENT_TYPE_VAL + 1,
     kDdmPublishChunk = JVMTI_MAX_EVENT_TYPE_VAL + 2,
-    kMaxNormalEventTypeVal = kDdmPublishChunk,
+    kObsoleteObjectCreated = JVMTI_MAX_EVENT_TYPE_VAL + 3,
+    kStructuralDexFileLoadHook = JVMTI_MAX_EVENT_TYPE_VAL + 4,
+    kMaxNormalEventTypeVal = kStructuralDexFileLoadHook,
 
     // All that follow are events used to implement internal JVMTI functions. They are not settable
     // directly by agents.
@@ -102,6 +104,21 @@ using ArtJvmtiEventDdmPublishChunk = void (*)(jvmtiEnv *jvmti_env,
                                               jint data_len,
                                               const jbyte* data);
 
+using ArtJvmtiEventObsoleteObjectCreated = void (*)(jvmtiEnv *jvmti_env,
+                                                    jlong* obsolete_tag,
+                                                    jlong* new_tag);
+
+using ArtJvmtiEventStructuralDexFileLoadHook = void (*)(jvmtiEnv *jvmti_env,
+                                                        JNIEnv* jni_env,
+                                                        jclass class_being_redefined,
+                                                        jobject loader,
+                                                        const char* name,
+                                                        jobject protection_domain,
+                                                        jint dex_data_len,
+                                                        const unsigned char* dex_data,
+                                                        jint* new_dex_data_len,
+                                                        unsigned char** new_dex_data);
+
 // It is not enough to store a Thread pointer, as these may be reused. Use the pointer and the
 // thread id.
 // Note: We could just use the tid like tracing does.
@@ -114,7 +131,10 @@ struct UniqueThreadHasher {
 };
 
 struct ArtJvmtiEventCallbacks : jvmtiEventCallbacks {
-  ArtJvmtiEventCallbacks() : DdmPublishChunk(nullptr) {
+  ArtJvmtiEventCallbacks()
+      : DdmPublishChunk(nullptr),
+        ObsoleteObjectCreated(nullptr),
+        StructuralDexFileLoadHook(nullptr) {
     memset(this, 0, sizeof(jvmtiEventCallbacks));
   }
 
@@ -125,6 +145,8 @@ struct ArtJvmtiEventCallbacks : jvmtiEventCallbacks {
   jvmtiError Set(jint index, jvmtiExtensionEvent cb);
 
   ArtJvmtiEventDdmPublishChunk DdmPublishChunk;
+  ArtJvmtiEventObsoleteObjectCreated ObsoleteObjectCreated;
+  ArtJvmtiEventStructuralDexFileLoadHook StructuralDexFileLoadHook;
 };
 
 bool IsExtensionEvent(jint e);
@@ -285,6 +307,16 @@ class EventHandler {
       REQUIRES_SHARED(art::Locks::mutator_lock_)
       REQUIRES(art::Locks::user_code_suspension_lock_, art::Locks::thread_list_lock_);
 
+  template<typename Visitor>
+  void ForEachEnv(art::Thread* self, Visitor v) REQUIRES(!envs_lock_) {
+    art::ReaderMutexLock mu(self, envs_lock_);
+    for (ArtJvmTiEnv* e : envs) {
+      if (e != nullptr) {
+        v(e);
+      }
+    }
+  }
+
  private:
   void SetupTraceListener(JvmtiMethodTraceListener* listener, ArtJvmtiEvent event, bool enable);
 
@@ -393,7 +425,7 @@ class EventHandler {
   // A union of all enabled events, anywhere.
   EventMask global_mask;
 
-  std::unique_ptr<JvmtiAllocationListener> alloc_listener_;
+  std::unique_ptr<JvmtiEventAllocationListener> alloc_listener_;
   std::unique_ptr<JvmtiDdmChunkListener> ddm_listener_;
   std::unique_ptr<JvmtiGcPauseListener> gc_pause_listener_;
   std::unique_ptr<JvmtiMethodTraceListener> method_trace_listener_;

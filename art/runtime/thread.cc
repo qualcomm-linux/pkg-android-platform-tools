@@ -89,6 +89,7 @@
 #include "native_stack_dump.h"
 #include "nativehelper/scoped_local_ref.h"
 #include "nativehelper/scoped_utf_chars.h"
+#include "nterp_helpers.h"
 #include "nth_caller_visitor.h"
 #include "oat_quick_method_header.h"
 #include "obj_ptr-inl.h"
@@ -98,6 +99,7 @@
 #include "quick_exception_handler.h"
 #include "read_barrier-inl.h"
 #include "reflection.h"
+#include "reflective_handle_scope-inl.h"
 #include "runtime-inl.h"
 #include "runtime.h"
 #include "runtime_callbacks.h"
@@ -584,6 +586,14 @@ void Thread::InitAfterFork() {
   InitTid();
 }
 
+void Thread::DeleteJPeer(JNIEnv* env) {
+  // Make sure nothing can observe both opeer and jpeer set at the same time.
+  jobject old_jpeer = tlsPtr_.jpeer;
+  CHECK(old_jpeer != nullptr);
+  tlsPtr_.jpeer = nullptr;
+  env->DeleteGlobalRef(old_jpeer);
+}
+
 void* Thread::CreateCallback(void* arg) {
   Thread* self = reinterpret_cast<Thread*>(arg);
   Runtime* runtime = Runtime::Current();
@@ -613,8 +623,8 @@ void* Thread::CreateCallback(void* arg) {
     // Copy peer into self, deleting global reference when done.
     CHECK(self->tlsPtr_.jpeer != nullptr);
     self->tlsPtr_.opeer = soa.Decode<mirror::Object>(self->tlsPtr_.jpeer).Ptr();
-    self->GetJniEnv()->DeleteGlobalRef(self->tlsPtr_.jpeer);
-    self->tlsPtr_.jpeer = nullptr;
+    // Make sure nothing can observe both opeer and jpeer set at the same time.
+    self->DeleteJPeer(self->GetJniEnv());
     self->SetThreadName(self->GetThreadName()->ToModifiedUtf8().c_str());
 
     ArtField* priorityField = jni::DecodeArtField(WellKnownClasses::java_lang_Thread_priority);
@@ -780,7 +790,9 @@ void Thread::InstallImplicitProtection() {
 #else
           1u;
 #endif
-      volatile char space[kPageSize - (kAsanMultiplier * 256)];
+      // Keep space uninitialized as it can overflow the stack otherwise (should Clang actually
+      // auto-initialize this local variable).
+      volatile char space[kPageSize - (kAsanMultiplier * 256)] __attribute__((uninitialized));
       char sink ATTRIBUTE_UNUSED = space[zero];  // NOLINT
       // Remove tag from the pointer. Nop in non-hwasan builds.
       uintptr_t addr = reinterpret_cast<uintptr_t>(__hwasan_tag_pointer(space, 0));
@@ -891,9 +903,9 @@ void Thread::CreateNativeThread(JNIEnv* env, jobject java_peer, size_t stack_siz
     MutexLock mu(self, *Locks::runtime_shutdown_lock_);
     runtime->EndThreadBirth();
   }
-  // Manually delete the global reference since Thread::Init will not have been run.
-  env->DeleteGlobalRef(child_thread->tlsPtr_.jpeer);
-  child_thread->tlsPtr_.jpeer = nullptr;
+  // Manually delete the global reference since Thread::Init will not have been run. Make sure
+  // nothing can observe both opeer and jpeer set at the same time.
+  child_thread->DeleteJPeer(env);
   delete child_thread;
   child_thread = nullptr;
   // TODO: remove from thread group?
@@ -1452,9 +1464,6 @@ bool Thread::ModifySuspendCountInternal(Thread* self,
 
   tls32_.suspend_count += delta;
   switch (reason) {
-    case SuspendReason::kForDebugger:
-      tls32_.debug_suspend_count += delta;
-      break;
     case SuspendReason::kForUserCode:
       tls32_.user_code_suspend_count += delta;
       break;
@@ -2173,7 +2182,6 @@ void Thread::DumpStack(std::ostream& os,
   if (safe_to_dump || force_dump_stack) {
     // If we're currently in native code, dump that stack before dumping the managed stack.
     if (dump_native_stack && (dump_for_abort || force_dump_stack || ShouldShowNativeStack(this))) {
-      DumpKernelStack(os, GetTid(), "  kernel: ", false);
       ArtMethod* method =
           GetCurrentMethod(nullptr,
                            /*check_suspended=*/ !force_dump_stack,
@@ -2290,7 +2298,8 @@ Thread::Thread(bool daemon)
       is_runtime_thread_(false) {
   wait_mutex_ = new Mutex("a thread wait mutex", LockLevel::kThreadWaitLock);
   wait_cond_ = new ConditionVariable("a thread wait condition variable", *wait_mutex_);
-  tlsPtr_.instrumentation_stack = new std::deque<instrumentation::InstrumentationStackFrame>;
+  tlsPtr_.instrumentation_stack =
+      new std::map<uintptr_t, instrumentation::InstrumentationStackFrame>;
   tlsPtr_.name = new std::string(kThreadNameDuringStartup);
 
   static_assert((sizeof(Thread) % 4) == 0U,
@@ -2313,6 +2322,7 @@ Thread::Thread(bool daemon)
   tlsPtr_.thread_local_mark_stack = nullptr;
   tls32_.is_transitioning_to_runnable = false;
   tls32_.use_mterp = false;
+  ResetTlab();
 }
 
 void Thread::NotifyInTheadList() {
@@ -2439,9 +2449,11 @@ void Thread::Destroy() {
   {
     ScopedObjectAccess soa(self);
     Runtime::Current()->GetHeap()->RevokeThreadLocalBuffers(this);
-    if (kUseReadBarrier) {
-      Runtime::Current()->GetHeap()->ConcurrentCopyingCollector()->RevokeThreadLocalMarkStack(this);
-    }
+  }
+  // Mark-stack revocation must be performed at the very end. No
+  // checkpoint/flip-function or read-barrier should be called after this.
+  if (kUseReadBarrier) {
+    Runtime::Current()->GetHeap()->ConcurrentCopyingCollector()->RevokeThreadLocalMarkStack(this);
   }
 }
 
@@ -2462,6 +2474,12 @@ Thread::~Thread() {
   CHECK(tlsPtr_.flip_function == nullptr);
   CHECK_EQ(tls32_.is_transitioning_to_runnable, false);
 
+  if (kUseReadBarrier) {
+    Runtime::Current()->GetHeap()->ConcurrentCopyingCollector()
+        ->AssertNoThreadMarkStackMapping(this);
+    gc::accounting::AtomicStack<mirror::Object>* tl_mark_stack = GetThreadLocalMarkStack();
+    CHECK(tl_mark_stack == nullptr) << "mark-stack: " << tl_mark_stack;
+  }
   // Make sure we processed all deoptimization requests.
   CHECK(tlsPtr_.deoptimization_context_stack == nullptr) << "Missed deoptimization";
   CHECK(tlsPtr_.frame_id_to_shadow_frame == nullptr) <<
@@ -2481,9 +2499,6 @@ Thread::~Thread() {
     CleanupCpu();
   }
 
-  if (tlsPtr_.single_step_control != nullptr) {
-    delete tlsPtr_.single_step_control;
-  }
   delete tlsPtr_.instrumentation_stack;
   delete tlsPtr_.name;
   delete tlsPtr_.deps_or_stack_trace_sample.stack_trace_sample;
@@ -3607,7 +3622,7 @@ void Thread::QuickDeliverException() {
           method_type);
       artDeoptimize(this);
       UNREACHABLE();
-    } else {
+    } else if (visitor.caller != nullptr) {
       LOG(WARNING) << "Got a deoptimization request on un-deoptimizable method "
                    << visitor.caller->PrettyMethod();
     }
@@ -3697,6 +3712,8 @@ class ReferenceMapVisitor : public StackVisitor {
     ShadowFrame* shadow_frame = GetCurrentShadowFrame();
     if (shadow_frame != nullptr) {
       VisitShadowFrame(shadow_frame);
+    } else if (GetCurrentOatQuickMethodHeader()->IsNterpMethodHeader()) {
+      VisitNterpFrame();
     } else {
       VisitQuickFrame();
     }
@@ -3758,9 +3775,35 @@ class ReferenceMapVisitor : public StackVisitor {
         }
       }
       mirror::Object* new_ref = klass.Ptr();
-      visitor_(&new_ref, /* vreg= */ -1, this);
+      visitor_(&new_ref, /* vreg= */ JavaFrameRootInfo::kMethodDeclaringClass, this);
       if (new_ref != klass) {
         method->CASDeclaringClass(klass.Ptr(), new_ref->AsClass());
+      }
+    }
+  }
+
+  void VisitNterpFrame() REQUIRES_SHARED(Locks::mutator_lock_) {
+    ArtMethod** cur_quick_frame = GetCurrentQuickFrame();
+    StackReference<mirror::Object>* vreg_ref_base =
+        reinterpret_cast<StackReference<mirror::Object>*>(NterpGetReferenceArray(cur_quick_frame));
+    StackReference<mirror::Object>* vreg_int_base =
+        reinterpret_cast<StackReference<mirror::Object>*>(NterpGetRegistersArray(cur_quick_frame));
+    CodeItemDataAccessor accessor((*cur_quick_frame)->DexInstructionData());
+    const uint16_t num_regs = accessor.RegistersSize();
+    // An nterp frame has two arrays: a dex register array and a reference array
+    // that shadows the dex register array but only containing references
+    // (non-reference dex registers have nulls). See nterp_helpers.cc.
+    for (size_t reg = 0; reg < num_regs; ++reg) {
+      StackReference<mirror::Object>* ref_addr = vreg_ref_base + reg;
+      mirror::Object* ref = ref_addr->AsMirrorPtr();
+      if (ref != nullptr) {
+        mirror::Object* new_ref = ref;
+        visitor_(&new_ref, reg, this);
+        if (new_ref != ref) {
+          ref_addr->Assign(new_ref);
+          StackReference<mirror::Object>* int_addr = vreg_int_base + reg;
+          int_addr->Assign(new_ref);
+        }
       }
     }
   }
@@ -3831,7 +3874,7 @@ class ReferenceMapVisitor : public StackVisitor {
         mirror::Object* ref = ref_addr->AsMirrorPtr();
         if (ref != nullptr) {
           mirror::Object* new_ref = ref;
-          visitor_(&new_ref, /* vreg= */ -1, this);
+          visitor_(&new_ref, /* vreg= */ JavaFrameRootInfo::kProxyReferenceArgument, this);
           if (ref != new_ref) {
             ref_addr->Assign(new_ref);
           }
@@ -3862,7 +3905,7 @@ class ReferenceMapVisitor : public StackVisitor {
                       size_t stack_index ATTRIBUTE_UNUSED,
                       const StackVisitor* stack_visitor)
           REQUIRES_SHARED(Locks::mutator_lock_) {
-        visitor(ref, -1, stack_visitor);
+        visitor(ref, JavaFrameRootInfo::kImpreciseVreg, stack_visitor);
       }
 
       ALWAYS_INLINE
@@ -3870,7 +3913,7 @@ class ReferenceMapVisitor : public StackVisitor {
                          size_t register_index ATTRIBUTE_UNUSED,
                          const StackVisitor* stack_visitor)
           REQUIRES_SHARED(Locks::mutator_lock_) {
-        visitor(ref, -1, stack_visitor);
+        visitor(ref, JavaFrameRootInfo::kImpreciseVreg, stack_visitor);
       }
 
       RootVisitor& visitor;
@@ -3908,8 +3951,8 @@ class ReferenceMapVisitor : public StackVisitor {
         }
 
         if (!found) {
-          // If nothing found, report with -1.
-          visitor(ref, -1, stack_visitor);
+          // If nothing found, report with unknown.
+          visitor(ref, JavaFrameRootInfo::kUnknownVreg, stack_visitor);
         }
       }
 
@@ -3958,6 +4001,14 @@ class RootCallbackVisitor {
   const uint32_t tid_;
 };
 
+void Thread::VisitReflectiveTargets(ReflectiveValueVisitor* visitor) {
+  for (BaseReflectiveHandleScope* brhs = GetTopReflectiveHandleScope();
+       brhs != nullptr;
+       brhs = brhs->GetLink()) {
+    brhs->VisitTargets(visitor);
+  }
+}
+
 template <bool kPrecise>
 void Thread::VisitRoots(RootVisitor* visitor) {
   const pid_t thread_id = GetThreadId();
@@ -3974,9 +4025,6 @@ void Thread::VisitRoots(RootVisitor* visitor) {
   tlsPtr_.jni_env->VisitJniLocalRoots(visitor, RootInfo(kRootJNILocal, thread_id));
   tlsPtr_.jni_env->VisitMonitorRoots(visitor, RootInfo(kRootJNIMonitor, thread_id));
   HandleScopeVisitRoots(visitor, thread_id);
-  if (tlsPtr_.debug_invoke_req != nullptr) {
-    tlsPtr_.debug_invoke_req->VisitRoots(visitor, RootInfo(kRootDebugger, thread_id));
-  }
   // Visit roots for deoptimization.
   if (tlsPtr_.stacked_shadow_frame_record != nullptr) {
     RootCallbackVisitor visitor_to_callback(visitor, thread_id);
@@ -4018,8 +4066,43 @@ void Thread::VisitRoots(RootVisitor* visitor) {
   RootCallbackVisitor visitor_to_callback(visitor, thread_id);
   ReferenceMapVisitor<RootCallbackVisitor, kPrecise> mapper(this, &context, visitor_to_callback);
   mapper.template WalkStack<StackVisitor::CountTransitions::kNo>(false);
-  for (instrumentation::InstrumentationStackFrame& frame : *GetInstrumentationStack()) {
-    visitor->VisitRootIfNonNull(&frame.this_object_, RootInfo(kRootVMInternal, thread_id));
+  for (auto& entry : *GetInstrumentationStack()) {
+    visitor->VisitRootIfNonNull(&entry.second.this_object_, RootInfo(kRootVMInternal, thread_id));
+  }
+}
+
+void Thread::SweepInterpreterCache(IsMarkedVisitor* visitor) {
+  for (InterpreterCache::Entry& entry : GetInterpreterCache()->GetArray()) {
+    const Instruction* inst = reinterpret_cast<const Instruction*>(entry.first);
+    if (inst != nullptr) {
+      if (inst->Opcode() == Instruction::NEW_INSTANCE ||
+          inst->Opcode() == Instruction::CHECK_CAST ||
+          inst->Opcode() == Instruction::INSTANCE_OF ||
+          inst->Opcode() == Instruction::NEW_ARRAY ||
+          inst->Opcode() == Instruction::CONST_CLASS) {
+        mirror::Class* cls = reinterpret_cast<mirror::Class*>(entry.second);
+        if (cls == nullptr || cls == Runtime::GetWeakClassSentinel()) {
+          // Entry got deleted in a previous sweep.
+          continue;
+        }
+        Runtime::ProcessWeakClass(
+            reinterpret_cast<GcRoot<mirror::Class>*>(&entry.second),
+            visitor,
+            Runtime::GetWeakClassSentinel());
+      } else if (inst->Opcode() == Instruction::CONST_STRING ||
+                 inst->Opcode() == Instruction::CONST_STRING_JUMBO) {
+        mirror::Object* object = reinterpret_cast<mirror::Object*>(entry.second);
+        mirror::Object* new_object = visitor->IsMarked(object);
+        // We know the string is marked because it's a strongly-interned string that
+        // is always alive (see b/117621117 for trying to make those strings weak).
+        // The IsMarked implementation of the CMS collector returns
+        // null for newly allocated objects, but we know those haven't moved. Therefore,
+        // only update the entry if we get a different non-null string.
+        if (new_object != nullptr && new_object != object) {
+          entry.second = reinterpret_cast<size_t>(new_object);
+        }
+      }
+    }
   }
 }
 
@@ -4081,8 +4164,12 @@ void Thread::SetTlab(uint8_t* start, uint8_t* end, uint8_t* limit) {
   tlsPtr_.thread_local_objects = 0;
 }
 
+void Thread::ResetTlab() {
+  SetTlab(nullptr, nullptr, nullptr);
+}
+
 bool Thread::HasTlab() const {
-  bool has_tlab = tlsPtr_.thread_local_pos != nullptr;
+  const bool has_tlab = tlsPtr_.thread_local_pos != nullptr;
   if (has_tlab) {
     DCHECK(tlsPtr_.thread_local_start != nullptr && tlsPtr_.thread_local_end != nullptr);
   } else {
@@ -4114,37 +4201,6 @@ bool Thread::UnprotectStack() {
   void* pregion = tlsPtr_.stack_begin - kStackOverflowProtectedSize;
   VLOG(threads) << "Unprotecting stack at " << pregion;
   return mprotect(pregion, kStackOverflowProtectedSize, PROT_READ|PROT_WRITE) == 0;
-}
-
-void Thread::ActivateSingleStepControl(SingleStepControl* ssc) {
-  CHECK(Dbg::IsDebuggerActive());
-  CHECK(GetSingleStepControl() == nullptr) << "Single step already active in thread " << *this;
-  CHECK(ssc != nullptr);
-  tlsPtr_.single_step_control = ssc;
-}
-
-void Thread::DeactivateSingleStepControl() {
-  CHECK(Dbg::IsDebuggerActive());
-  CHECK(GetSingleStepControl() != nullptr) << "Single step not active in thread " << *this;
-  SingleStepControl* ssc = GetSingleStepControl();
-  tlsPtr_.single_step_control = nullptr;
-  delete ssc;
-}
-
-void Thread::SetDebugInvokeReq(DebugInvokeReq* req) {
-  CHECK(Dbg::IsDebuggerActive());
-  CHECK(GetInvokeReq() == nullptr) << "Debug invoke req already active in thread " << *this;
-  CHECK(Thread::Current() != this) << "Debug invoke can't be dispatched by the thread itself";
-  CHECK(req != nullptr);
-  tlsPtr_.debug_invoke_req = req;
-}
-
-void Thread::ClearDebugInvokeReq() {
-  CHECK(GetInvokeReq() != nullptr) << "Debug invoke req not active in thread " << *this;
-  CHECK(Thread::Current() == this) << "Debug invoke must be finished by the thread itself";
-  DebugInvokeReq* req = tlsPtr_.debug_invoke_req;
-  tlsPtr_.debug_invoke_req = nullptr;
-  delete req;
 }
 
 void Thread::PushVerifier(verifier::MethodVerifier* verifier) {

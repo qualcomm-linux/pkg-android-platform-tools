@@ -48,6 +48,19 @@ typedef void (*CasPluginCallback)(
         uint8_t *data,
         size_t size);
 
+typedef void (*CasPluginCallbackExt)(
+        void *appData,
+        int32_t event,
+        int32_t arg,
+        uint8_t *data,
+        size_t size,
+        const CasSessionId *sessionId);
+
+typedef void (*CasPluginStatusCallback)(
+        void *appData,
+        int32_t event,
+        int32_t arg);
+
 struct CasFactory {
     CasFactory() {}
     virtual ~CasFactory() {}
@@ -67,6 +80,13 @@ struct CasFactory {
             CasPluginCallback callback,
             CasPlugin **plugin) = 0;
 
+    // Construct a new extend instance of a CasPlugin given a CA_system_id
+    virtual status_t createPlugin(
+            int32_t CA_system_id,
+            void *appData,
+            CasPluginCallbackExt callback,
+            CasPlugin **plugin) = 0;
+
 private:
     CasFactory(const CasFactory &);
     CasFactory &operator=(const CasFactory &); /* NOLINT */
@@ -76,6 +96,10 @@ struct CasPlugin {
     CasPlugin() {}
     virtual ~CasPlugin() {}
 
+    // Provide a callback to report plugin status
+    virtual status_t setStatusCallback(
+            CasPluginStatusCallback callback) = 0;
+
     // Provide the CA private data from a CA_descriptor in the conditional
     // access table to a CasPlugin.
     virtual status_t setPrivateData(
@@ -84,6 +108,11 @@ struct CasPlugin {
     // Open a session for descrambling a program, or one or more elementary
     // streams.
     virtual status_t openSession(CasSessionId *sessionId) = 0;
+
+    // Open a session with intend and mode for descrambling a program, or one
+    // or more elementary streams.
+    virtual status_t openSession(uint32_t intent, uint32_t mode,
+                                     CasSessionId *sessionId) = 0;
 
     // Close a previously opened session.
     virtual status_t closeSession(const CasSessionId &sessionId) = 0;
@@ -110,7 +139,15 @@ struct CasPlugin {
             int32_t arg,
             const CasData &eventData) = 0;
 
-    // Native implementation of the MediaCas Java API provision method.
+    // Deliver an session event to the CasPlugin. The format of the event is
+    // specific to the CA scheme and is opaque to the framework.
+    virtual status_t sendSessionEvent(
+            const CasSessionId &sessionId,
+            int32_t event,
+            int32_t arg,
+            const CasData &eventData) = 0;
+
+   // Native implementation of the MediaCas Java API provision method.
     virtual status_t provision(
             const String8 &provisionString) = 0;
 

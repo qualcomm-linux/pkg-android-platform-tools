@@ -165,12 +165,27 @@ gensrcs {
 
 art_cc_library {
     name: "libartbase",
-    defaults: ["libartbase_defaults"],
-    // Leave the symbols in the shared library so that stack unwinders can
-    // produce meaningful name resolution.
-    strip: {
-        keep_symbols: true,
-    },
+    defaults: [
+        "libartbase_defaults",
+        "libart_nativeunwind_defaults",
+    ],
+    visibility: [
+        // TODO(b/133140750): Clean this up.
+        "//packages/modules/NetworkStack/tests:__subpackages__",
+    ],
+    apex_available: [
+        "com.android.art.release",
+        "com.android.art.debug",
+        // due to the transitive dependency from linker:
+        // linker -> libdebuggerd_handler_fallback -> libdexfile_support_static -> libdexfile
+        // libartbase
+        // TODO(b/142944931): remove this
+        "com.android.runtime",
+        // TODO(b/142944931) Clean this up. This is due to the dependency to libdexfile_support_static
+        // from /system/core, etc.
+        "//apex_available:platform",
+    ],
+
     shared_libs: [
         "libbase",
         "libziparchive",
@@ -191,6 +206,9 @@ art_cc_library {
     defaults: [
         "art_debug_defaults",
         "libartbase_defaults",
+    ],
+    apex_available: [
+        "com.android.art.debug",
     ],
     shared_libs: [
         "libbase",

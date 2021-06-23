@@ -25,6 +25,8 @@
 #include "class_root.h"
 #include "dex/dex_file-inl.h"
 #include "gc/accounting/card_table-inl.h"
+#include "mirror/object.h"
+#include "mirror/object_array.h"
 #include "object-inl.h"
 #include "object_array-alloc-inl.h"
 #include "object_array-inl.h"
@@ -47,6 +49,13 @@ void ClassExt::SetObsoleteArrays(ObjPtr<PointerArray> methods,
   DCHECK(!Runtime::Current()->IsActiveTransaction());
   SetFieldObject<false>(obsolete_dex_cache_off, dex_caches);
   SetFieldObject<false>(obsolete_methods_off, methods);
+}
+
+void ClassExt::SetIdsArraysForClassExtExtData(ObjPtr<Object> marker) {
+  CHECK(!marker.IsNull());
+  SetFieldObject<false>(OFFSET_OF_OBJECT_MEMBER(ClassExt, instance_jfield_ids_), marker);
+  SetFieldObject<false>(OFFSET_OF_OBJECT_MEMBER(ClassExt, static_jfield_ids_), marker);
+  SetFieldObject<false>(OFFSET_OF_OBJECT_MEMBER(ClassExt, jmethod_ids_), marker);
 }
 
 // We really need to be careful how we update this. If we ever in the future make it so that
@@ -99,6 +108,10 @@ bool ClassExt::ExtendObsoleteArrays(Handle<ClassExt> h_this, Thread* self, uint3
   h_this->SetObsoleteArrays(new_methods.Get(), new_dex_caches.Get());
 
   return true;
+}
+
+void ClassExt::SetObsoleteClass(ObjPtr<Class> klass) {
+  SetFieldObject<false>(OFFSET_OF_OBJECT_MEMBER(ClassExt, obsolete_class_), klass);
 }
 
 ObjPtr<ClassExt> ClassExt::Alloc(Thread* self) {
