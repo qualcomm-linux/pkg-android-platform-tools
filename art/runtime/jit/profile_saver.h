@@ -102,6 +102,13 @@ class ProfileSaver {
   // and put the result in tracked_dex_base_locations_.
   void ResolveTrackedLocations() REQUIRES(!Locks::profiler_lock_);
 
+  // Get the profile metadata that should be associated with the profile session during the current
+  // profile saver session.
+  ProfileCompilationInfo::ProfileSampleAnnotation GetProfileSampleAnnotation();
+
+  // Extends the given set of flags with global flags if necessary (e.g. the running architecture).
+  ProfileCompilationInfo::MethodHotness::Flag AnnotateSampleFlags(uint32_t flags);
+
   // The only instance of the saver.
   static ProfileSaver* instance_ GUARDED_BY(Locks::profiler_lock_);
   // Profile saver thread.
@@ -143,11 +150,14 @@ class ProfileSaver {
   uint64_t total_ms_of_sleep_;
   uint64_t total_ns_of_work_;
   // TODO(calin): replace with an actual size.
-  uint64_t max_number_of_profile_entries_cached_;
   uint64_t total_number_of_hot_spikes_;
   uint64_t total_number_of_wake_ups_;
 
   const ProfileSaverOptions options_;
+
+  friend class ProfileSaverTest;
+  friend class ProfileSaverForBootTest;
+
   DISALLOW_COPY_AND_ASSIGN(ProfileSaver);
 };
 

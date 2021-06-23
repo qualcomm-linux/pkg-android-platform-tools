@@ -121,9 +121,9 @@ void StartConsole() {
         _exit(127);
     }
     ioctl(fd, TIOCSCTTY, 0);
-    dup2(fd, 0);
-    dup2(fd, 1);
-    dup2(fd, 2);
+    dup2(fd, STDIN_FILENO);
+    dup2(fd, STDOUT_FILENO);
+    dup2(fd, STDERR_FILENO);
     close(fd);
 
     const char* path = "/system/bin/sh";
@@ -204,10 +204,6 @@ int FirstStageMain(int argc, char** argv) {
     // part of the product partition, e.g. because they are mounted read-write.
     CHECKCALL(mkdir("/mnt/product", 0755));
 
-    // /apex is used to mount APEXes
-    CHECKCALL(mount("tmpfs", "/apex", "tmpfs", MS_NOEXEC | MS_NOSUID | MS_NODEV,
-                    "mode=0755,uid=0,gid=0"));
-
     // /debug_ramdisk is used to preserve additional files from the debug ramdisk
     CHECKCALL(mount("tmpfs", "/debug_ramdisk", "tmpfs", MS_NOEXEC | MS_NOSUID | MS_NODEV,
                     "mode=0755,uid=0,gid=0"));
@@ -239,11 +235,16 @@ int FirstStageMain(int argc, char** argv) {
     }
 
     Modprobe m({"/lib/modules"});
-    if (!m.LoadListedModules()) {
-        LOG(FATAL) << "Failed to load kernel modules";
+    auto want_console = ALLOW_FIRST_STAGE_CONSOLE && FirstStageConsole(cmdline);
+    if (!m.LoadListedModules(!want_console)) {
+        if (want_console) {
+            LOG(ERROR) << "Failed to load kernel modules, starting console";
+        } else {
+            LOG(FATAL) << "Failed to load kernel modules";
+        }
     }
 
-    if (ALLOW_FIRST_STAGE_CONSOLE && FirstStageConsole(cmdline)) {
+    if (want_console) {
         StartConsole();
     }
 
@@ -291,6 +292,10 @@ int FirstStageMain(int argc, char** argv) {
 
     const char* path = "/system/bin/init";
     const char* args[] = {path, "selinux_setup", nullptr};
+    auto fd = open("/dev/kmsg", O_WRONLY | O_CLOEXEC);
+    dup2(fd, STDOUT_FILENO);
+    dup2(fd, STDERR_FILENO);
+    close(fd);
     execv(path, const_cast<char**>(args));
 
     // execv() only returns if an error happened, in which case we

@@ -31,6 +31,10 @@ cc_object {
     // Produce text file rather than binary.
     cflags: ["-S"],
     srcs: ["asm_defines.cc"],
+    apex_available: [
+        "com.android.art.debug",
+        "com.android.art.release",
+    ],
 }
 
 // This extracts the compile-time constants from asm_defines.s and creates the header.
@@ -42,6 +46,11 @@ cc_genrule {
     out: ["asm_defines.h"],
     tool_files: ["make_header.py"],
     cmd: "$(location make_header.py) \"$(in)\" > \"$(out)\"",
+    target: {
+        darwin: {
+            enabled: false,
+        },
+    },
 }
 
 cc_library_headers {

@@ -21,6 +21,8 @@
 // There are a few of them requiring manual code for things such as layer
 // discovery or chaining.  They call into functions defined in this file.
 
+#define ATRACE_TAG ATRACE_TAG_GRAPHICS
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -32,6 +34,7 @@
 #include <android-base/strings.h>
 #include <cutils/properties.h>
 #include <log/log.h>
+#include <utils/Trace.h>
 
 #include <vulkan/vk_layer_interface.h>
 #include <graphicsenv/GraphicsEnv.h>
@@ -516,7 +519,11 @@ LayerChain::LayerChain(bool is_instance,
       get_device_proc_addr_(nullptr),
       driver_extensions_(nullptr),
       driver_extension_count_(0) {
-    enabled_extensions_.set(driver::ProcHook::EXTENSION_CORE);
+    // advertise the loader supported core Vulkan API version at vulkan::api
+    for (uint32_t i = driver::ProcHook::EXTENSION_CORE_1_0;
+         i != driver::ProcHook::EXTENSION_COUNT; ++i) {
+        enabled_extensions_.set(i);
+    }
 }
 
 LayerChain::~LayerChain() {
@@ -1176,6 +1183,8 @@ bool EnsureInitialized() {
 VkResult CreateInstance(const VkInstanceCreateInfo* pCreateInfo,
                         const VkAllocationCallbacks* pAllocator,
                         VkInstance* pInstance) {
+    ATRACE_CALL();
+
     if (!EnsureInitialized())
         return VK_ERROR_INITIALIZATION_FAILED;
 
@@ -1184,6 +1193,8 @@ VkResult CreateInstance(const VkInstanceCreateInfo* pCreateInfo,
 
 void DestroyInstance(VkInstance instance,
                      const VkAllocationCallbacks* pAllocator) {
+    ATRACE_CALL();
+
     if (instance != VK_NULL_HANDLE)
         LayerChain::DestroyInstance(instance, pAllocator);
 }
@@ -1192,17 +1203,23 @@ VkResult CreateDevice(VkPhysicalDevice physicalDevice,
                       const VkDeviceCreateInfo* pCreateInfo,
                       const VkAllocationCallbacks* pAllocator,
                       VkDevice* pDevice) {
+    ATRACE_CALL();
+
     return LayerChain::CreateDevice(physicalDevice, pCreateInfo, pAllocator,
                                     pDevice);
 }
 
 void DestroyDevice(VkDevice device, const VkAllocationCallbacks* pAllocator) {
+    ATRACE_CALL();
+
     if (device != VK_NULL_HANDLE)
         LayerChain::DestroyDevice(device, pAllocator);
 }
 
 VkResult EnumerateInstanceLayerProperties(uint32_t* pPropertyCount,
                                           VkLayerProperties* pProperties) {
+    ATRACE_CALL();
+
     if (!EnsureInitialized())
         return VK_ERROR_INITIALIZATION_FAILED;
 
@@ -1225,6 +1242,8 @@ VkResult EnumerateInstanceExtensionProperties(
     const char* pLayerName,
     uint32_t* pPropertyCount,
     VkExtensionProperties* pProperties) {
+    ATRACE_CALL();
+
     if (!EnsureInitialized())
         return VK_ERROR_INITIALIZATION_FAILED;
 
@@ -1253,6 +1272,8 @@ VkResult EnumerateInstanceExtensionProperties(
 VkResult EnumerateDeviceLayerProperties(VkPhysicalDevice physicalDevice,
                                         uint32_t* pPropertyCount,
                                         VkLayerProperties* pProperties) {
+    ATRACE_CALL();
+
     uint32_t count;
     const LayerChain::ActiveLayer* layers =
         LayerChain::GetActiveLayers(physicalDevice, count);
@@ -1275,6 +1296,8 @@ VkResult EnumerateDeviceExtensionProperties(
     const char* pLayerName,
     uint32_t* pPropertyCount,
     VkExtensionProperties* pProperties) {
+    ATRACE_CALL();
+
     if (pLayerName) {
         // EnumerateDeviceLayerProperties enumerates active layers for
         // backward compatibility.  The extension query here should work for
@@ -1302,6 +1325,8 @@ VkResult EnumerateDeviceExtensionProperties(
 }
 
 VkResult EnumerateInstanceVersion(uint32_t* pApiVersion) {
+    ATRACE_CALL();
+
     *pApiVersion = VK_API_VERSION_1_1;
     return VK_SUCCESS;
 }

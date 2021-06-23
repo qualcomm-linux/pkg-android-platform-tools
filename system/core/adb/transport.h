@@ -38,6 +38,7 @@
 
 #include "adb.h"
 #include "adb_unique_fd.h"
+#include "types.h"
 #include "usb.h"
 
 typedef std::unordered_set<std::string> FeatureSet;
@@ -57,6 +58,7 @@ extern const char* const kFeatureShell2;
 // The 'cmd' command is available
 extern const char* const kFeatureCmd;
 extern const char* const kFeatureStat2;
+extern const char* const kFeatureLs2;
 // The server is running with libusb enabled.
 extern const char* const kFeatureLibusb;
 // adbd supports `push --sync`.
@@ -65,10 +67,13 @@ extern const char* const kFeaturePushSync;
 extern const char* const kFeatureApex;
 // adbd has b/110953234 fixed.
 extern const char* const kFeatureFixedPushMkdir;
-// adbd supports android binder bridge (abb).
+// adbd supports android binder bridge (abb) in interactive mode using shell protocol.
 extern const char* const kFeatureAbb;
+// adbd supports abb using raw pipe.
+extern const char* const kFeatureAbbExec;
 // adbd properly updates symlink timestamps on push.
 extern const char* const kFeatureFixedPushSymlinkTimestamp;
+extern const char* const kFeatureRemountShell;
 
 TransportId NextTransportId();
 
@@ -219,7 +224,7 @@ enum class ReconnectResult {
     Abort,
 };
 
-class atransport {
+class atransport : public enable_weak_from_this<atransport> {
   public:
     // TODO(danalbert): We expose waaaaaaay too much stuff because this was
     // historically just a struct, but making the whole thing a more idiomatic
@@ -242,7 +247,7 @@ class atransport {
     }
     atransport(ConnectionState state = kCsOffline)
         : atransport([](atransport*) { return ReconnectResult::Abort; }, state) {}
-    virtual ~atransport();
+    ~atransport();
 
     int Write(apacket* p);
     void Reset();
@@ -263,7 +268,7 @@ class atransport {
     usb_handle* GetUsbHandle() { return usb_handle_; }
 
     const TransportId id;
-    size_t ref_count = 0;
+
     bool online = false;
     TransportType type = kTransportAny;
 
@@ -273,6 +278,12 @@ class atransport {
     std::string model;
     std::string device;
     std::string devpath;
+
+#if !ADB_HOST
+    // Used to provide the key to the framework.
+    std::string auth_key;
+    uint64_t auth_id;
+#endif
 
     bool IsTcpDevice() const { return type == kTransportLocal; }
 
@@ -414,11 +425,12 @@ void send_packet(apacket* p, atransport* t);
 asocket* create_device_tracker(bool long_output);
 
 #if !ADB_HOST
-unique_fd tcp_listen_inaddr_any(int port, std::string* error);
-void server_socket_thread(std::function<unique_fd(int, std::string*)> listen_func, int port);
+unique_fd adb_listen(std::string_view addr, std::string* error);
+void server_socket_thread(std::function<unique_fd(std::string_view, std::string*)> listen_func,
+                          std::string_view addr);
 
 #if defined(__ANDROID__)
-void qemu_socket_thread(int port);
+void qemu_socket_thread(std::string_view addr);
 bool use_qemu_goldfish();
 #endif
 

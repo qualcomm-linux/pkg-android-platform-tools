@@ -16,17 +16,18 @@
 
 #include "service_utils.h"
 
+#include <fcntl.h>
 #include <grp.h>
 #include <sys/mount.h>
 #include <sys/prctl.h>
 #include <sys/wait.h>
+#include <unistd.h>
 
 #include <android-base/file.h>
 #include <android-base/logging.h>
 #include <android-base/properties.h>
 #include <android-base/stringprintf.h>
 #include <android-base/strings.h>
-#include <android-base/unique_fd.h>
 #include <cutils/android_get_control_file.h>
 #include <cutils/sockets.h>
 #include <processgroup/processgroup.h>
@@ -122,11 +123,15 @@ Result<void> SetUpPidNamespace(const char* name) {
     return {};
 }
 
-void ZapStdio() {
+void SetupStdio(bool stdio_to_kmsg) {
     auto fd = unique_fd{open("/dev/null", O_RDWR | O_CLOEXEC)};
-    dup2(fd, 0);
-    dup2(fd, 1);
-    dup2(fd, 2);
+    dup2(fd, STDIN_FILENO);
+    if (stdio_to_kmsg) {
+        fd.reset(open("/dev/kmsg_debug", O_WRONLY | O_CLOEXEC));
+        if (fd == -1) fd.reset(open("/dev/null", O_WRONLY | O_CLOEXEC));
+    }
+    dup2(fd, STDOUT_FILENO);
+    dup2(fd, STDERR_FILENO);
 }
 
 void OpenConsole(const std::string& console) {
@@ -138,37 +143,44 @@ void OpenConsole(const std::string& console) {
     dup2(fd, 2);
 }
 
-void PublishDescriptor(const std::string& key, const std::string& name, int fd) {
-    std::string published_name = key + name;
+}  // namespace
+
+void Descriptor::Publish() const {
+    auto published_name = name_;
+
     for (auto& c : published_name) {
         c = isalnum(c) ? c : '_';
+    }
+
+    int fd = fd_.get();
+    // For safety, the FD is created as CLOEXEC, so that must be removed before publishing.
+    auto fd_flags = fcntl(fd, F_GETFD);
+    fd_flags &= ~FD_CLOEXEC;
+    if (fcntl(fd, F_SETFD, fd_flags) != 0) {
+        PLOG(ERROR) << "Failed to remove CLOEXEC from '" << published_name << "'";
     }
 
     std::string val = std::to_string(fd);
     setenv(published_name.c_str(), val.c_str(), 1);
 }
 
-}  // namespace
-
-Result<void> SocketDescriptor::CreateAndPublish(const std::string& global_context) const {
+Result<Descriptor> SocketDescriptor::Create(const std::string& global_context) const {
     const auto& socket_context = context.empty() ? global_context : context;
-    auto result = CreateSocket(name, type, passcred, perm, uid, gid, socket_context);
-    if (!result) {
+    auto result = CreateSocket(name, type | SOCK_CLOEXEC, passcred, perm, uid, gid, socket_context);
+    if (!result.ok()) {
         return result.error();
     }
 
-    PublishDescriptor(ANDROID_SOCKET_ENV_PREFIX, name, *result);
-
-    return {};
+    return Descriptor(ANDROID_SOCKET_ENV_PREFIX + name, unique_fd(*result));
 }
 
-Result<void> FileDescriptor::CreateAndPublish() const {
+Result<Descriptor> FileDescriptor::Create() const {
     int flags = (type == "r") ? O_RDONLY : (type == "w") ? O_WRONLY : O_RDWR;
 
     // Make sure we do not block on open (eg: devices can chose to block on carrier detect).  Our
     // intention is never to delay launch of a service for such a condition.  The service can
     // perform its own blocking on carrier detect.
-    android::base::unique_fd fd(TEMP_FAILURE_RETRY(open(name.c_str(), flags | O_NONBLOCK)));
+    unique_fd fd(TEMP_FAILURE_RETRY(open(name.c_str(), flags | O_NONBLOCK | O_CLOEXEC)));
 
     if (fd < 0) {
         return ErrnoError() << "Failed to open file '" << name << "'";
@@ -179,14 +191,12 @@ Result<void> FileDescriptor::CreateAndPublish() const {
 
     LOG(INFO) << "Opened file '" << name << "', flags " << flags;
 
-    PublishDescriptor(ANDROID_FILE_ENV_PREFIX, name, fd.release());
-
-    return {};
+    return Descriptor(ANDROID_FILE_ENV_PREFIX + name, std::move(fd));
 }
 
 Result<void> EnterNamespaces(const NamespaceInfo& info, const std::string& name, bool pre_apexd) {
     for (const auto& [nstype, path] : info.namespaces_to_enter) {
-        if (auto result = EnterNamespace(nstype, path.c_str()); !result) {
+        if (auto result = EnterNamespace(nstype, path.c_str()); !result.ok()) {
             return result;
         }
     }
@@ -204,14 +214,14 @@ Result<void> EnterNamespaces(const NamespaceInfo& info, const std::string& name,
         bool remount_sys =
                 std::any_of(info.namespaces_to_enter.begin(), info.namespaces_to_enter.end(),
                             [](const auto& entry) { return entry.first == CLONE_NEWNET; });
-        if (auto result = SetUpMountNamespace(remount_proc, remount_sys); !result) {
+        if (auto result = SetUpMountNamespace(remount_proc, remount_sys); !result.ok()) {
             return result;
         }
     }
 
     if (info.flags & CLONE_NEWPID) {
         // This will fork again to run an init process inside the PID namespace.
-        if (auto result = SetUpPidNamespace(name.c_str()); !result) {
+        if (auto result = SetUpPidNamespace(name.c_str()); !result.ok()) {
             return result;
         }
     }
@@ -234,14 +244,13 @@ Result<void> SetProcessAttributes(const ProcessAttributes& attr) {
         if (setpgid(0, getpid()) == -1) {
             return ErrnoError() << "setpgid failed";
         }
-        ZapStdio();
+        SetupStdio(attr.stdio_to_kmsg);
     }
 
     for (const auto& rlimit : attr.rlimits) {
         if (setrlimit(rlimit.first, &rlimit.second) == -1) {
-            return ErrnoError() << StringPrintf(
-                           "setrlimit(%d, {rlim_cur=%ld, rlim_max=%ld}) failed", rlimit.first,
-                           rlimit.second.rlim_cur, rlimit.second.rlim_max);
+            return ErrnoErrorf("setrlimit({}, {{rlim_cur={}, rlim_max={}}}) failed", rlimit.first,
+                               rlimit.second.rlim_cur, rlimit.second.rlim_max);
         }
     }
 

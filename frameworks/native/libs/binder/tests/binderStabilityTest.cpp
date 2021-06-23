@@ -122,6 +122,29 @@ public:
     }
 };
 
+TEST(BinderStability, OnlyVintfStabilityBinderNeedsVintfDeclaration) {
+    EXPECT_FALSE(Stability::requiresVintfDeclaration(nullptr));
+    EXPECT_FALSE(Stability::requiresVintfDeclaration(BadStableBinder::undef()));
+    EXPECT_FALSE(Stability::requiresVintfDeclaration(BadStableBinder::system()));
+    EXPECT_FALSE(Stability::requiresVintfDeclaration(BadStableBinder::vendor()));
+
+    EXPECT_TRUE(Stability::requiresVintfDeclaration(BadStableBinder::vintf()));
+}
+
+TEST(BinderStability, VintfStabilityServerMustBeDeclaredInManifest) {
+    sp<IBinder> vintfServer = BadStableBinder::vintf();
+
+    for (const char* instance8 : {
+        ".", "/", "/.", "a.d.IFoo", "foo", "a.d.IFoo/foo"
+    }) {
+        String16 instance (instance8);
+
+        EXPECT_EQ(Status::EX_ILLEGAL_ARGUMENT,
+            android::defaultServiceManager()->addService(String16("."), vintfServer)) << instance8;
+        EXPECT_FALSE(android::defaultServiceManager()->isDeclared(instance)) << instance8;
+    }
+}
+
 TEST(BinderStability, CantCallVendorBinderInSystemContext) {
     sp<IBinder> serverBinder = android::defaultServiceManager()->getService(kSystemStabilityServer);
     auto server = interface_cast<IBinderStabilityTest>(serverBinder);

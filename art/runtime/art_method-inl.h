@@ -39,7 +39,6 @@
 #include "mirror/object-inl.h"
 #include "mirror/object_array.h"
 #include "mirror/string.h"
-#include "oat.h"
 #include "obj_ptr-inl.h"
 #include "quick/quick_method_frame_info.h"
 #include "read_barrier-inl.h"
@@ -405,7 +404,7 @@ inline CodeItemDebugInfoAccessor ArtMethod::DexInstructionDebugInfo() {
   return CodeItemDebugInfoAccessor(*GetDexFile(), GetCodeItem(), GetDexMethodIndex());
 }
 
-inline void ArtMethod::SetCounter(int16_t hotness_count) {
+inline void ArtMethod::SetCounter(uint16_t hotness_count) {
   DCHECK(!IsAbstract()) << PrettyMethod();
   hotness_count_ = hotness_count;
 }

@@ -117,43 +117,11 @@ void DropTaskProfilesResourceCaching() {
 
 bool SetProcessProfiles(uid_t uid, pid_t pid, const std::vector<std::string>& profiles,
                         bool use_fd_cache) {
-    const TaskProfiles& tp = TaskProfiles::GetInstance();
-
-    for (const auto& name : profiles) {
-        TaskProfile* profile = tp.GetProfile(name);
-        if (profile != nullptr) {
-            if (use_fd_cache) {
-                profile->EnableResourceCaching();
-            }
-            if (!profile->ExecuteForProcess(uid, pid)) {
-                PLOG(WARNING) << "Failed to apply " << name << " process profile";
-            }
-        } else {
-            PLOG(WARNING) << "Failed to find " << name << "process profile";
-        }
-    }
-
-    return true;
+    return TaskProfiles::GetInstance().SetProcessProfiles(uid, pid, profiles, use_fd_cache);
 }
 
 bool SetTaskProfiles(int tid, const std::vector<std::string>& profiles, bool use_fd_cache) {
-    const TaskProfiles& tp = TaskProfiles::GetInstance();
-
-    for (const auto& name : profiles) {
-        TaskProfile* profile = tp.GetProfile(name);
-        if (profile != nullptr) {
-            if (use_fd_cache) {
-                profile->EnableResourceCaching();
-            }
-            if (!profile->ExecuteForTask(tid)) {
-                PLOG(WARNING) << "Failed to apply " << name << " task profile";
-            }
-        } else {
-            PLOG(WARNING) << "Failed to find " << name << "task profile";
-        }
-    }
-
-    return true;
+    return TaskProfiles::GetInstance().SetTaskProfiles(tid, profiles, use_fd_cache);
 }
 
 static std::string ConvertUidToPath(const char* cgroup, uid_t uid) {
@@ -333,7 +301,8 @@ static int DoKillProcessGroupOnce(const char* cgroup, uid_t uid, int initialPid,
     return feof(fd.get()) ? processes : -1;
 }
 
-static int KillProcessGroup(uid_t uid, int initialPid, int signal, int retries) {
+static int KillProcessGroup(uid_t uid, int initialPid, int signal, int retries,
+                            int* max_processes) {
     std::string cpuacct_path;
     std::string memory_path;
 
@@ -348,9 +317,16 @@ static int KillProcessGroup(uid_t uid, int initialPid, int signal, int retries) 
 
     std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
 
+    if (max_processes != nullptr) {
+        *max_processes = 0;
+    }
+
     int retry = retries;
     int processes;
     while ((processes = DoKillProcessGroupOnce(cgroup, uid, initialPid, signal)) > 0) {
+        if (max_processes != nullptr && processes > *max_processes) {
+            *max_processes = processes;
+        }
         LOG(VERBOSE) << "Killed " << processes << " processes for processgroup " << initialPid;
         if (retry > 0) {
             std::this_thread::sleep_for(5ms);
@@ -391,12 +367,12 @@ static int KillProcessGroup(uid_t uid, int initialPid, int signal, int retries) 
     }
 }
 
-int killProcessGroup(uid_t uid, int initialPid, int signal) {
-    return KillProcessGroup(uid, initialPid, signal, 40 /*retries*/);
+int killProcessGroup(uid_t uid, int initialPid, int signal, int* max_processes) {
+    return KillProcessGroup(uid, initialPid, signal, 40 /*retries*/, max_processes);
 }
 
-int killProcessGroupOnce(uid_t uid, int initialPid, int signal) {
-    return KillProcessGroup(uid, initialPid, signal, 0 /*retries*/);
+int killProcessGroupOnce(uid_t uid, int initialPid, int signal, int* max_processes) {
+    return KillProcessGroup(uid, initialPid, signal, 0 /*retries*/, max_processes);
 }
 
 int createProcessGroup(uid_t uid, int initialPid, bool memControl) {

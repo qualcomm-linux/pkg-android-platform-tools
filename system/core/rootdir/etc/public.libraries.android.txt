@@ -1,6 +1,7 @@
 # See https://android.googlesource.com/platform/ndk/+/master/docs/PlatformApis.md
 libandroid.so
 libaaudio.so
+libamidi.so
 libbinder_ndk.so
 libc.so
 libcamera2ndk.so
@@ -16,7 +17,7 @@ liblog.so
 libmediandk.so
 libm.so
 libnativewindow.so
-libneuralnetworks.so
+libneuralnetworks.so nopreload
 libOpenMAXAL.so
 libOpenSLES.so
 libRS.so

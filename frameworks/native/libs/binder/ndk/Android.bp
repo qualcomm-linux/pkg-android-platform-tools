@@ -14,8 +14,26 @@
  * limitations under the License.
  */
 
+// TODO(b/31559095): bionic on host should define this
+cc_defaults {
+    name: "libbinder_ndk_host_user",
+    target: {
+        host: {
+            cflags: [
+                "-D__INTRODUCED_IN(n)=",
+                "-D__assert(a,b,c)=",
+                // We want all the APIs to be available on the host.
+                "-D__ANDROID_API__=10000",
+            ],
+        },
+    },
+}
+
 cc_library_shared {
     name: "libbinder_ndk",
+
+    defaults: ["libbinder_ndk_host_user"],
+    host_supported: true,
 
     export_include_dirs: [
         "include_ndk",
@@ -32,6 +50,7 @@ cc_library_shared {
         "ibinder.cpp",
         "ibinder_jni.cpp",
         "parcel.cpp",
+        "parcel_jni.cpp",
         "process.cpp",
         "stability.cpp",
         "status.cpp",
@@ -52,10 +71,17 @@ cc_library_shared {
         "jni_headers",
     ],
 
-    version_script: "libbinder_ndk.map.txt",
+    target: {
+        linux: {
+            version_script: "libbinder_ndk.map.txt",
+        },
+    },
     stubs: {
         symbol_file: "libbinder_ndk.map.txt",
-        versions: ["29", "30"],
+        versions: [
+            "29",
+            "30",
+        ],
     },
 }
 

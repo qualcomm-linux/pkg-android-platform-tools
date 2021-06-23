@@ -29,6 +29,7 @@
 #include <thread>
 
 #include <android-base/file.h>
+#include <android-base/strings.h>
 #include <android-base/unique_fd.h>
 #include <gtest/gtest.h>
 #include <libdm/dm.h>
@@ -46,50 +47,6 @@ TEST(libdm, HasMinimumTargets) {
     DeviceMapper& dm = DeviceMapper::Instance();
     ASSERT_TRUE(dm.GetTargetByName("linear", &info));
 }
-
-// Helper to ensure that device mapper devices are released.
-class TempDevice {
-  public:
-    TempDevice(const std::string& name, const DmTable& table)
-        : dm_(DeviceMapper::Instance()), name_(name), valid_(false) {
-        valid_ = dm_.CreateDevice(name, table, &path_, 5s);
-    }
-    TempDevice(TempDevice&& other) noexcept
-        : dm_(other.dm_), name_(other.name_), path_(other.path_), valid_(other.valid_) {
-        other.valid_ = false;
-    }
-    ~TempDevice() {
-        if (valid_) {
-            dm_.DeleteDevice(name_);
-        }
-    }
-    bool Destroy() {
-        if (!valid_) {
-            return false;
-        }
-        valid_ = false;
-        return dm_.DeleteDevice(name_);
-    }
-    std::string path() const { return path_; }
-    const std::string& name() const { return name_; }
-    bool valid() const { return valid_; }
-
-    TempDevice(const TempDevice&) = delete;
-    TempDevice& operator=(const TempDevice&) = delete;
-
-    TempDevice& operator=(TempDevice&& other) noexcept {
-        name_ = other.name_;
-        valid_ = other.valid_;
-        other.valid_ = false;
-        return *this;
-    }
-
-  private:
-    DeviceMapper& dm_;
-    std::string name_;
-    std::string path_;
-    bool valid_;
-};
 
 TEST(libdm, DmLinear) {
     unique_fd tmp1(CreateTempFile("file_1", 4096));
@@ -114,6 +71,7 @@ TEST(libdm, DmLinear) {
     ASSERT_TRUE(table.Emplace<DmTargetLinear>(0, 1, loop_a.device(), 0));
     ASSERT_TRUE(table.Emplace<DmTargetLinear>(1, 1, loop_b.device(), 0));
     ASSERT_TRUE(table.valid());
+    ASSERT_EQ(2u, table.num_sectors());
 
     TempDevice dev("libdm-test-dm-linear", table);
     ASSERT_TRUE(dev.valid());
@@ -176,6 +134,7 @@ TEST(libdm, DmSuspendResume) {
     DmTable table;
     ASSERT_TRUE(table.Emplace<DmTargetLinear>(0, 1, loop_a.device(), 0));
     ASSERT_TRUE(table.valid());
+    ASSERT_EQ(1u, table.num_sectors());
 
     TempDevice dev("libdm-test-dm-suspend-resume", table);
     ASSERT_TRUE(dev.valid());
@@ -292,6 +251,7 @@ void SnapshotTestHarness::SetupImpl() {
     ASSERT_TRUE(origin_table.AddTarget(make_unique<DmTargetSnapshotOrigin>(
             0, kBaseDeviceSize / kSectorSize, base_loop_->device())));
     ASSERT_TRUE(origin_table.valid());
+    ASSERT_EQ(kBaseDeviceSize / kSectorSize, origin_table.num_sectors());
 
     origin_dev_ = std::make_unique<TempDevice>("libdm-test-dm-snapshot-origin", origin_table);
     ASSERT_TRUE(origin_dev_->valid());
@@ -303,6 +263,7 @@ void SnapshotTestHarness::SetupImpl() {
             0, kBaseDeviceSize / kSectorSize, base_loop_->device(), cow_loop_->device(),
             SnapshotStorageMode::Persistent, 8)));
     ASSERT_TRUE(snap_table.valid());
+    ASSERT_EQ(kBaseDeviceSize / kSectorSize, snap_table.num_sectors());
 
     snapshot_dev_ = std::make_unique<TempDevice>("libdm-test-dm-snapshot", snap_table);
     ASSERT_TRUE(snapshot_dev_->valid());
@@ -322,6 +283,7 @@ void SnapshotTestHarness::MergeImpl() {
             make_unique<DmTargetSnapshot>(0, kBaseDeviceSize / kSectorSize, base_loop_->device(),
                                           cow_loop_->device(), SnapshotStorageMode::Merge, 8)));
     ASSERT_TRUE(merge_table.valid());
+    ASSERT_EQ(kBaseDeviceSize / kSectorSize, merge_table.num_sectors());
 
     DeviceMapper& dm = DeviceMapper::Instance();
     ASSERT_TRUE(dm.LoadTableAndActivate("libdm-test-dm-snapshot", merge_table));
@@ -554,8 +516,109 @@ TEST(libdm, CryptArgs) {
 }
 
 TEST(libdm, DefaultKeyArgs) {
-    DmTargetDefaultKey target(0, 4096, "AES-256-XTS", "abcdef0123456789", "/dev/loop0", 0);
+    DmTargetTypeInfo info;
+
+    DeviceMapper& dm = DeviceMapper::Instance();
+    if (!dm.GetTargetByName("default-key", &info)) {
+        cout << "default-key module not enabled; skipping test" << std::endl;
+        return;
+    }
+    bool is_legacy;
+    ASSERT_TRUE(DmTargetDefaultKey::IsLegacy(&is_legacy));
+    // set_dun only in the non-is_legacy case
+    DmTargetDefaultKey target(0, 4096, "AES-256-XTS", "abcdef0123456789", "/dev/loop0", 0,
+                              is_legacy, !is_legacy);
     ASSERT_EQ(target.name(), "default-key");
     ASSERT_TRUE(target.Valid());
-    ASSERT_EQ(target.GetParameterString(), "AES-256-XTS abcdef0123456789 /dev/loop0 0");
+    if (is_legacy) {
+        ASSERT_EQ(target.GetParameterString(), "AES-256-XTS abcdef0123456789 /dev/loop0 0");
+    } else {
+        ASSERT_EQ(target.GetParameterString(),
+                  "AES-256-XTS abcdef0123456789 0 /dev/loop0 0 3 allow_discards sector_size:4096 "
+                  "iv_large_sectors");
+    }
+}
+
+TEST(libdm, DeleteDeviceWithTimeout) {
+    unique_fd tmp(CreateTempFile("file_1", 4096));
+    ASSERT_GE(tmp, 0);
+    LoopDevice loop(tmp, 10s);
+    ASSERT_TRUE(loop.valid());
+
+    DmTable table;
+    ASSERT_TRUE(table.Emplace<DmTargetLinear>(0, 1, loop.device(), 0));
+    ASSERT_TRUE(table.valid());
+    TempDevice dev("libdm-test-dm-linear", table);
+    ASSERT_TRUE(dev.valid());
+
+    DeviceMapper& dm = DeviceMapper::Instance();
+
+    std::string path;
+    ASSERT_TRUE(dm.GetDmDevicePathByName("libdm-test-dm-linear", &path));
+    ASSERT_EQ(0, access(path.c_str(), F_OK));
+
+    ASSERT_TRUE(dm.DeleteDevice("libdm-test-dm-linear", 5s));
+    ASSERT_EQ(DmDeviceState::INVALID, dm.GetState("libdm-test-dm-linear"));
+    ASSERT_NE(0, access(path.c_str(), F_OK));
+    ASSERT_EQ(ENOENT, errno);
+}
+
+TEST(libdm, IsDmBlockDevice) {
+    unique_fd tmp(CreateTempFile("file_1", 4096));
+    ASSERT_GE(tmp, 0);
+    LoopDevice loop(tmp, 10s);
+    ASSERT_TRUE(loop.valid());
+    ASSERT_TRUE(android::base::StartsWith(loop.device(), "/dev/block"));
+
+    DmTable table;
+    ASSERT_TRUE(table.Emplace<DmTargetLinear>(0, 1, loop.device(), 0));
+    ASSERT_TRUE(table.valid());
+
+    TempDevice dev("libdm-test-dm-linear", table);
+    ASSERT_TRUE(dev.valid());
+
+    DeviceMapper& dm = DeviceMapper::Instance();
+    ASSERT_TRUE(dm.IsDmBlockDevice(dev.path()));
+    ASSERT_FALSE(dm.IsDmBlockDevice(loop.device()));
+}
+
+TEST(libdm, GetDmDeviceNameByPath) {
+    unique_fd tmp(CreateTempFile("file_1", 4096));
+    ASSERT_GE(tmp, 0);
+    LoopDevice loop(tmp, 10s);
+    ASSERT_TRUE(loop.valid());
+    ASSERT_TRUE(android::base::StartsWith(loop.device(), "/dev/block"));
+
+    DmTable table;
+    ASSERT_TRUE(table.Emplace<DmTargetLinear>(0, 1, loop.device(), 0));
+    ASSERT_TRUE(table.valid());
+
+    TempDevice dev("libdm-test-dm-linear", table);
+    ASSERT_TRUE(dev.valid());
+
+    DeviceMapper& dm = DeviceMapper::Instance();
+    // Not a dm device, GetDmDeviceNameByPath will return std::nullopt.
+    ASSERT_FALSE(dm.GetDmDeviceNameByPath(loop.device()));
+    auto name = dm.GetDmDeviceNameByPath(dev.path());
+    ASSERT_EQ("libdm-test-dm-linear", *name);
+}
+
+TEST(libdm, GetParentBlockDeviceByPath) {
+    unique_fd tmp(CreateTempFile("file_1", 4096));
+    ASSERT_GE(tmp, 0);
+    LoopDevice loop(tmp, 10s);
+    ASSERT_TRUE(loop.valid());
+    ASSERT_TRUE(android::base::StartsWith(loop.device(), "/dev/block"));
+
+    DmTable table;
+    ASSERT_TRUE(table.Emplace<DmTargetLinear>(0, 1, loop.device(), 0));
+    ASSERT_TRUE(table.valid());
+
+    TempDevice dev("libdm-test-dm-linear", table);
+    ASSERT_TRUE(dev.valid());
+
+    DeviceMapper& dm = DeviceMapper::Instance();
+    ASSERT_FALSE(dm.GetParentBlockDeviceByPath(loop.device()));
+    auto sub_block_device = dm.GetParentBlockDeviceByPath(dev.path());
+    ASSERT_EQ(loop.device(), *sub_block_device);
 }

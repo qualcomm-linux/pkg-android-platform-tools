@@ -138,6 +138,7 @@ debuggable="no"
 prebuild_mode="yes"
 target_mode="yes"
 dev_mode="no"
+create_runner="no"
 update_mode="no"
 debug_mode="no"
 relocate="no"
@@ -160,8 +161,8 @@ never_clean="no"
 have_image="yes"
 android_root="/system"
 bisection_search="no"
+timeout=""
 suspend_timeout="500000"
-image_suffix=""
 run_optimizing="false"
 
 # To cause tests to fail fast, limit the file sizes created by dx, dex2oat and
@@ -321,18 +322,17 @@ while true; do
         shift
     elif [ "x$1" = "x--strace" ]; then
         strace="yes"
-        run_args+=(--timeout 1800 --invoke-with strace --invoke-with -o --invoke-with "$tmp_dir/$strace_output")
+        run_args+=(--invoke-with strace --invoke-with -o --invoke-with "$tmp_dir/$strace_output")
+        timeout="${timeout:-1800}"
         shift
     elif [ "x$1" = "x--zygote" ]; then
         run_args+=(--zygote)
         shift
     elif [ "x$1" = "x--interpreter" ]; then
         run_args+=(--interpreter)
-        image_suffix="-interpreter"
         shift
     elif [ "x$1" = "x--jit" ]; then
         run_args+=(--jit)
-        image_suffix="-interpreter"
         shift
     elif [ "x$1" = "x--baseline" ]; then
         run_args+=(--baseline)
@@ -345,7 +345,6 @@ while true; do
         shift
     elif [ "x$1" = "x--verify-soft-fail" ]; then
         run_args+=(--verify-soft-fail)
-        image_suffix="-interp-ac"
         shift
     elif [ "x$1" = "x--no-optimize" ]; then
         run_args+=(--no-optimize)
@@ -362,6 +361,12 @@ while true; do
             break
         fi
         run_args+=(--invoke-with "${what}")
+        shift
+    elif [ "x$1" = "x--create-runner" ]; then
+        run_args+=(--create-runner --dry-run)
+        dev_mode="yes"
+        never_clean="yes"
+        create_runner="yes"
         shift
     elif [ "x$1" = "x--dev" ]; then
         run_args+=(--dev)
@@ -399,14 +404,14 @@ while true; do
         android_root="$1"
         run_args+=(--android-root "$1")
         shift
-    elif [ "x$1" = "x--android-runtime-root" ]; then
+    elif [ "x$1" = "x--android-art-root" ]; then
         shift
         if [ "x$1" = "x" ]; then
-            echo "$0 missing argument to --android-runtime-root" 1>&2
+            echo "$0 missing argument to --android-art-root" 1>&2
             usage="yes"
             break
         fi
-        run_args+=(--android-runtime-root "$1")
+        run_args+=(--android-art-root "$1")
         shift
     elif [ "x$1" = "x--android-tzdata-root" ]; then
         shift
@@ -455,6 +460,15 @@ while true; do
         # apex_payload.zip is quite large we need a high enough ulimit to
         # extract it. 512mb should be good enough.
         file_ulimit=512000
+        shift
+    elif [ "x$1" = "x--timeout" ]; then
+        shift
+        if [ "x$1" = "x" ]; then
+            echo "$0 missing argument to --timeout" 1>&2
+            usage="yes"
+            break
+        fi
+        timeout="$1"
         shift
     elif [ "x$1" = "x--trace" ]; then
         trace="true"
@@ -543,7 +557,11 @@ function err_echo() {
 # Cannot use readlink -m, as it does not exist on Mac.
 # Fallback to nuclear option:
 noncanonical_tmp_dir=$tmp_dir
-tmp_dir="`cd $oldwd ; python -c "import os; print os.path.realpath('$tmp_dir')"`"
+tmp_dir="`cd $oldwd ; python -c "import os; import sys; sys.stdout.write(os.path.realpath('$tmp_dir'))"`"
+if [ -z $tmp_dir ] ; then
+  err_echo "Failed to resolve $tmp_dir"
+  exit 1
+fi
 mkdir -p $tmp_dir
 
 # Add thread suspend timeout flag
@@ -587,6 +605,9 @@ if [ "$trace" = "true" ]; then
 elif [ "$trace_stream" = "true" ]; then
     err_echo "Cannot use --stream without --trace."
     exit 1
+fi
+if [ -n "$timeout" ]; then
+    run_args+=(--timeout "$timeout")
 fi
 
 # Most interesting target architecture variables are Makefile variables, not environment variables.
@@ -654,12 +675,12 @@ if [ "$runtime" = "dalvik" ]; then
 elif [ "$runtime" = "art" ]; then
     if [ "$target_mode" = "no" ]; then
         guess_host_arch_name
-        run_args+=(--boot "${ANDROID_HOST_OUT}/framework/core${image_suffix}.art")
+        run_args+=(--boot "${ANDROID_HOST_OUT}/framework/core.art:*")
         run_args+=(--runtime-option "-Djava.library.path=${host_lib_root}/lib${suffix64}:${host_lib_root}/nativetest${suffix64}")
     else
         guess_target_arch_name
         run_args+=(--runtime-option "-Djava.library.path=/data/nativetest${suffix64}/art/${target_arch_name}")
-        run_args+=(--boot "/data/art-test/core${image_suffix}.art")
+        run_args+=(--boot "/data/art-test/core.art:/data/art-test/*")
     fi
     if [ "$relocate" = "yes" ]; then
       run_args+=(--relocate)
@@ -677,6 +698,11 @@ if [ "$have_image" = "no" ]; then
         exit 1
     fi
     run_args+=(--no-image)
+fi
+
+if [ "$create_runner" = "yes" -a "$target_mode" = "yes" ]; then
+    err_echo "--create-runner does not function for non --host tests"
+    usage="yes"
 fi
 
 if [ "$dev_mode" = "yes" -a "$update_mode" = "yes" ]; then
@@ -728,6 +754,11 @@ if [ "$usage" = "yes" ]; then
         echo "  $prog [options] [test-name]           Run test normally."
         echo "  $prog --dev [options] [test-name]     Development mode" \
              "(dumps to stdout)."
+        echo "  $prog --create-runner [options] [test-name]"
+        echo "              Creates a runner script for use with other " \
+             "tools (e.g. parallel_run.py)."
+        echo "              The script will only run the test portion, and " \
+             "share oat and dex files."
         echo "  $prog --update [options] [test-name]  Update mode" \
              "(replaces expected.txt)."
         echo '  Omitting the test name or specifying "-" will use the' \
@@ -793,6 +824,7 @@ if [ "$usage" = "yes" ]; then
         echo "    --runtime-extracted-zipapex [dir]"
         echo "                          Use the given extracted zipapex directory to provide"
         echo "                          runtime binaries"
+        echo "    --timeout n           Test timeout in seconds"
         echo "    --trace               Run with method tracing"
         echo "    --strace              Run with syscall tracing from strace."
         echo "    --stream              Run method tracing in streaming mode (requires --trace)"
@@ -809,9 +841,9 @@ if [ "$usage" = "yes" ]; then
         echo "    --android-i18n-root [path]"
         echo "                          The path on target for the i18n module root."
         echo "                          (/apex/com.android.i18n by default)."
-        echo "    --android-runtime-root [path]"
-        echo "                          The path on target for the Android Runtime root."
-        echo "                          (/apex/com.android.runtime by default)."
+        echo "    --android-art-root [path]"
+        echo "                          The path on target for the ART module root."
+        echo "                          (/apex/com.android.art by default)."
         echo "    --android-tzdata-root [path]"
         echo "                          The path on target for the Android Time Zone Data root."
         echo "                          (/apex/com.android.tzdata by default)."
@@ -878,7 +910,7 @@ export TEST_NAME=`basename ${test_dir}`
 # Tests named '<number>-checker-*' will also have their CFGs verified with
 # Checker when compiled with Optimizing on host.
 if [[ "$TEST_NAME" =~ ^[0-9]+-checker- ]]; then
-  if [ "$runtime" = "art" -a "$image_suffix" = "" -a "$run_optimizing" = "true" ]; then
+  if [ "$runtime" = "art" -a "$run_optimizing" = "true" ]; then
     # In no-prebuild or no-image mode, the compiler only quickens so disable the checker.
     if [ "$prebuild_mode" = "yes" -a "$have_image" = "yes" ]; then
       run_checker="yes"
@@ -1040,7 +1072,12 @@ fi
         echo '#################### info'
         cat "${td_info}" | sed 's/^/# /g'
         echo '#################### diffs'
-        diff --strip-trailing-cr -u "$expected" "$output" | tail -n 3000
+        if [ "$run_checker" == "yes" ]; then
+          # Checker failures dump the whole CFG, so we output the whole diff.
+          diff --strip-trailing-cr -u "$expected" "$output"
+        else
+          diff --strip-trailing-cr -u "$expected" "$output" | tail -n 3000
+        fi
         echo '####################'
         if [ "$strace" = "yes" ]; then
             echo '#################### strace output'
@@ -1088,7 +1125,7 @@ if [ "$bisection_search" = "yes" -a "$good" != "yes" ]; then
         --check-script="$cwd/check" \
         --expected-output="$cwd/expected.txt" \
         --logfile="$cwd/bisection_log.txt" \
-        --timeout=300
+        --timeout=${timeout:-300}
     fi
 fi
 

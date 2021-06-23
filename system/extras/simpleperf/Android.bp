@@ -96,37 +96,6 @@ cc_library_static {
 }
 
 cc_defaults {
-    name: "libsimpleperf_dex_read_static_reqs_defaults",
-    defaults: ["libdexfile_static_defaults"],
-    static_libs: [
-        "libdexfile_support_static",
-    ],
-    header_libs: ["libdexfile_external_headers"],
-    export_header_lib_headers: ["libdexfile_external_headers"],
-}
-
-cc_library_static {
-    name: "libsimpleperf_dex_read",
-    defaults: [
-        "simpleperf_defaults",
-        "libsimpleperf_dex_read_static_reqs_defaults",
-    ],
-    host_supported: true,
-
-    export_include_dirs: [
-        ".",
-    ],
-
-    static_libs: ["libbase"],
-
-    srcs: [
-        "read_dex_file.cpp",
-    ],
-
-    group_static_libs: true,
-}
-
-cc_defaults {
     name: "simpleperf_cflags",
     target: {
         host: {
@@ -147,6 +116,37 @@ cc_defaults {
     },
 }
 
+// linked as a separate library because using OpenCSD headers needs to enable exception
+cc_library_static {
+    name: "libsimpleperf_etm_decoder",
+    defaults: [
+        "simpleperf_cflags",
+        "libsimpleperf_elf_read_static_reqs_defaults",
+    ],
+    host_supported: true,
+    srcs: ["ETMDecoder.cpp"],
+    cppflags: [
+        // flags needed to include libopencsd_decoder headers
+        "-Wno-ignored-qualifiers",
+        "-Wno-unused-parameter",
+        "-Wno-switch",
+        "-Wno-unused-private-field",
+        "-Wno-implicit-fallthrough",
+        "-fexceptions",
+    ],
+    rtti: true,
+    static_libs: [
+        "libopencsd_decoder",
+        "libbase",
+        "liblog",
+    ],
+    target: {
+        windows: {
+            enabled: true,
+        }
+    }
+}
+
 cc_defaults {
     name: "simpleperf_static_libs",
     defaults: [
@@ -155,10 +155,12 @@ cc_defaults {
     ],
     host_supported: true,
     static_libs: [
+        "libsimpleperf_etm_decoder",
         "libbase",
         "liblog",
         "libutils",
         "libprotobuf-cpp-lite",
+        "libopencsd_decoder",
     ],
     target: {
         linux: {
@@ -196,6 +198,10 @@ cc_defaults {
         "liblzma",
         "libprotobuf-cpp-lite",
         "libziparchive",
+    ],
+    static_libs: [
+        "libsimpleperf_etm_decoder",
+        "libopencsd_decoder",
     ],
     target: {
         linux: {
@@ -257,6 +263,7 @@ cc_defaults {
     srcs: [
         "cmd_dumprecord.cpp",
         "cmd_help.cpp",
+        "cmd_inject.cpp",
         "cmd_kmem.cpp",
         "cmd_report.cpp",
         "cmd_report_sample.cpp",
@@ -288,14 +295,12 @@ cc_defaults {
                 "ETMRecorder.cpp",
                 "event_fd.cpp",
                 "event_selection_set.cpp",
-                "InplaceSamplerClient.cpp",
                 "IOEventLoop.cpp",
                 "JITDebugReader.cpp",
                 "OfflineUnwinder.cpp",
                 "read_dex_file.cpp",
                 "record_file_writer.cpp",
                 "RecordReadThread.cpp",
-                "UnixSocket.cpp",
                 "workload.cpp",
             ],
         },
@@ -351,7 +356,7 @@ cc_binary {
         "simpleperf_static_libs",
     ],
     dist: {
-        targets: ["sdk", "win_sdk", "simpleperf"],
+        targets: ["simpleperf"],
     },
     srcs: [
         "main.cpp",
@@ -455,7 +460,7 @@ cc_library_shared {
         "simpleperf_static_libs",
     ],
     dist: {
-        targets: ["sdk", "win_sdk", "simpleperf"],
+        targets: ["simpleperf"],
     },
     srcs: [
         "report_lib_interface.cpp",
@@ -502,32 +507,10 @@ cc_library_shared {
     },
 }
 
-// It's the shared library linked with user's app and get samples from signal handlers in each
-// thread. Doesn't work yet.
-cc_library_shared {
-    name: "libsimpleperf_inplace_sampler",
-    defaults: [
-        "simpleperf_static_libs",
-    ],
-    export_include_dirs: ["include"],
-    ldflags: ["-Wl,--exclude-libs,ALL"],
-    srcs: [
-        "inplace_sampler_lib.cpp",
-    ],
-    static_libs: ["libsimpleperf"],
-    target: {
-        darwin: {
-            enabled: false,
-        },
-        windows: {
-            enabled: false,
-        },
-    },
-}
-
 cc_defaults {
     name: "simpleperf_test_srcs",
     srcs: [
+        "cmd_inject_test.cpp",
         "cmd_kmem_test.cpp",
         "cmd_report_test.cpp",
         "cmd_report_sample_test.cpp",
@@ -553,10 +536,10 @@ cc_defaults {
                 "cmd_trace_sched_test.cpp",
                 "environment_test.cpp",
                 "IOEventLoop_test.cpp",
+                "OfflineUnwinder_test.cpp",
                 "read_dex_file_test.cpp",
                 "record_file_test.cpp",
                 "RecordReadThread_test.cpp",
-                "UnixSocket_test.cpp",
                 "workload_test.cpp",
             ],
         },
