@@ -2,11 +2,21 @@ Description: Added missing headers causing compile errors
 Forwarded: not-needed
 --- a/libnativehelper/JNIHelp.cpp
 +++ b/libnativehelper/JNIHelp.cpp
-@@ -21,6 +21,7 @@
- #include "ALog-priv.h"
+@@ -17,6 +17,7 @@
+ #include "nativehelper/JNIHelp.h"
  
  #include <string>
 +#include <cstring>
  
- #include "JniConstants.h"
- #include "nativehelper/ScopedLocalRef.h"
+ #define LOG_TAG "JNIHelp"
+ #include "ALog-priv.h"
+--- a/libnativehelper/JniInvocation.cpp
++++ b/libnativehelper/JniInvocation.cpp
+@@ -17,6 +17,7 @@
+ #include "nativehelper/JniInvocation.h"
+ 
+ #include <string>
++#include <cstring>
+ 
+ #ifdef _WIN32
+ #include <windows.h>

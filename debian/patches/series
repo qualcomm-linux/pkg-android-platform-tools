@@ -12,11 +12,11 @@ system/core/Vector-cast.patch
 system/core/throw-exception-on-unknown-os.patch
 system/core/simg_dump-python3.patch
 system/core/fix-attribute-issue-with-gcc.patch
-system/core/workaround-error-expected-primary-expression-before-.-token.patch
 system/core/fix-gettid-exception-declaration.patch
 system/core/fix-build-on-non-x86.patch
 system/core/add-missing-headers.patch
 system/core/hard-code-build-number.patch
+system/core/stub-out-fastdeploy.patch
 system/tools/mkbootimg/use-Python-3-for-mkbootimg.patch
 development/typos.patch
 art/use-android-dlmalloc.patch
@@ -31,3 +31,4 @@ art/stats-incomplete-def.patch
 art/fix-build-on-non-x86.patch
 art/workaround-cacheflush-on-arm.patch
 art/arm-asm-instruction.patch
+art/fix-standard-namespace-errors.patch

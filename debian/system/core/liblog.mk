@@ -2,21 +2,13 @@ NAME = liblog
 
 # copied from liblog/Android.bp
 liblog_sources = \
-    config_read.cpp \
-    config_write.cpp \
     log_event_list.cpp \
     log_event_write.cpp \
-    logger_lock.cpp \
     logger_name.cpp \
     logger_read.cpp \
     logger_write.cpp \
     logprint.cpp \
-    stderr_write.cpp \
-
-# copied from liblog/Android.bp
-liblog_host_sources = \
-    fake_log_device.cpp \
-    fake_writer.cpp \
+    properties.cpp \
 
 # copied from liblog/Android.bp
 not_windows_sources = \
@@ -33,6 +25,7 @@ CPPFLAGS += \
             -I/usr/include/android \
             -Isystem/core/liblog/include \
             -Isystem/core/include \
+            -Isystem/core/base/include \
             -DLIBLOG_LOG_TAG=1006 \
             -DFAKE_LOG_DEVICE=1 \
             -DSNET_EVENT_LOG_TAG=1397638484

@@ -1,14 +1,15 @@
 NAME = adb
 
-SOURCES = client/adb_client.cpp \
-	client/bugreport.cpp \
-	client/commandline.cpp \
-	client/file_sync_client.cpp \
-	client/main.cpp \
-	client/console.cpp \
-	client/adb_install.cpp \
-	client/line_printer.cpp \
-	shell_service_protocol.cpp
+SOURCES = \
+    client/adb_client.cpp \
+    client/bugreport.cpp \
+    client/commandline.cpp \
+    client/file_sync_client.cpp \
+    client/main.cpp \
+    client/console.cpp \
+    client/adb_install.cpp \
+    client/line_printer.cpp \
+    shell_service_protocol.cpp \
 
 SOURCES := $(foreach source, $(SOURCES), system/core/adb/$(source))
 CXXFLAGS += -std=gnu++2a

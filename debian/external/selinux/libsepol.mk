@@ -13,8 +13,6 @@ srcs := \
         src/debug.c \
         src/ebitmap.c \
         src/expand.c \
-        src/genbools.c \
-        src/genusers.c \
         src/handle.c \
         src/hashtab.c \
         src/hierarchy.c \
@@ -29,6 +27,7 @@ srcs := \
         src/module_to_cil.c \
         src/node_record.c \
         src/nodes.c \
+        src/optimize.c \
         src/polcaps.c \
         src/policydb.c \
         src/policydb_convert.c \
@@ -36,7 +35,7 @@ srcs := \
         src/port_record.c \
         src/ports.c \
         src/roles.c \
-		src/services.c \
+        src/services.c \
         src/sidtab.c \
         src/symtab.c \
         src/user_record.c \

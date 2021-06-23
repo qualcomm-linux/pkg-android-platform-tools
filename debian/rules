@@ -27,57 +27,6 @@ ifneq (, $(shell which clang))
   export CXX=clang++
 endif
 
-COMPONENTS = \
-		libbacktrace.so \
-		libbase.so \
-		libcutils.so \
-		liblog.so \
-		libsparse.so \
-		libutils.so \
-		libziparchive.so \
-		libcrypto_utils.so \
-		simg2img \
-		img2simg \
-		append2simg \
-		simg2simg
-
-COMPONENTS += adb libadb.so fastboot libnativebridge.so libnativeloader.so
-
-# Whatever depends on BoringSSL must be disabled on MIPS
-NON_MIPS_COMPONENTS = adb libadb.so libcrypto_utils.so fastboot
-ifneq ($(filter mips mipsel mips64el,$(DEB_HOST_ARCH)),)
-  COMPONENTS := $(filter-out $(NON_MIPS_COMPONENTS),$(COMPONENTS))
-endif
-
-# Most components only support ARM, x86 and MIPS, but some can be built
-# on all architectures.
-COMPONENTS_ANY_ARCH = \
-  append2simg \
-  img2simg \
-  libbase.so \
-  libcutils.so \
-  liblog.so \
-  libsparse.so \
-  simg2img \
-  simg2simg
-ifeq ($(filter amd64 i386 armel armhf arm64 mips mipsel mips64el,$(DEB_HOST_ARCH)),)
-  COMPONENTS := $(filter $(COMPONENTS_ANY_ARCH), $(COMPONENTS))
-endif
-
-## art
-
-# MIPS is left out because ART only supports MIPSr6 while Debian is by default MIPSr2
-ifneq ($(filter amd64 i386 armel armhf arm64,$(DEB_HOST_ARCH)),)
-  COMPONENTS += debian/out/art/dexdump debian/out/art/dexlist
-  COMPONENTS += debian/out/art/libdexfile_external.so debian/out/art/libdexfile_support.so
-endif
-
-## frameworks/native
-
-ifneq ($(filter amd64 i386 armel armhf arm64 mips mipsel mips64el,$(DEB_HOST_ARCH)),)
-  COMPONENTS += libETC1.so
-endif
-
 %:
 	dh $@ --with bash-completion,javahelper
 
@@ -86,56 +35,89 @@ get-orig-source:
 
 ## system/core
 
-lib%.so: debian/system/core/lib%.mk
+s/core/lib%.so: debian/system/core/lib%.mk
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
 debian/manpages/system/core/%.1: debian/manpages/system/core/%.1.md
 	pandoc --standalone --from=markdown-smart --to=man --output=$@ $<
 
-libcrypto_utils.so: debian/system/core/libcrypto_utils.mk libcrypto.so
+s/core/libcrypto_utils.so: debian/system/core/libcrypto_utils.mk e/boringssl/libcrypto.so
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
-libadb.so: debian/system/core/libadb.mk libcutils.so libbase.so libcrypto_utils.so libcrypto.so
+s/core/libadb.so: debian/system/core/libadb.mk s/core/libcutils.so s/core/libbase.so s/core/libcrypto_utils.so e/boringssl/libcrypto.so
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
-libbacktrace.so: debian/system/core/libbacktrace.mk libcutils.so libbase.so liblog.so libunwind.so debian/out/art/libdexfile_support.so
+s/core/libbacktrace.so: debian/system/core/libbacktrace.mk s/core/libcutils.so s/core/libbase.so s/core/liblog.so e/libunwind/libunwind.so art/libdexfile_support.so
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
-libbase.so: debian/system/core/libbase.mk liblog.so
+s/core/libbase.so: debian/system/core/libbase.mk s/core/liblog.so
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
-libcutils.so: debian/system/core/libcutils.mk liblog.so libbase.so
+s/core/libcutils.so: debian/system/core/libcutils.mk s/core/liblog.so s/core/libbase.so
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
-libutils.so: debian/system/core/libutils.mk liblog.so libcutils.so libbacktrace.so libbacktrace.so
+s/core/libutils.so: debian/system/core/libutils.mk s/core/liblog.so s/core/libcutils.so s/core/libbacktrace.so
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
-libziparchive.so: debian/system/core/libziparchive.mk liblog.so libbase.so
+s/core/libziparchive.so: debian/system/core/libziparchive.mk s/core/liblog.so s/core/libbase.so
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
-adb: debian/system/core/adb.mk libadb.so libcutils.so libbase.so debian/manpages/system/core/adb.1
+s/core/adb: debian/system/core/adb.mk s/core/libadb.so s/core/libcutils.so s/core/libbase.so debian/manpages/system/core/adb.1
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
-fastboot: debian/system/core/fastboot.mk libziparchive.so libsparse.so libbase.so libcutils.so libadb.so debian/manpages/system/core/fastboot.1 libcrypto.so libext4_utils.so
+s/core/fastboot: debian/system/core/fastboot.mk s/core/libziparchive.so s/core/libsparse.so s/core/libbase.so s/core/libcutils.so s/core/libadb.so debian/manpages/system/core/fastboot.1 e/boringssl/libcrypto.so s/extras/libext4_utils.so
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
-simg2img: debian/system/core/simg2img.mk libbase.so libsparse.so
+s/core/simg2img: debian/system/core/simg2img.mk s/core/libbase.so s/core/libsparse.so
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
-simg2simg: debian/system/core/simg2simg.mk libbase.so libsparse.so
+s/core/simg2simg: debian/system/core/simg2simg.mk s/core/libbase.so s/core/libsparse.so
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
-img2simg: debian/system/core/img2simg.mk libbase.so libsparse.so
+s/core/img2simg: debian/system/core/img2simg.mk s/core/libbase.so s/core/libsparse.so
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
-append2simg: debian/system/core/append2simg.mk libbase.so libsparse.so
+s/core/append2simg: debian/system/core/append2simg.mk s/core/libbase.so s/core/libsparse.so
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
-libnativebridge.so: debian/system/core/libnativebridge.mk liblog.so
-	dh_auto_build --buildsystem=makefile -- --file=$<
+COMPONENTS = \
+  s/core/adb \
+  s/core/append2simg \
+  s/core/fastboot \
+  s/core/img2simg \
+  s/core/libadb.so \
+  s/core/libbacktrace.so \
+  s/core/libbase.so \
+  s/core/libcrypto_utils.so \
+  s/core/libcutils.so \
+  s/core/liblog.so \
+  s/core/libsparse.so \
+  s/core/libutils.so \
+  s/core/libziparchive.so \
+  s/core/simg2img \
+  s/core/simg2simg \
 
-libnativeloader.so: debian/system/core/libnativeloader.mk libnativebridge.so libbase.so
-	dh_auto_build --buildsystem=makefile -- --file=$<
+# Whatever depends on BoringSSL must be disabled on MIPS
+NON_MIPS_COMPONENTS = s/core/adb s/core/libadb.so s/core/libcrypto_utils.so s/core/fastboot
+ifneq ($(filter mips mipsel mips64el,$(DEB_HOST_ARCH)),)
+  COMPONENTS := $(filter-out $(NON_MIPS_COMPONENTS),$(COMPONENTS))
+endif
+
+# Most components only support ARM, x86 and MIPS, but some can be built
+# on all architectures.
+COMPONENTS_ANY_ARCH = \
+  s/core/append2simg \
+  s/core/img2simg \
+  s/core/libbase.so \
+  s/core/libcutils.so \
+  s/core/liblog.so \
+  s/core/libsparse.so \
+  s/core/simg2img \
+  s/core/simg2simg \
+
+ifeq ($(filter amd64 i386 armel armhf arm64 mips mipsel mips64el,$(DEB_HOST_ARCH)),)
+  COMPONENTS := $(filter $(COMPONENTS_ANY_ARCH), $(COMPONENTS))
+endif
 
 clean_system_core:
 	$(RM) debian/manpages/system/core/*.1
@@ -148,44 +130,50 @@ clean_system_core:
 debian/manpages/development/%.1: debian/manpages/development/%.1.md
 	pandoc --standalone --from=markdown-smart --to=man --output=$@ $<
 
-etc1tool: debian/development/etc1tool.mk debian/manpages/development/etc1tool.1 libETC1.so
+development/etc1tool: debian/development/etc1tool.mk debian/manpages/development/etc1tool.1 f/native/libETC1.so
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
-apkcheck: debian/manpages/development/apkcheck.1
+development/apkcheck: debian/manpages/development/apkcheck.1
 	mkdir --parents debian/out/development
 	sed 's,^ *libdir=.*,libdir=/usr/share/apkcheck,' development/tools/apkcheck/etc/apkcheck > debian/out/development/apkcheck
 	jh_build --no-javadoc --main=com.android.apkcheck.ApkCheck debian/out/development/apkcheck.jar development/tools/apkcheck/src
 
-COMPONENTS += etc1tool apkcheck
+COMPONENTS += development/etc1tool development/apkcheck
 
 ## art
 
 debian/out/art:
 	mkdir --parents $@
 
-debian/out/art/%.1: debian/out/art/%
+debian/out/art/%.1: art/%
 	help2man -N -n "Dex Tool" --no-discard-stderr --version-string="$(DEB_VERSION)" \
-		-o $@ $<
+		-o $@ debian/out/$<
 
-debian/out/art/dmtracedump: debian/art/dmtracedump.mk
+art/dmtracedump: debian/art/dmtracedump.mk
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
-debian/out/art/libdexfile_support.so: debian/art/libdexfile_support.mk debian/out/art
+art/libdexfile_support.so: debian/art/libdexfile_support.mk debian/out/art
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
-debian/out/art/libsigchain.so: debian/art/libsigchain.mk
+art/libsigchain.so: debian/art/libsigchain.mk
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
-debian/out/art/dexlist: debian/art/dexlist.mk debian/out/art/libart.so libbase.so
+art/dexlist: debian/art/dexlist.mk art/libart.so s/core/libbase.so
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
-debian/out/art/dexdump: debian/art/dexdump.mk debian/out/art/libart.so libbase.so
+art/dexdump: debian/art/dexdump.mk art/libart.so s/core/libbase.so
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
-debian/out/art/libdexfile_external.so: debian/art/libdexfile_external.mk debian/out/art/libart.so
+art/libdexfile_external.so: debian/art/libdexfile_external.mk art/libart.so
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
-debian/out/art/libart.so: debian/art/libart.mk debian/out/art/asm_defines.h debian/out/art/libsigchain.so libbacktrace.so libziparchive.so libnativeloader.so libnativebridge.so libbase.so
+art/libart.so: debian/art/libart.mk debian/out/art/asm_defines.h art/libsigchain.so s/core/libbacktrace.so s/core/libziparchive.so art/libnativeloader.so art/libnativebridge.so s/core/libbase.so
+	dh_auto_build --buildsystem=makefile -- --file=$<
+
+art/libnativebridge.so:  debian/art/libnativebridge.mk s/core/liblog.so
+	dh_auto_build --buildsystem=makefile -- --file=$<
+
+art/libnativeloader.so: debian/art/libnativeloader.mk art/libnativebridge.so s/core/libbase.so
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
 # Only for debug purpose to build standalone object
@@ -196,62 +184,80 @@ debian/out/art/mterp.S: debian/art/libart.mk debian/out/art debian/out/art/asm_d
 art/runtime/%.o art/libartbase/%.o art/libdexfile/%.o debian/out/art/%.o: debian/art/libart.mk debian/out/art
 	dh_auto_build --buildsystem=makefile -- --file=$< $@
 
-COMPONENTS += debian/out/art debian/out/art/dmtracedump debian/out/art/dmtracedump.1 debian/out/art/dexdump.1
+# MIPS is left out because ART only supports MIPSr6 while Debian is by default MIPSr2
+ifneq ($(filter amd64 i386 armel armhf arm64,$(DEB_HOST_ARCH)),)
+  COMPONENTS += \
+  art/dexdump \
+  art/dexlist \
+  art/dmtracedump \
+  art/libdexfile_external.so \
+  art/libdexfile_support.so \
+  art/libnativebridge.so \
+  art/libnativeloader.so \
+  debian/out/art \
+  debian/out/art/dexdump.1 \
+  debian/out/art/dmtracedump.1 \
+
+endif
 
 ## frameworks/native
 
-libETC1.so: debian/frameworks/native/libETC1.mk
+f/native/libETC1.so: debian/frameworks/native/libETC1.mk
 	dh_auto_build --buildsystem=makefile -- --file=$<
+
+ifneq ($(filter amd64 i386 armel armhf arm64 mips mipsel mips64el,$(DEB_HOST_ARCH)),)
+  COMPONENTS += f/native/libETC1.so
+endif
 
 ## external/boringssl
 
-libcrypto.so: debian/external/boringssl/libcrypto.mk
+e/boringssl/libcrypto.so: debian/external/boringssl/libcrypto.mk
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
-libssl.so: debian/external/boringssl/libssl.mk libcrypto.so
+e/boringssl/libssl.so: debian/external/boringssl/libssl.mk e/boringssl/libcrypto.so
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
-COMPONENTS += libcrypto.so libssl.so
+COMPONENTS += e/boringssl/libcrypto.so e/boringssl/libssl.so
 
 ## external/libunwind
 
-libunwind.so: debian/external/libunwind/libunwind.mk
+e/libunwind/libunwind.so: debian/external/libunwind/libunwind.mk
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
-COMPONENTS += libunwind.so
+COMPONENTS += e/libunwind/libunwind.so
 
 ## external/selinux
 
-libsepol.so: debian/external/selinux/libsepol.mk
+e/selinux/libsepol.so: debian/external/selinux/libsepol.mk
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
-libselinux.so: debian/external/selinux/libselinux.mk libsepol.so
+e/selinux/libselinux.so: debian/external/selinux/libselinux.mk e/selinux/libsepol.so
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
-COMPONENTS += libsepol.so libselinux.so
+COMPONENTS += e/selinux/libsepol.so e/selinux/libselinux.so
 
 ## system/extras
 
-libext4_utils.so: debian/system/extras/libext4_utils.mk libselinux.so libsparse.so libbase.so
+s/extras/libext4_utils.so: debian/system/extras/libext4_utils.mk e/selinux/libselinux.so s/core/libsparse.so s/core/libbase.so
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
-libfec.so: debian/system/extras/libfec.mk libselinux.so libsparse.so libbase.so
+s/extras/libfec.so: debian/system/extras/libfec.mk e/selinux/libselinux.so s/core/libsparse.so s/core/libbase.so
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
-COMPONENTS += libext4_utils.so libfec.so
+COMPONENTS += s/extras/libext4_utils.so s/extras/libfec.so
 
 ## libnativehelper
 
-libnativehelper.so: debian/libnativehelper/libnativehelper.mk liblog.so
+libnativehelper/libnativehelper.so: debian/libnativehelper/libnativehelper.mk s/core/liblog.so
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
-COMPONENTS += libnativehelper.so
+COMPONENTS += libnativehelper/libnativehelper.so
 
 ## dalvik
-hprof-conv: debian/dalvik/hprof-conv.mk
+dalvik/hprof-conv: debian/dalvik/hprof-conv.mk
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
-COMPONENTS += hprof-conv
+COMPONENTS += dalvik/hprof-conv
 
 override_dh_auto_build-arch: $(COMPONENTS)
 

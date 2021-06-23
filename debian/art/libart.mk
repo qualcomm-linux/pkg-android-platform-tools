@@ -79,13 +79,6 @@ SOURCES_runtime = \
   interpreter/shadow_frame.cc \
   interpreter/unstarted_runtime.cc \
   java_frame_root_info.cc \
-  jdwp/jdwp_event.cc \
-  jdwp/jdwp_expand_buf.cc \
-  jdwp/jdwp_handler.cc \
-  jdwp/jdwp_main.cc \
-  jdwp/jdwp_request.cc \
-  jdwp/jdwp_socket.cc \
-  jdwp/object_registry.cc \
   jit/debugger_interface.cc \
   jit/jit.cc \
   jit/jit_code_cache.cc \
@@ -121,6 +114,7 @@ SOURCES_runtime = \
   native_bridge_art_interface.cc \
   native_stack_dump.cc \
   native/dalvik_system_DexFile.cc \
+  native/dalvik_system_BaseDexClassLoader.cc \
   native/dalvik_system_VMDebug.cc \
   native/dalvik_system_VMRuntime.cc \
   native/dalvik_system_VMStack.cc \
@@ -149,6 +143,7 @@ SOURCES_runtime = \
   native/org_apache_harmony_dalvik_ddmc_DdmVmInternal.cc \
   native/sun_misc_Unsafe.cc \
   non_debuggable_classes.cc \
+  nterp_helpers.cc \
   oat.cc \
   oat_file.cc \
   oat_file_assistant.cc \
@@ -162,6 +157,8 @@ SOURCES_runtime = \
   read_barrier.cc \
   reference_table.cc \
   reflection.cc \
+  reflective_handle_scope.cc \
+  reflective_value_visitor.cc \
   runtime.cc \
   runtime_callbacks.cc \
   runtime_common.cc \
@@ -189,6 +186,7 @@ SOURCES_runtime = \
   verifier/verifier_deps.cc \
   verify_object.cc \
   well_known_classes.cc \
+  \
   arch/context.cc \
   arch/instruction_set_features.cc \
   arch/memcmp16.cc \
@@ -230,6 +228,7 @@ SOURCES_runtime += \
 # Architecture specific sources, which come from runtime/Android.bp
 SOURCES_runtime_arm = \
   interpreter/mterp/mterp.cc \
+  interpreter/mterp/nterp_stub.cc \
   arch/arm/context_arm.cc \
   arch/arm/entrypoints_init_arm.cc \
   arch/arm/instruction_set_features_assembly_tests.S \
@@ -242,6 +241,7 @@ SOURCES_runtime_arm = \
 
 SOURCES_runtime_arm64 = \
   interpreter/mterp/mterp.cc \
+  interpreter/mterp/nterp_stub.cc \
   arch/arm64/context_arm64.cc \
   arch/arm64/entrypoints_init_arm64.cc \
   arch/arm64/jni_entrypoints_arm64.S \
@@ -253,6 +253,7 @@ SOURCES_runtime_arm64 = \
 
 SOURCES_runtime_x86 = \
   interpreter/mterp/mterp.cc \
+  interpreter/mterp/nterp_stub.cc \
   arch/x86/context_x86.cc \
   arch/x86/entrypoints_init_x86.cc \
   arch/x86/jni_entrypoints_x86.S \
@@ -263,6 +264,7 @@ SOURCES_runtime_x86 = \
 
 SOURCES_runtime_x86_64 = \
   interpreter/mterp/mterp.cc \
+  interpreter/mterp/nterp_stub.cc \
   arch/x86_64/context_x86_64.cc \
   arch/x86_64/entrypoints_init_x86_64.cc \
   arch/x86_64/jni_entrypoints_x86_64.S \
@@ -274,6 +276,7 @@ SOURCES_runtime_x86_64 = \
 
 SOURCES_runtime_mips = \
   interpreter/mterp/mterp.cc \
+  interpreter/mterp/nterp_stub.cc \
   arch/mips/context_mips.cc \
   arch/mips/entrypoints_init_mips.cc \
   arch/mips/jni_entrypoints_mips.S \
@@ -284,6 +287,7 @@ SOURCES_runtime_mips = \
 
 SOURCES_runtime_mips64 = \
   interpreter/mterp/mterp.cc \
+  interpreter/mterp/nterp_stub.cc \
   arch/mips64/context_mips64.cc \
   arch/mips64/entrypoints_init_mips64.cc \
   arch/mips64/jni_entrypoints_mips64.S \
@@ -383,13 +387,12 @@ SOURCES_OPERATOR = \
   instrumentation.h \
   indirect_reference_table.h \
   jdwp_provider.h \
-  jdwp/jdwp.h \
-  jdwp/jdwp_constants.h \
   jni_id_type.h \
   lock_word.h \
-  oat.h \
+  oat_file.h \
   object_callbacks.h \
   process_state.h \
+  reflective_value_visitor.h \
   stack.h \
   suspend_reason.h \
   thread.h \
@@ -456,22 +459,22 @@ CPPFLAGS += \
   -Iart \
   -Ilibnativehelper/include_jni \
   -Iart/cmdline \
-  -Iart/runtime \
   -Iart/libartbase \
   -Iart/libartbase/arch \
   -Iart/libartpalette/include \
   -Iart/libdexfile \
   -Iart/libdexfile/external/include \
   -Iart/libelffile \
+  -Iart/libnativebridge/include \
+  -Iart/libnativeloader/include \
   -Iart/libprofile \
+  -Iart/runtime \
   -Iart/sigchainlib \
   -Iart/tools/cpp-define-generator \
   -Idebian/out/art \
   -I/usr/include/android \
   -Isystem/core/libbacktrace/include \
   -Isystem/core/libziparchive/include \
-  -Isystem/core/libnativeloader/include \
-  -Isystem/core/libnativebridge/include \
   -Isystem/core/libunwindstack/include \
   -Isystem/core/liblog/include \
   -Isystem/core/base/include \
@@ -488,6 +491,7 @@ LDFLAGS += \
   -Ldebian/out/art \
   -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
   -Wl,-rpath=system/core \
+  -Wl,-rpath=debian/out/art \
   -shared -Wl,-soname,$(NAME).so.0
 LIBRARIES_FLAGS = \
   -latomic \
