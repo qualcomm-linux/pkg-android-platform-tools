@@ -207,7 +207,7 @@ e/boringssl/libcrypto.a: debian/external/boringssl/libcrypto.mk
 e/boringssl/libssl.a: debian/external/boringssl/libssl.mk e/boringssl/libcrypto.a
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
-COMPONENTS += e/boringssl/libcrypto.a e/boringssl/libssl.a
+COMPONENTS += e/boringssl/libcrypto.a
 
 ## external/libunwind
 
@@ -234,7 +234,7 @@ s/extras/libext4_utils.a: debian/system/extras/libext4_utils.mk e/selinux/libsel
 s/extras/libfec.a: debian/system/extras/libfec.mk e/selinux/libselinux.a s/core/libsparse.a s/core/libbase.a
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
-COMPONENTS += s/extras/libext4_utils.a s/extras/libfec.a
+COMPONENTS += s/extras/libext4_utils.a
 
 ## libnativehelper
 
@@ -261,4 +261,4 @@ override_dh_auto_clean:
 	dh_auto_clean
 
 override_dh_shlibdeps:
-	dh_shlibdeps -l/usr/lib/$(DEB_HOST_MULTIARCH)/android
+	dh_shlibdeps
