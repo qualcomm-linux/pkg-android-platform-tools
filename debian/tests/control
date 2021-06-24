@@ -1,12 +1,4 @@
-## external-*
-
-Tests: ls -l /usr/include/android/selinux/*.h /usr/lib/*/android/libselinux.so
-       ls -l /usr/include/android/unwind/*.h /usr/lib/*/android/libunwind.so
-
 ## system-core
-
-Test-Command: ls -l /usr/lib/*/android/libcutils.so /usr/include/android/cutils/*.h
-Depends: android-libcutils-dev
 
 Test-Command: adb version
 Depends: adb
@@ -42,7 +34,3 @@ Depends: dmtracedump
 
 Tests: dexdump-dexlist
 Depends: dexdump, dexlist
-
-## frameworks-native
-
-Test-Command: ls -l /usr/include/android/android/*.h /usr/lib/*/android/libETC1.so
