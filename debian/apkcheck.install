@@ -1,4 +1,0 @@
-#!/usr/bin/dh-exec
-
-debian/out/development/apkcheck.jar  /usr/share/apkcheck/
-debian/out/development/apkcheck      /usr/bin/

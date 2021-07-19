@@ -8,13 +8,9 @@ Build-Depends:
  clang [amd64 i386 armel armhf arm64],
  debhelper (>= 11),
  debhelper-compat (= 13),
- default-jdk-headless | default-jdk,
  dh-exec,
  dpkg-dev (>= 1.17.14),
- gradle-debian-helper (>= 1.4~),
  help2man,
- javahelper,
- libguava-java,
  libicu-dev [amd64 i386 armel armhf arm64],
  liblz4-dev [amd64 i386 armel armhf arm64],
  libpcre3-dev,
@@ -37,23 +33,6 @@ Rules-Requires-Root: no
 Vcs-Git: https://salsa.debian.org/android-tools-team/android-platform-tools.git
 Vcs-Browser: https://salsa.debian.org/android-tools-team/android-platform-tools
 
-Package: android-sdk-libsparse-utils
-Architecture: any
-Multi-Arch: foreign
-Section: utils
-Depends: python3, ${shlibs:Depends}, ${misc:Depends}
-Breaks: android-tools-fsutils,
-        append2simg (<< 1:10.0.0+r36-1~),
-        img2simg (<< 1:10.0.0+r36-1~),
-        simg2img (<< 1:10.0.0+r36-1~)
-Replaces: android-tools-fsutils,
-          append2simg (<< 1:10.0.0+r36-1~),
-          img2simg (<< 1:10.0.0+r36-1~),
-          simg2img (<< 1:10.0.0+r36-1~)
-Description: Android sparse image creation tool
- Command line tools to create sparse images for usage with Android devices.
- Includes simg2img, img2simg, simg2simg, simg_dump and append2simg tools.
-
 Package: adb
 Architecture: amd64 i386 armel armhf arm64
 Multi-Arch: foreign
@@ -71,44 +50,6 @@ Description: Android Debug Bridge
  This package recommends "android-sdk-platform-tools-common" which contains
  the udev rules for Android devices. Without this package, adb and fastboot need
  to be running with root permission.
-
-Package: simg2img
-Depends: android-sdk-libsparse-utils, ${misc:Depends}
-Architecture: all
-Section: oldlibs
-Description: Transitional package
- This is a transitional package. It can safely be removed.
-
-Package: img2simg
-Architecture: all
-Section: oldlibs
-Depends: android-sdk-libsparse-utils, ${misc:Depends}
-Description: Transitional package
- This is a transitional package. It can safely be removed.
-
-Package: append2simg
-Depends: android-sdk-libsparse-utils, ${misc:Depends}
-Architecture: all
-Section: oldlibs
-Description: Transitional package
- This is a transitional package. It can safely be removed.
-
-Package: android-tools-mkbootimg
-Depends: mkbootimg, ${misc:Depends}
-Architecture: all
-Section: oldlibs
-Description: transitional package
- This is a transitional package. It can safely be removed.
-
-Package: mkbootimg
-Depends: python3, ${misc:Depends}
-Breaks: android-tools-mkbootimg (<< 1:10.0.0+r36-1~)
-Replaces: android-tools-mkbootimg (<< 1:10.0.0+r36-1~)
-Architecture: all
-Section: utils
-Description: Creates Android boot images
- Creates Android boot images that includes kernel image and ramdisk, in a
- special format which can be used with fastboot.
 
 Package: fastboot
 Architecture: amd64 i386 armel armhf arm64
@@ -134,41 +75,6 @@ Description: ETC1 conversion tool
  for game apps. The standard for the ETC1 texture format is here:
  http://www.khronos.org/registry/gles/extensions/OES/OES_compressed_ETC1_RGB8_texture.txt
 
-Package: apkcheck
-Architecture: all
-Depends: ${java:Depends}, ${misc:Depends}
-Description: Compares classes, fields, methods used by an Android APK
- This compares the set of classes, fields, and methods used by an
- Android application against the published API.  It identifies and
- reports the use of any unpublished members or methods.
- .
- The public API description files live in the source tree, in
- frameworks/base/api/.  The tip-of-tree version is in "current.xml",
- and each officially released API has a numbered file (e.g. "6.xml").
- They're generated from the sources, and can take into acount javadoc
- annotations like "@hide" in comments.
- .
- The dependency set for an APK can be generated with "dexdeps".  It
- finds all classes, fields, and methods that are referenced by
- classes.dex but not defined locally.  The tool can't easily tell
- anything about a dependency beyond the name (e.g. whether a class is
- a static or non-static inner class), so while the output from dexdeps
- is similar in structure to the API XML file, it has much less detail.
-
-Package: dexdump
-Architecture: amd64 i386 armhf arm64
-Multi-Arch: foreign
-Depends: ${misc:Depends}, ${shlibs:Depends}
-Description: Displays information about Android DEX files
- The `dexdump` tool is intended to mimic `objdump`. When possible, use
- similar command-line arguments.
- .
- This is a re-implementation of the original `dexdump` utility that was
- based on Dalvik functions in `libdex` into a new `dexdump` that is now
- based on ART functions in `libart` instead. The output is very similar
- to the original for correct DEX files. Error messages may differ,
- however. Also, ODEX files are no longer supported.
-
 Package: dmtracedump
 Architecture: any
 Multi-Arch: foreign
@@ -178,17 +84,6 @@ Description: Generates graphical call-stack diagrams from Android trace logs
  each node represents a method call. It shows call flow (from parent
  node to child nodes) using arrows.
 
-Package: dexlist
-Architecture: amd64 i386 armhf arm64
-Multi-Arch: foreign
-Depends: ${misc:Depends}, ${shlibs:Depends}
-Description: Lists all methods in all concrete classes in Android DEX files
- This is a re-implementation of the original `dexlist` utility that was
- based on Dalvik functions in `libdex` into a new `dexlist` that is now
- based on ART functions in `libart` instead. The output is very similar
- to the original for correct DEX files. Error messages may differ,
- however. Also, ODEX files are no longer supported.
-
 Package: hprof-conv
 Architecture: any
 Multi-Arch: foreign
@@ -197,34 +92,3 @@ Description: HPROF Converter
  The hprof-conv tool converts the HPROF file that is generated by the Android
  SDK tools to a standard format so you can view the file in a profiling tool of
  your choice.
-
-Package: dalvik-exchange
-Architecture: all
-Multi-Arch: foreign
-Depends: default-jre-headless (>= 1:1.6) | java6-runtime-headless,
-         libandroid-23-java (>= 6.0.1+r72-3~),
-         proguard-cli,
-         ${misc:Depends}
-Description: Manipulate Dalvik eXchange format and produce dex files
- Dalvik is a process virtual machine in Google's Android operating system that
- executes applications written for Android.
- .
- dalvik-exchange is the tool that takes in class
- files and reformulates them for consumption in the VM. It also does a few other
- things.
- .
- This program is officially named "dx" but in order to avoid naming conflict
- with OpenDX in Debian it is renamed to "dalvik-exchange".
- .
- This package also provides the "mainDexClasses" program.
-
-Package: dexdeps
-Architecture: all
-Depends: ${java:Depends}, ${misc:Depends}
-Description: DEX external dependency dump
- This tool dumps a list of fields and methods that a DEX file uses but
- does not define.  When combined with a list of public APIs, it can be
- used to determine whether an APK is accessing fields and calling
- methods that it shouldn't be.  It may also be useful in determining
- whether an application requires a certain minimum API level to
- execute.

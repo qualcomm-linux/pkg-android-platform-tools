@@ -1,6 +1,0 @@
-#!/usr/bin/dh-exec
-
-dalvik/dx/etc/dx                      usr/lib/android-sdk/build-tools/debian
-dalvik/dx/etc/mainDexClasses          usr/lib/android-sdk/build-tools/debian
-dalvik/dx/etc/mainDexClasses.rules    usr/lib/android-sdk/build-tools/debian
-dalvik/dx/etc/mainDexClassesNoAapt.rules   usr/lib/android-sdk/build-tools/debian

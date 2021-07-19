@@ -1,4 +1,0 @@
-#!/usr/bin/env bash
-
-export ANDROID_HOST_OUT=/usr
-test/dexdump/run-all-tests
