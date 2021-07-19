@@ -18,7 +18,6 @@ Build-Depends:
  libsquashfuse-dev,
  maven-repo-helper,
  p7zip-full,
- pandoc,
  python3 [amd64 i386 armel armhf arm64],
  zlib1g-dev [amd64 i386 armel armhf arm64],
 Build-Depends-Arch:
@@ -38,7 +37,6 @@ Architecture: amd64 i386 armel armhf arm64
 Multi-Arch: foreign
 Depends: android-sdk-platform-tools-common (>= 28.0.2~),
          ${misc:Depends},
-         ${shlibs:Depends},
 Suggests: android-sdk-platform-tools-common
 Breaks: android-tools-adb (<< 6.0~)
 Replaces: android-tools-adb (<< 6.0~)
@@ -56,7 +54,6 @@ Architecture: amd64 i386 armel armhf arm64
 Multi-Arch: foreign
 Depends: android-sdk-platform-tools-common (>= 28.0.2~),
          ${misc:Depends},
-         ${shlibs:Depends},
 Suggests: android-sdk-platform-tools
 Breaks: android-tools-fastboot (<< 6.0~)
 Replaces: android-tools-fastboot (<< 6.0~)
@@ -67,7 +64,7 @@ Description: Android fastboot tool
 
 Package: etc1tool
 Architecture: amd64 i386 armel armhf arm64 mips mipsel mips64el
-Depends: ${misc:Depends}, ${shlibs:Depends}
+Depends: ${misc:Depends}
 Description: ETC1 conversion tool
  etc1tool is a command line utility that lets you encode PNG images to
  the ETC1 compression standard and decode ETC1 compressed images back
@@ -78,7 +75,7 @@ Description: ETC1 conversion tool
 Package: dmtracedump
 Architecture: any
 Multi-Arch: foreign
-Depends: graphviz, ${shlibs:Depends}, ${misc:Depends}
+Depends: graphviz, ${misc:Depends}
 Description: Generates graphical call-stack diagrams from Android trace logs
  `dmtracedump` generates the call stack data as a tree diagram, where
  each node represents a method call. It shows call flow (from parent

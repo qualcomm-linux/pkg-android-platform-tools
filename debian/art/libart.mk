@@ -494,11 +494,6 @@ debian/out/art/$(NAME).a: $(OBJECTS_CXX) $(OBJECTS_ASSEMBLY)
 	mkdir --parents debian/out/art
 	ar -rcs $@ $^
 
-clean:
-	$(RM) $(OBJECTS_CXX) $(OBJECTS_ASSEMBLY)
-
-.PHONY: clean
-
 $(OBJECTS_CXX): %.o: %.cc
 	$(CXX) -c -o $@ $< $(CXXFLAGS) $(CPPFLAGS)
 

@@ -73,7 +73,6 @@ SOURCES = \
   $(foreach source, $(filter %.cpp, $(libbacktrace_SOURCES)), libbacktrace/$(source)) \
   $(foreach source, $(filter %.cpp, $(libunwindstack_SOURCES)), libunwindstack/$(source)) \
   $(foreach source, $(filter %.cpp, $(libunwindstack_dexfile_SOURCES)), libunwindstack/$(source)) \
-  $(demangle_srcs)
 
 SOURCES := $(foreach source, $(SOURCES), system/core/$(source))
 OBJECTS_CXX = $(SOURCES:.cpp=.o)

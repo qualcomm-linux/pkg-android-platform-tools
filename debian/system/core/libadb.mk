@@ -45,17 +45,17 @@ OBJECTS = $(SOURCES:.cpp=.o)
 
 CXXFLAGS += -std=gnu++2a
 CPPFLAGS += \
-            -I/usr/include/android \
-            -Isystem/core/adb \
-            -Isystem/core/base/include \
-            -Isystem/core/diagnose_usb/include \
-            -Isystem/core/libcrypto_utils/include \
-            -Isystem/core/include \
-            -Iexternal/boringssl/include \
-            -Isystem/core/libcutils/include \
-            -Isystem/core/base/include \
-            -DPLATFORM_TOOLS_VERSION='"$(PLATFORM_TOOLS_VERSION)"' \
-            -DADB_HOST=1 -DADB_VERSION='"$(DEB_VERSION)"'
+  -I/usr/include/android \
+  -Isystem/core/adb \
+  -Isystem/core/base/include \
+  -Isystem/core/diagnose_usb/include \
+  -Isystem/core/libcrypto_utils/include \
+  -Isystem/core/include \
+  -Iexternal/boringssl/include \
+  -Isystem/core/libcutils/include \
+  -Isystem/core/base/include \
+  -DPLATFORM_TOOLS_VERSION='"$(PLATFORM_TOOLS_VERSION)"' \
+  -DADB_HOST=1 -DADB_VERSION='"$(DEB_VERSION)"'
 
 debian/out/system/core/$(NAME).a: $(OBJECTS)
 	mkdir --parents debian/out/system/core
@@ -65,4 +65,5 @@ $(OBJECTS): %.o: %.cpp
 	$(CXX) -c -o $@ $< $(CXXFLAGS) $(CPPFLAGS)
 
 debian/out/system/core/transport_mdns_unsupported.cpp:
+	mkdir --parents debian/out/system/core
 	echo 'void init_mdns_transport_discovery(void) {}' > $@

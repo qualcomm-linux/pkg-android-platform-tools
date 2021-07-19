@@ -3,6 +3,7 @@ NAME = libdexfile_support
 SOURCES = art/libdexfile/external/dex_file_supp.cc
 OBJECTS = $(SOURCES:.cc=.o)
 
+CXXFLAGS += -std=gnu++17
 CPPFLAGS += \
   -Iart/libartbase \
   -Iart/libdexfile \
@@ -11,8 +12,6 @@ CPPFLAGS += \
   -Isystem/core/liblog/include \
   -Isystem/core/base/include \
   -Umips \
-
-CXXFLAGS += -std=gnu++17
 
 debian/out/art/$(NAME).a: $(OBJECTS)
 	mkdir --parents debian/out/art

@@ -1,5 +1,6 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0
 Upstream-Contact: https://source.android.com/compatibility/contact-us.html
+Comment: Files excluded should be kept in sync with d/orig.excludes
 Files-Excluded: *.a
                 *.apk
                 *.data
@@ -91,6 +92,8 @@ Files: external/boringssl/src/crypto/asn1/*
        external/boringssl/src/decrepit/des/cfb64ede.c
        external/boringssl/src/decrepit/macros.h
        external/boringssl/src/decrepit/rc4/rc4_decrepit.c
+       external/boringssl/src/decrepit/ripemd/internal.h
+       external/boringssl/src/decrepit/ripemd/ripemd.c
        external/boringssl/src/decrepit/rsa/rsa_decrepit.c
        external/boringssl/src/decrepit/ssl/ssl_decrepit.c
        external/boringssl/src/include/openssl/asn1.h
@@ -155,6 +158,7 @@ Files: external/boringssl/crypto_test_data.cc
        external/boringssl/src/crypto/cipher_extra/e_aesctrhmac.c
        external/boringssl/src/crypto/cipher_extra/e_aesgcmsiv.c
        external/boringssl/src/crypto/cipher_extra/e_chacha20poly1305.c
+       external/boringssl/src/crypto/cipher_extra/e_ssl3.c
        external/boringssl/src/crypto/cipher_extra/e_tls.c
        external/boringssl/src/crypto/cipher_extra/test/nist_cavp/make_cavp.go
        external/boringssl/src/crypto/cmac/cmac_test.cc
@@ -166,7 +170,10 @@ Files: external/boringssl/crypto_test_data.cc
        external/boringssl/src/crypto/cpu-ppc64le.c
        external/boringssl/src/crypto/crypto.c
        external/boringssl/src/crypto/curve25519/*
+       external/boringssl/src/crypto/dh/CMakeLists.txt
        external/boringssl/src/crypto/digest_extra/digest_test.cc
+       external/boringssl/src/crypto/digest_extra/internal.h
+       external/boringssl/src/crypto/ecdh/ecdh_test.cc
        external/boringssl/src/crypto/engine/*
        external/boringssl/src/crypto/err/err_data_generate.go
        external/boringssl/src/crypto/err/err_test.cc
@@ -183,12 +190,15 @@ Files: external/boringssl/crypto_test_data.cc
        external/boringssl/src/crypto/fipsmodule/delocate.h
        external/boringssl/src/crypto/fipsmodule/ec/ec_test.cc
        external/boringssl/src/crypto/fipsmodule/ec/p224-64.c
+       external/boringssl/src/crypto/fipsmodule/ec/p256-64.c
        external/boringssl/src/crypto/fipsmodule/ec/p256-x86_64_test.cc
+       external/boringssl/src/crypto/fipsmodule/ec/util-64.c
        external/boringssl/src/crypto/fipsmodule/is_fips.c
        external/boringssl/src/crypto/fipsmodule/modes/polyval.c
        external/boringssl/src/crypto/fipsmodule/rand/*
        external/boringssl/src/crypto/hkdf/*
        external/boringssl/src/crypto/lhash/lhash_test.cc
+       external/boringssl/src/crypto/lhash/make_macros.sh
        external/boringssl/src/crypto/obj/obj_test.cc
        external/boringssl/src/crypto/obj/objects.go
        external/boringssl/src/crypto/pkcs7/*
@@ -206,6 +216,7 @@ Files: external/boringssl/crypto_test_data.cc
        external/boringssl/src/decrepit/obj/*
        external/boringssl/src/decrepit/ripemd/*
        external/boringssl/src/decrepit/x509/*
+       external/boringssl/src/fipstools/*
        external/boringssl/src/FUZZING.md
        external/boringssl/src/include/openssl/aead.h
        external/boringssl/src/include/openssl/asn1_mac.h
@@ -219,6 +230,7 @@ Files: external/boringssl/crypto_test_data.cc
        external/boringssl/src/include/openssl/engine.h
        external/boringssl/src/include/openssl/hkdf.h
        external/boringssl/src/include/openssl/is_boringssl.h
+       external/boringssl/src/include/openssl/lhash_macros.h
        external/boringssl/src/include/openssl/obj_mac.h
        external/boringssl/src/include/openssl/objects.h
        external/boringssl/src/include/openssl/opensslconf.h
@@ -232,11 +244,15 @@ Files: external/boringssl/crypto_test_data.cc
        external/boringssl/src/include/openssl/safestack.h
        external/boringssl/src/include/openssl/srtp.h
        external/boringssl/src/INCORPORATING.md
+       external/boringssl/src/LICENSE
        external/boringssl/src/PORTING.md
        external/boringssl/src/README.md
        external/boringssl/src/ssl/CMakeLists.txt
+       external/boringssl/src/ssl/custom_extensions.cc
        external/boringssl/src/ssl/ssl_aead_ctx.cc
        external/boringssl/src/ssl/ssl_buffer.cc
+       external/boringssl/src/ssl/ssl_ecdh.cc
+       external/boringssl/src/ssl/ssl_test.cc
        external/boringssl/src/ssl/ssl_versions.cc
        external/boringssl/src/ssl/test/*
        external/boringssl/src/ssl/tls13_both.cc
@@ -261,6 +277,7 @@ Copyright: 2017, The Android Open Source Project
 License: Apache-2.0
 
 Files: external/boringssl/src/ssl/test/runner/curve25519/*
+       external/boringssl/src/ssl/test/runner/ed25519/*
        external/boringssl/src/ssl/test/runner/alert.go
        external/boringssl/src/ssl/test/runner/cipher_suites.go
        external/boringssl/src/ssl/test/runner/common.go
@@ -300,7 +317,18 @@ Files: external/boringssl/src/crypto/x509v3/v3_pci.c
 Copyright: 2004, Kungliga Tekniska Högskolan
 License: BSD-3-clause
 
-Files: external/boringssl/src/include/openssl/ecdh.h
+Files: external/boringssl/src/third_party/android-cmake/AndroidNdkGdb.cmake
+       external/boringssl/src/third_party/android-cmake/AndroidNdkModules.cmake
+Copyright: 2014, Pavel Rojtberg
+License: BSD-3-clause
+
+Files: external/boringssl/src/third_party/android-cmake/android.toolchain.cmake
+Copyright: 2011-2014, Andrey Kamaev
+           2010-2011, Ethan Rublee
+License: BSD-3-clause
+
+Files: external/boringssl/src/crypto/ecdh/ecdh.c
+       external/boringssl/src/include/openssl/ecdh.h
 Copyright: 2002, Sun Microsystems
            2000-2002, The OpenSSL Project
 License: OpenSSL
@@ -321,6 +349,7 @@ Copyright: 2018, Saif Abdul Cassim <saif.15@cse.mrt.ac.lk>
 License: MIT
 
 Files: external/selinux/*
+       external/selinux/libselinux/utils/avcstat.c
 Copyright: 2004-2005, Trusted Computer Solutions, Inc.
            2003-2008, Tresys Technology, LLC
            2005-2013, Red Hat Inc.
@@ -359,7 +388,7 @@ Files: external/libunwind/src/mips/*
 Copyright: 2008 CodeSourcery
 License: MIT
 
-Files: external/libunwind/src/os-freebsd.c
+Files: external/libunwind/src/os-freebsd.c src/x86/*-freebsd.*
 Copyright: 2010 Konstantin Belousov <kib@freebsd.org>
 License: MIT
 
@@ -380,7 +409,7 @@ Files: external/libunwind/src/x86/getcontext-linux.S
 Copyright: 2009 Google, Inc
 License: MIT
 
-Files: external/libunwind/src/x86_64/Gstash_frame.c
+Files: external/libunwind/src/x86_64/Gstash_frame.c src/x86_64/Gtrace.c
 Copyright: 2010, 2011 by FERMI NATIONAL ACCELERATOR LABORATORY
 License: MIT
 
@@ -443,6 +472,11 @@ Files: system/core/libcutils/include/cutils/ashmem.h
 Copyright: 2007-2014, The Android Open Source Project
 License: Apache-2.0 or GPL-2
 
+Files: system/core/libion/original-kernel-headers/linux/ion.h
+       system/core/libion/original-kernel-headers/linux/ion_test.h
+Copyright: 2011, Google, Inc. <google.com>
+License: GPL-2
+
 Files: system/core/libpixelflinger/codeflinger/armreg.h
        system/core/libpixelflinger/codeflinger/disassem.c
        system/core/libpixelflinger/codeflinger/disassem.h
@@ -459,6 +493,21 @@ Files: system/core/libpixelflinger/codeflinger/mips_opcode.h
        system/core/libpixelflinger/codeflinger/mips64_disassem.h
 Copyright: 1987-1994, The Regents of the University of California
 License: BSD-3-clause
+
+Files: system/core/toolbox/upstream-netbsd/usr.bin/grep/*
+Copyright: 1999, James Howard and Dag-Erling Coïdan Smørgrav
+           2008-2010, Gabor Kovesdan <gabor@FreeBSD.org>
+License: BSD-2-clause
+
+Files: system/core/toolbox/upstream-netbsd/usr.bin/grep/file.c
+Copyright: 1999, James Howard and Dag-Erling Coïdan Smørgrav
+           2008-2010, Gabor Kovesdan <gabor@FreeBSD.org>
+           2010, Dimitry Andric <dimitry@andric.com>
+License: BSD-2-clause
+
+Files: system/core/toolbox/upstream-netbsd/usr.bin/grep/queue.c
+Copyright: 1999, James Howard and Dag-Erling Coïdan Smørgrav
+License: BSD-2-clause
 
 Files: system/core/libsparse/sparse_crc32.cpp
 Copyright: 1986, Gary S. Brow
@@ -805,6 +854,13 @@ Copyright: 2008-2017, The Khronos Group Inc.
   2004, 2005, Jetro Lauha
 License: Apache-2.0
 
+Files: frameworks/native/services/nativeperms/android/*
+Copyright: 2008-2017, The Khronos Group Inc.
+  2008-2016, Google Inc.
+  2005-2017, The Android Open Source Project
+  2004, 2005, Jetro Lauha
+License: Apache-2.0
+
 Files: frameworks/native/services/sensorservice/OWNERS
 Copyright: 2008-2017, The Khronos Group Inc.
   2008-2016, Google Inc.
@@ -1078,6 +1134,122 @@ License: BSD-4-clause
  4. The name of the company nor the name of the author may be used to
     endorse or promote products derived from this software without specific
     prior written permission.
+
+License: CC0
+ Creative Commons CC0 1.0 Universal
+ CREATIVE COMMONS CORPORATION IS NOT A LAW FIRM AND DOES NOT PROVIDE LEGAL
+ SERVICES. DISTRIBUTION OF THIS DOCUMENT DOES NOT CREATE AN ATTORNEY-CLIENT
+ RELATIONSHIP. CREATIVE COMMONS PROVIDES THIS INFORMATION ON AN "AS-IS"
+ BASIS. CREATIVE COMMONS MAKES NO WARRANTIES REGARDING THE USE OF THIS
+ DOCUMENT OR THE INFORMATION OR WORKS PROVIDED HEREUNDER, AND DISCLAIMS
+ LIABILITY FOR DAMAGES RESULTING FROM THE USE OF THIS DOCUMENT OR THE
+ INFORMATION OR WORKS PROVIDED HEREUNDER.
+ .
+ Statement of Purpose
+ .
+ The laws of most jurisdictions throughout the world automatically confer
+ exclusive Copyright and Related Rights (defined below) upon the creator and
+ subsequent owner(s) (each and all, an "owner") of an original work of
+ authorship and/or a database (each, a "Work").
+ .
+ Certain owners wish to permanently relinquish those rights to a Work for the
+ purpose of contributing to a commons of creative, cultural and scientific
+ works ("Commons") that the public can reliably and without fear of later
+ claims of infringement build upon, modify, incorporate in other works, reuse
+ and redistribute as freely as possible in any form whatsoever and for any
+ purposes, including without limitation commercial purposes. These owners may
+ contribute to the Commons to promote the ideal of a free culture and the
+ further production of creative, cultural and scientific works, or to gain
+ reputation or greater distribution for their Work in part through the use and
+ efforts of others.
+ .
+ For these and/or other purposes and motivations, and without any expectation
+ of additional consideration or compensation, the person associating CC0 with
+ a Work (the "Affirmer"), to the extent that he or she is an owner of
+ Copyright and Related Rights in the Work, voluntarily elects to apply CC0 to
+ the Work and publicly distribute the Work under its terms, with knowledge of
+ his or her Copyright and Related Rights in the Work and the meaning and
+ intended legal effect of CC0 on those rights.
+ .
+ 1. Copyright and Related Rights. A Work made available under CC0 may be
+    protected by copyright and related or neighboring rights ("Copyright and
+    Related Rights"). Copyright and Related Rights include, but are not
+    limited to, the following:
+ .
+   i. the right to reproduce, adapt, distribute, perform, display,
+      communicate, and translate a Work;
+   ii. moral rights retained by the original author(s) and/or performer(s);
+   iii. publicity and privacy rights pertaining to a person's image or
+        likeness depicted in a Work;
+   iv. rights protecting against unfair competition in regards to a Work,
+       subject to the limitations in paragraph 4(a), below;
+   v. rights protecting the extraction, dissemination, use and reuse of data
+      in a Work;
+   vi. database rights (such as those arising under Directive 96/9/EC of the
+       European Parliament and of the Council of 11 March 1996 on the legal
+       protection of databases, and under any national implementation thereof,
+       including any amended or successor version of such directive); and
+   vii. other similar, equivalent or corresponding rights throughout the world
+        based on applicable law or treaty, and any national implementations
+        thereof.
+ .
+ 2. Waiver. To the greatest extent permitted by, but not in contravention of,
+ applicable law, Affirmer hereby overtly, fully, permanently, irrevocably and
+ unconditionally waives, abandons, and surrenders all of Affirmer's Copyright
+ and Related Rights and associated claims and causes of action, whether now
+ known or unknown (including existing as well as future claims and causes of
+ action), in the Work (i) in all territories worldwide, (ii) for the maximum
+ duration provided by applicable law or treaty (including future time
+ extensions), (iii) in any current or future medium and for any number of
+ copies, and (iv) for any purpose whatsoever, including without limitation
+ commercial, advertising or promotional purposes (the "Waiver"). Affirmer
+ makes the Waiver for the benefit of each member of the public at large and to
+ the detriment of Affirmer's heirs and successors, fully intending that such
+ Waiver shall not be subject to revocation, rescission, cancellation,
+ termination, or any other legal or equitable action to disrupt the quiet
+ enjoyment of the Work by the public as contemplated by Affirmer's express
+ Statement of Purpose.
+ .
+ 3. Public License Fallback. Should any part of the Waiver for any reason be
+ judged legally invalid or ineffective under applicable law, then the Waiver
+ shall be preserved to the maximum extent permitted taking into account
+ Affirmer's express Statement of Purpose. In addition, to the extent the
+ Waiver is so judged Affirmer hereby grants to each affected person a
+ royalty-free, non transferable, non sublicensable, non exclusive, irrevocable
+ and unconditional license to exercise Affirmer's Copyright and Related Rights
+ in the Work (i) in all territories worldwide, (ii) for the maximum duration
+ provided by applicable law or treaty (including future time extensions),
+ (iii) in any current or future medium and for any number of copies, and (iv)
+ for any purpose whatsoever, including without limitation commercial,
+ advertising or promotional purposes (the "License"). The License shall be
+ deemed effective as of the date CC0 was applied by Affirmer to the
+ Work. Should any part of the License for any reason be judged legally invalid
+ or ineffective under applicable law, such partial invalidity or
+ ineffectiveness shall not invalidate the remainder of the License, and in
+ such case Affirmer hereby affirms that he or she will not (i) exercise any of
+ his or her remaining Copyright and Related Rights in the Work or (ii) assert
+ any associated claims and causes of action with respect to the Work, in
+ either case contrary to Affirmer's express Statement of Purpose.
+ .
+ 4. Limitations and Disclaimers.
+  a. No trademark or patent rights held by Affirmer are waived, abandoned,
+     surrendered, licensed or otherwise affected by this document.
+  b. Affirmer offers the Work as-is and makes no representations or warranties
+     of any kind concerning the Work, express, implied, statutory or
+     otherwise, including without limitation warranties of title,
+     merchantability, fitness for a particular purpose, non infringement, or
+     the absence of latent or other defects, accuracy, or the present or
+     absence of errors, whether or not discoverable, all to the greatest
+     extent permissible under applicable law.
+  c. Affirmer disclaims responsibility for clearing rights of other persons
+     that may apply to the Work or any use thereof, including without
+     limitation any person's Copyright and Related Rights in the
+     Work. Further, Affirmer disclaims responsibility for obtaining any
+     necessary consents, permissions or other rights required for any use of
+     the Work.
+  d. Affirmer understands and acknowledges that Creative Commons is not a
+     party to this document and has no duty or obligation with respect to this
+     CC0 or use of the Work.
 
 License: Expat
  This software is Copyright (c) 2020 by foo.
