@@ -1,3 +1,1 @@
-#!/usr/bin/dh-exec
-
-debian/out/art/dmtracedump    usr/lib/android-sdk/platform-tools
+debian/out/art/dmtracedump    usr/lib/android-sdk/platform-tools/
