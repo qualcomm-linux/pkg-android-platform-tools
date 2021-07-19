@@ -1,4 +1,5 @@
 Description: Add missing 'std::' scope identifiers.
+Forwarded: not-needed
 --- a/art/runtime/class_linker.cc
 +++ b/art/runtime/class_linker.cc
 @@ -3181,7 +3181,7 @@

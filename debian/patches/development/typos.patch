@@ -1,7 +1,7 @@
 Description: Fix typos
 Author: Kai-Chung Yan (殷啟聰)
 Last-Update: 2016-10-01
-Forwarded: no
+Forwarded: not-needed
 --- a/development/tools/etc1tool/etc1tool.cpp
 +++ b/development/tools/etc1tool/etc1tool.cpp
 @@ -56,7 +56,7 @@

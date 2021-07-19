@@ -1,6 +1,7 @@
 Description: Use `ucontext_t` instead of `ucontext`
  Both Bionic and glibc define a struct called `ucontext_t` but only Bionic
  defines an alias `ucontext_t`. Let's use the more standardized one.
+Forwarded: not-needed
 --- a/art/runtime/native_stack_dump.cc
 +++ b/art/runtime/native_stack_dump.cc
 @@ -38,6 +38,7 @@

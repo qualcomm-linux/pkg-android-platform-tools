@@ -3,6 +3,7 @@ Last-Update: 2016-08-24
 Description: Manual definition of struct user_pt_regs
  On ARM64, libunwind uses struct user_pt_regs which is not defined in
  anywhere, which causes FTBFS.
+Forwarded: not-needed
 --- a/external/libunwind/src/ptrace/_UPT_access_reg.c
 +++ b/external/libunwind/src/ptrace/_UPT_access_reg.c
 @@ -26,6 +26,15 @@ WITH THE SOFTWARE OR THE USE OR OTHER DE

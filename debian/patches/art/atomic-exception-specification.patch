@@ -1,6 +1,7 @@
 Description: Conforms with the exception specification of `std::atomic`
  All constructors of `std::atomic` require `noexcept`. As a result, its members
  must also be able to instantiate without any exception throwing.
+Forwarded: not-needed
 --- a/art/runtime/mirror/dex_cache.h
 +++ b/art/runtime/mirror/dex_cache.h
 @@ -68,7 +68,7 @@

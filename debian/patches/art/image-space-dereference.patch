@@ -1,3 +1,5 @@
+Description: get libart building
+Forwarded: not-needed
 --- a/art/runtime/gc/space/image_space.cc
 +++ b/art/runtime/gc/space/image_space.cc
 @@ -3272,7 +3272,7 @@ class ImageSpace::BootImageLoader {

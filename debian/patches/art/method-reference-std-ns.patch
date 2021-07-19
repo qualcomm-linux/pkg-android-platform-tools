@@ -1,3 +1,5 @@
+Description: Add standard namespace scope resolution
+Forwarded: not-needed
 --- a/art/libdexfile/dex/method_reference.h
 +++ b/art/libdexfile/dex/method_reference.h
 @@ -52,20 +52,20 @@ struct MethodReferenceValueComparator {

@@ -1,3 +1,5 @@
+Description: Fix python interpreter name
+Forwarded: not-needed
 diff --git a/art/runtime/interpreter/mterp/common/gen_setup.py b/art/runtime/interpreter/mterp/common/gen_setup.py
 index 2684ab2..ac0606b 100644
 --- a/art/runtime/interpreter/mterp/common/gen_setup.py

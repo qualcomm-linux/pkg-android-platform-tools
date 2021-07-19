@@ -1,3 +1,5 @@
+Description: get libcutils building
+Forwarded: not-needed
 --- a/system/core/libcutils/include/cutils/threads.h
 +++ b/system/core/libcutils/include/cutils/threads.h
 @@ -33,7 +33,7 @@

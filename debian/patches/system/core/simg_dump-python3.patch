@@ -1,6 +1,6 @@
 Description: Port simg_dump to Python 3.
 Author: Antonio Russo <antonio.e.russo@gmail.com>
-Forwarded: no
+Forwarded: not-needed
 Last-Update: 2019-01-05
 Origin: https://bugs.debian.org/945646
 

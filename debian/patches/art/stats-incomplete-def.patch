@@ -1,3 +1,5 @@
+Description: Use `Stats*` instead of `Stats`
+Forwarded: not-needed
 --- a/art/libartbase/base/stats.h
 +++ b/art/libartbase/base/stats.h
 @@ -28,8 +28,8 @@ class Stats {

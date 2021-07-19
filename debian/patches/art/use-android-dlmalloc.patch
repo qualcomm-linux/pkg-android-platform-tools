@@ -1,3 +1,6 @@
+Description: Make libart use dlmalloc from
+https://android.googlesource.com/platform/external/dlmalloc
+Forwarded: not-needed
 --- a/art/runtime/gc/allocator/dlmalloc.h
 +++ b/art/runtime/gc/allocator/dlmalloc.h
 @@ -33,7 +33,7 @@
