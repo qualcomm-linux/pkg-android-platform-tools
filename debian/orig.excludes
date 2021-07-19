@@ -21,4 +21,7 @@ development/host/windows/usb/winusb/Resource.h
 development/perftests
 development/prebuilt
 development/samples
-system/extras/simpleperf/scripts/script_testdata
+system/core/libunwindstack/tests
+system/extras/simpleperf
+external/avb/examples
+external/selinux/mcstrans/share/examples

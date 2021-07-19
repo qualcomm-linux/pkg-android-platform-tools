@@ -12,7 +12,10 @@ Files-Excluded: *.a
                 *.tar.gz
                 *.vdex
                 *.zip
-                system/extras/simpleperf/scripts/script_testdata
+                system/core/libunwindstack/tests
+                system/extras/simpleperf
+                external/avb/examples
+                external/selinux/mcstrans/share/examples
 
 Files: *
 Copyright: 2019, Kai-Chung Yan (殷啟聰)
