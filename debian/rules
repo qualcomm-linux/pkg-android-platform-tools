@@ -229,3 +229,8 @@ override_dh_auto_clean:
 
 override_dh_shlibdeps:
 	dh_shlibdeps
+
+override_dh_gencontrol:
+	dh_gencontrol
+	dh_gencontrol -padb -- -v1:$(DEB_VERSION)
+	dh_gencontrol -pfastboot -- -v1:$(DEB_VERSION)
