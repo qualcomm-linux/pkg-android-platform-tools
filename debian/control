@@ -35,10 +35,9 @@ Vcs-Browser: https://salsa.debian.org/android-tools-team/android-platform-tools
 Package: adb
 Architecture: amd64 i386 armel armhf arm64
 Multi-Arch: foreign
-Depends: android-sdk-platform-tools-common (>= 28.0.2~),
+Depends: android-sdk-platform-tools-common (>= 29.0.6~),
          ${misc:Depends},
          ${shlibs:Depends},
-Suggests: android-sdk-platform-tools-common
 Breaks: android-tools-adb (<< 6.0~)
 Replaces: android-tools-adb (<< 6.0~)
 Provides: android-tools-adb
@@ -53,7 +52,7 @@ Description: Android Debug Bridge
 Package: fastboot
 Architecture: amd64 i386 armel armhf arm64
 Multi-Arch: foreign
-Depends: android-sdk-platform-tools-common (>= 28.0.2~),
+Depends: android-sdk-platform-tools-common (>= 29.0.6~),
          ${misc:Depends},
          ${shlibs:Depends},
 Suggests: android-sdk-platform-tools
