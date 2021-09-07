@@ -1,5 +1,6 @@
-android-platform-tools (29.0.6-1) UNRELEASED; urgency=medium
+android-platform-tools (29.0.6-1) unstable; urgency=medium
 
+  * Team upload
   * New upstream version 29.0.6
 
  -- Prateek Ganguli <prateek.ganguli@gmail.com>  Thu, 20 May 2021 10:00:00 +0530
