@@ -66,7 +66,8 @@ Description: Android fastboot tool
 
 Package: etc1tool
 Architecture: amd64 i386 armel armhf arm64 mips mipsel mips64el
-Depends: ${misc:Depends}
+Depends: ${misc:Depends},
+         ${shlibs:Depends},
 Description: ETC1 conversion tool
  etc1tool is a command line utility that lets you encode PNG images to
  the ETC1 compression standard and decode ETC1 compressed images back
