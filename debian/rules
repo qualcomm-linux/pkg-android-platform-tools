@@ -22,7 +22,7 @@ export DEB_VERSION
 # https://android.googlesource.com/platform/development/+/refs/tags/platform-tools-29.0.6/sdk/plat_tools_source.prop_template
 export PLATFORM_TOOLS_VERSION = 29.0.6
 
-ifneq (, $(shell which clang))
+ifneq (, $(shell command -v clang))
   export CC=clang
   export CXX=clang++
 endif
