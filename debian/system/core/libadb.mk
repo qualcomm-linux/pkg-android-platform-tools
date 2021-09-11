@@ -45,7 +45,6 @@ OBJECTS = $(SOURCES:.cpp=.o)
 
 CXXFLAGS += -std=gnu++2a
 CPPFLAGS += \
-  -I/usr/include/android \
   -Isystem/core/adb \
   -Isystem/core/base/include \
   -Isystem/core/diagnose_usb/include \
@@ -54,6 +53,7 @@ CPPFLAGS += \
   -Iexternal/boringssl/include \
   -Isystem/core/libcutils/include \
   -Isystem/core/base/include \
+  -I/usr/include/android \
   -DPLATFORM_TOOLS_VERSION='"$(PLATFORM_TOOLS_VERSION)"' \
   -DADB_HOST=1 -DADB_VERSION='"$(DEB_VERSION)"'
 

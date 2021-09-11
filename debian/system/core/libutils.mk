@@ -30,7 +30,6 @@ OBJECTS = $(SOURCES:.cpp=.o)
 
 CXXFLAGS += -std=gnu++17
 CPPFLAGS += \
-            -I/usr/include/android \
             -Isystem/core/include \
             -Isystem/core/base/include \
             -Isystem/core/cutils/include \
@@ -38,6 +37,7 @@ CPPFLAGS += \
             -Isystem/core/libbacktrace/include \
             -Isystem/core/liblog/include \
             -Isystem/core/libcutils/include \
+            -I/usr/include/android \
             -DLIBUTILS_NATIVE=1 \
 
 debian/out/system/core/$(NAME).a: $(OBJECTS)

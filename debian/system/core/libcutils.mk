@@ -40,11 +40,11 @@ OBJECTS_CXX := $(SOURCES_CXX:.cpp=.o)
 
 CXXFLAGS += -std=gnu++17
 CPPFLAGS += \
-  -I/usr/include/android \
   -Isystem/core/base/include \
   -Isystem/core/libcutils/include \
   -Isystem/core/liblog/include \
   -Isystem/core/include \
+  -I/usr/include/android \
 
 debian/out/system/core/$(NAME).a: $(OBJECTS_C) $(OBJECTS_CXX)
 	mkdir --parents debian/out/system/core

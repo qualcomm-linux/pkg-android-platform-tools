@@ -81,7 +81,6 @@ OBJECTS_ASSEMBLY := $(SOURCES_ASSEMBLY:.S=.o)
 
 CXXFLAGS += -std=gnu++2a -fno-omit-frame-pointer
 CPPFLAGS += \
-  -I/usr/include/android \
   -Isystem/core/include \
   -Isystem/core/base/include \
   -Isystem/core/demangle/include \
@@ -93,6 +92,7 @@ CPPFLAGS += \
   -Isystem/core/liblog/include \
   -Isystem/core/base/include \
   -Iart/libdexfile/external/include \
+  -I/usr/include/android \
 
 debian/out/system/core/$(NAME).a: $(OBJECTS_CXX) $(OBJECTS_ASSEMBLY)
 	mkdir --parents debian/out/system/core

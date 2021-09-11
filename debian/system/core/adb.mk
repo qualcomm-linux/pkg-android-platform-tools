@@ -16,11 +16,11 @@ OBJECTS = $(SOURCES:.cpp=.o)
 
 CXXFLAGS += -std=gnu++2a
 CPPFLAGS += \
-  -I/usr/include/android \
   -Isystem/core/include \
   -Isystem/core/adb \
   -Isystem/core/base/include \
   -Iexternal/boringssl/include \
+  -I/usr/include/android \
   -DADB_VERSION='"$(DEB_VERSION)"' -DADB_HOST=1 -D_GNU_SOURCE \
 
 LDFLAGS += -lpthread -lusb-1.0

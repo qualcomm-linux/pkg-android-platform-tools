@@ -28,7 +28,6 @@ OBJECTS = $(SOURCES:.cpp=.o)
 
 CXXFLAGS += -std=gnu++2a -fpermissive
 CPPFLAGS += \
-   -I/usr/include/android \
    -DPLATFORM_TOOLS_VERSION='"$(PLATFORM_TOOLS_VERSION)"' \
    -D_FILE_OFFSET_BITS=64 \
    -Isystem/core/include \
@@ -48,6 +47,7 @@ CPPFLAGS += \
    -Isystem/core/libsparse/include \
    -Isystem/core/base/include \
    -Isystem/extras/ext4_utils/include \
+   -I/usr/include/android \
 
 LDFLAGS += -lpthread -lusb-1.0 -lz
 STATIC_LIBS = \

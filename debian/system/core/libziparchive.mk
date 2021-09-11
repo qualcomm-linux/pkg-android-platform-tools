@@ -11,11 +11,11 @@ OBJECTS = $(SOURCES:.cc=.o)
 CXXFLAGS += -std=gnu++17
 CPPFLAGS += \
   -DZLIB_CONST -D_FILE_OFFSET_BITS=64 \
-  -I/usr/include/android \
   -Isystem/core/include \
   -Isystem/core/base/include \
   -Isystem/core/libziparchive/include \
   -Isystem/core/liblog/include \
+  -I/usr/include/android \
 
 debian/out/system/core/$(NAME).a: $(OBJECTS)
 	mkdir --parents debian/out/system/core

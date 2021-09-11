@@ -12,10 +12,11 @@ SOURCES := $(foreach source, $(SOURCES), system/core/libsparse/$(source))
 OBJECTS := $(SOURCES:.cpp=.o)
 
 CXXFLAGS += -std=gnu++17
-CPPFLAGS += -I/usr/include/android \
-            -Isystem/core/include \
+CPPFLAGS += -Isystem/core/include \
             -Isystem/core/libsparse/include \
             -Isystem/core/base/include \
+            -I/usr/include/android \
+
 
 debian/out/system/core/$(NAME).a: $(OBJECTS)
 	mkdir --parents debian/out/system/core

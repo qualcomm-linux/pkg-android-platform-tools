@@ -19,10 +19,10 @@ OBJECTS := $(SOURCES:.cpp=.o)
 CFLAGS += -fvisibility=hidden -fcommon
 CXXFLAGS += -std=gnu++17
 CPPFLAGS += \
-  -I/usr/include/android \
   -Isystem/core/liblog/include \
   -Isystem/core/include \
   -Isystem/core/base/include \
+  -I/usr/include/android \
   -DLIBLOG_LOG_TAG=1006 \
   -DFAKE_LOG_DEVICE=1 \
   -DSNET_EVENT_LOG_TAG=1397638484 \

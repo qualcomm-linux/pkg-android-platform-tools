@@ -23,7 +23,11 @@ SOURCES := $(foreach source, $(SOURCES), system/core/base/$(source))
 OBJECTS = $(SOURCES:.cpp=.o)
 
 CXXFLAGS += -std=gnu++17 -D_FILE_OFFSET_BITS=64
-CPPFLAGS += -I/usr/include/android -Isystem/core/include -Isystem/core/base/include
+CPPFLAGS += \
+  -Isystem/core/include \
+  -Isystem/core/base/include \
+  -I/usr/include/android \
+
 
 debian/out/system/core/$(NAME).a: $(OBJECTS)
 	mkdir --parents debian/out/system/core
