@@ -14,7 +14,7 @@ SOURCES = \
 SOURCES := $(foreach source, $(SOURCES), system/core/adb/$(source))
 OBJECTS = $(SOURCES:.cpp=.o)
 
-CXXFLAGS += -std=gnu++2a
+CXXFLAGS += -std=gnu++2a -pie
 CPPFLAGS += \
   -Isystem/core/include \
   -Isystem/core/adb \

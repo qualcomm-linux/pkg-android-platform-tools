@@ -26,7 +26,7 @@ SOURCES := \
   $(foreach source, $(fs_mgr_liblp_SOURCES), system/core/fs_mgr/liblp/$(source))
 OBJECTS = $(SOURCES:.cpp=.o)
 
-CXXFLAGS += -std=gnu++2a -fpermissive
+CXXFLAGS += -std=gnu++2a -fpermissive -pie
 CPPFLAGS += \
    -DPLATFORM_TOOLS_VERSION='"$(PLATFORM_TOOLS_VERSION)"' \
    -D_FILE_OFFSET_BITS=64 \
