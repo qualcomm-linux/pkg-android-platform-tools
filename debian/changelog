@@ -1,4 +1,4 @@
-android-platform-tools (29.0.6-2) UNRELEASED; urgency=medium
+android-platform-tools (29.0.6-2) unstable; urgency=medium
 
   * Team upload.
   * debian/control:
@@ -14,7 +14,7 @@ android-platform-tools (29.0.6-2) UNRELEASED; urgency=medium
     - Cherry-pick patch from upstream:
       + Switch to an assembler macro for CFI_RESTORE_STATE_AND_DEF_CFA.
 
- -- Roger Shimizu <rosh@debian.org>  Sun, 23 Jan 2022 14:07:47 +0900
+ -- Roger Shimizu <rosh@debian.org>  Sun, 23 Jan 2022 18:03:24 +0900
 
 android-platform-tools (29.0.6-1) unstable; urgency=medium
 
