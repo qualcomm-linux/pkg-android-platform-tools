@@ -32,3 +32,4 @@ art/fix-build-on-non-x86.patch
 art/workaround-cacheflush-on-arm.patch
 art/arm-asm-instruction.patch
 art/fix-standard-namespace-errors.patch
+art/add-assembler-macro.patch

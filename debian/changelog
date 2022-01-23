@@ -10,6 +10,8 @@ android-platform-tools (29.0.6-2) UNRELEASED; urgency=medium
       + Update: debian/patches/art/fix-standard-namespace-errors.patch
       + Update: debian/patches/system/core/add-missing-headers.patch
       + Add: debian/patches/system/core/fix-standard-namespace-errors.patch
+    - Cherry-pick patch from upstream:
+      + Switch to an assembler macro for CFI_RESTORE_STATE_AND_DEF_CFA.
 
  -- Roger Shimizu <rosh@debian.org>  Sun, 23 Jan 2022 14:07:47 +0900
 
