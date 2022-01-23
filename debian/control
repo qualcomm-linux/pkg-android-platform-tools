@@ -6,7 +6,6 @@ Uploaders: Chirayu Desai <chirayudesai1@gmail.com>
 Build-Depends:
  bash-completion,
  clang [amd64 i386 armel armhf arm64],
- debhelper (>= 11),
  debhelper-compat (= 13),
  dh-exec,
  dpkg-dev (>= 1.17.14),
