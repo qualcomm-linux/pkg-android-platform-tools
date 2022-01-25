@@ -1,3 +1,12 @@
+android-platform-tools (29.0.6-4~exp2) experimental; urgency=medium
+
+  * Team upload.
+  * debian/control:
+    - Add B-D python3 for [amd64 i386 arm64], which requires to build
+      libart.
+
+ -- Roger Shimizu <rosh@debian.org>  Wed, 26 Jan 2022 02:27:18 +0900
+
 android-platform-tools (29.0.6-4~exp1) experimental; urgency=medium
 
   * Team upload.
