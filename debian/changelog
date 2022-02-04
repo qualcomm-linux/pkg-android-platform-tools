@@ -1,4 +1,4 @@
-android-platform-tools (29.0.6-5) UNRELEASED; urgency=medium
+android-platform-tools (29.0.6-5~exp1) experimental; urgency=medium
 
   * Team upload.
   * debian/tests/control:
@@ -6,7 +6,7 @@ android-platform-tools (29.0.6-5) UNRELEASED; urgency=medium
   * debian/*.mk: Cleanup, sort list, etc.
   * debian/rules: Move -pie to LDFLAGS.
 
- -- Roger Shimizu <rosh@debian.org>  Fri, 04 Feb 2022 21:08:47 +0900
+ -- Roger Shimizu <rosh@debian.org>  Sat, 05 Feb 2022 04:05:11 +0900
 
 android-platform-tools (29.0.6-4) unstable; urgency=medium
 
