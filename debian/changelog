@@ -1,3 +1,11 @@
+android-platform-tools (29.0.6-5) UNRELEASED; urgency=medium
+
+  * Team upload.
+  * debian/tests/control:
+    - Add Architecture limit for each test.
+
+ -- Roger Shimizu <rosh@debian.org>  Fri, 04 Feb 2022 21:08:47 +0900
+
 android-platform-tools (29.0.6-4) unstable; urgency=medium
 
   * Team upload.
