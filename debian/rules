@@ -221,7 +221,7 @@ override_dh_auto_install:
 	echo ignore upstream build system install procedure
 
 override_dh_auto_configure:
-	rm -rf external/selinux
+	rm -rf external/selinux development/[a-s]* development/v* development/testrunner
 	dh_auto_configure
 
 override_dh_gencontrol:
