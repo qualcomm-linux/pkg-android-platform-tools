@@ -1,3 +1,15 @@
+android-platform-tools (31.0.3-1~exp1) UNRELEASED; urgency=medium
+
+  * Team upload.
+  * New upstream version 31.0.3
+  * debian/manifest: Adapt new upstream.
+  * debian/orig.excludes:
+    - Remove unnecessary large files.
+  * debian/rules:
+    - Update upstream version 31.0.3
+
+ -- Roger Shimizu <rosh@debian.org>  Tue, 22 Feb 2022 01:13:10 +0900
+
 android-platform-tools (29.0.6-5) unstable; urgency=medium
 
   * Team upload.

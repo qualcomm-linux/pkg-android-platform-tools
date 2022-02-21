@@ -19,8 +19,8 @@ export DEB_HOST_MULTIARCH
 ## system/core
 export DEB_HOST_MULTIARCH
 export DEB_VERSION
-# https://android.googlesource.com/platform/development/+/refs/tags/platform-tools-29.0.6/sdk/plat_tools_source.prop_template
-export PLATFORM_TOOLS_VERSION = 29.0.6
+# https://android.googlesource.com/platform/development/+/refs/tags/platform-tools-31.0.3/sdk/plat_tools_source.prop_template
+export PLATFORM_TOOLS_VERSION = 31.0.3
 
 ifneq (, $(shell which clang))
   export CC=clang
