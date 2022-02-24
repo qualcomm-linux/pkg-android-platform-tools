@@ -31,9 +31,8 @@ Homepage: https://developer.android.com/studio/releases/platform-tools
 Package: adb
 Architecture: amd64 i386 armel armhf arm64
 Multi-Arch: foreign
-Depends: android-sdk-platform-tools-common (>= 28.0.2~),
-         ${misc:Depends},
-         ${shlibs:Depends},
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Recommends: android-sdk-platform-tools-common (>= 28.0.2~)
 Breaks: android-tools-adb (<< 6.0~)
 Replaces: android-tools-adb (<< 6.0~)
 Provides: android-tools-adb
@@ -48,9 +47,8 @@ Description: Android Debug Bridge
 Package: fastboot
 Architecture: amd64 i386 armel armhf arm64
 Multi-Arch: foreign
-Depends: android-sdk-platform-tools-common (>= 28.0.2~),
-         ${misc:Depends},
-         ${shlibs:Depends},
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Recommends: android-sdk-platform-tools-common (>= 28.0.2~)
 Suggests: android-sdk-platform-tools
 Breaks: android-tools-fastboot (<< 6.0~)
 Replaces: android-tools-fastboot (<< 6.0~)

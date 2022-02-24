@@ -1,3 +1,13 @@
+android-platform-tools (29.0.6-6) unstable; urgency=medium
+
+  * Team upload.
+  * debian/control:
+    - For adb and fastboot package, move
+      android-sdk-platform-tools-common from Depends to Recommends,
+      since it might be removed from testing soon.
+
+ -- Roger Shimizu <rosh@debian.org>  Fri, 25 Feb 2022 01:58:51 +0900
+
 android-platform-tools (29.0.6-5) unstable; urgency=medium
 
   * Team upload.
