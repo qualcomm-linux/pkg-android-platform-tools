@@ -27,7 +27,7 @@ CPPFLAGS += \
   -Isystem/core/liblog/include \
 
 debian/out/system/core/$(NAME).a: $(OBJECTS)
-	mkdir --parents debian/out/system/core
+	mkdir -p debian/out/system/core
 	ar -rcs $@ $^
 
 $(OBJECTS): %.o: %.cpp

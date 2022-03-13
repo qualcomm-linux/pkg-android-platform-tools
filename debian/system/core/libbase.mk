@@ -29,9 +29,16 @@ CPPFLAGS += \
   -Isystem/core/base/include \
   -Isystem/core/include \
 
-debian/out/system/core/$(NAME).a: $(OBJECTS)
-	mkdir --parents debian/out/system/core
-	ar -rcs $@ $^
+LDFLAGS += \
+  -Ldebian/out/system/core \
+  -Wl,-soname,$(NAME).so.0 \
+  -llog \
+  -lpthread \
+  -shared \
+
+build: $(OBJECTS)
+	$(CXX) $^ -o debian/out/system/core/$(NAME).so.0 $(LDFLAGS)
+	cd debian/out/system/core && ln -sf $(NAME).so.0 $(NAME).so
 
 $(OBJECTS): %.o: %.cpp
 	$(CXX) -c -o $@ $< $(CXXFLAGS) $(CPPFLAGS)

@@ -168,7 +168,7 @@ ifeq ($(DEB_HOST_ARCH), armel)
 endif
 
 debian/out/external/libunwind/$(NAME).a: $(OBJECTS_C) $(OBJECTS_ASSEMBLY)
-	mkdir --parents debian/out/external/libunwind
+	mkdir -p debian/out/external/libunwind
 	ar -rcs $@ $^
 
 $(OBJECTS_C): %.o: %.c

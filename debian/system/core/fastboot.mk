@@ -47,15 +47,19 @@ CPPFLAGS += \
    -Isystem/extras/ext4_utils/include \
    -Isystem/tools/mkbootimg/include/bootimg \
 
-LDFLAGS += -lpthread -lusb-1.0 -lz
+LDFLAGS += \
+  -Ldebian/out/system/core \
+  -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
+  -fuse-ld=gold \
+  -lbase \
+  -lcutils \
+  -lpthread \
+  -lsparse \
+  -lziparchive \
+
 STATIC_LIBS = \
   debian/out/system/core/libadb.a \
-  debian/out/system/core/libcutils.a \
   debian/out/system/extras/libext4_utils.a \
-  debian/out/system/core/libziparchive.a \
-  debian/out/system/core/libsparse.a \
-  debian/out/system/core/libbase.a \
-  debian/out/system/core/liblog.a \
   debian/out/external/boringssl/libcrypto.a \
 
 # -latomic should be the last library specified
@@ -65,8 +69,7 @@ ifneq ($(filter armel mipsel,$(DEB_HOST_ARCH)),)
 endif
 
 debian/out/system/core/$(NAME): $(OBJECTS)
-	mkdir --parents debian/out/system/core
-	$(CXX) -o $@ $^ $(CXXFLAGS) $(CPPFLAGS) $(STATIC_LIBS) $(LDFLAGS)
+	$(CXX) -o $@ $^ $(CXXFLAGS) $(STATIC_LIBS) $(LDFLAGS)
 
 $(OBJECTS): %.o: %.cpp
 	$(CXX) -c -o $@ $< $(CXXFLAGS) $(CPPFLAGS)

@@ -37,7 +37,7 @@ ifeq ($(DEB_HOST_ARCH), armel)
 endif
 
 debian/out/external/boringssl/$(NAME).a: $(OBJECTS_C) $(OBJECTS_ASSEMBLY)
-	mkdir --parents debian/out/external/boringssl
+	mkdir -p debian/out/external/boringssl
 	ar -rcs $@ $^
 
 $(OBJECTS_C): %.o: %.c

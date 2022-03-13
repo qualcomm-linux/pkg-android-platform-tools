@@ -25,13 +25,19 @@ CPPFLAGS += \
   -Isystem/core/base/include \
   -Isystem/core/include \
 
-LDFLAGS += -lpthread -lusb-1.0
+LDFLAGS += \
+  -Ldebian/out/system/core \
+  -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
+  -fuse-ld=gold \
+  -lbase \
+  -lcutils \
+  -lpthread \
+  -lusb-1.0 \
+
 STATIC_LIBS = \
   debian/out/system/core/libadb.a \
-  debian/out/system/core/libcutils.a \
-  debian/out/system/core/libbase.a \
-  debian/out/system/core/liblog.a \
   debian/out/system/core/libcrypto_utils.a \
+  debian/out/system/core/liblog.a \
   debian/out/external/boringssl/libcrypto.a \
 
 # -latomic should be the last library specified
@@ -41,8 +47,7 @@ ifneq ($(filter armel mipsel,$(DEB_HOST_ARCH)),)
 endif
 
 debian/out/system/core/$(NAME): $(OBJECTS)
-	mkdir --parents debian/out/system/core
-	$(CXX) -o $@ $^ $(CXXFLAGS) $(CPPFLAGS) $(STATIC_LIBS) $(LDFLAGS)
+	$(CXX) -o $@ $^ $(CXXFLAGS) $(STATIC_LIBS) $(LDFLAGS)
 
 $(OBJECTS): %.o: %.cpp
 	$(CXX) -c -o $@ $< $(CXXFLAGS) $(CPPFLAGS)

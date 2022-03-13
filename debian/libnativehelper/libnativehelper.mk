@@ -20,7 +20,7 @@ CPPFLAGS += \
   -Isystem/core/liblog/include \
 
 debian/out/libnativehelper/$(NAME).a: $(OBJECTS)
-	mkdir --parents debian/out/libnativehelper
+	mkdir -p debian/out/libnativehelper
 	ar -rcs $@ $^
 
 $(OBJECTS): %.o: %.cpp

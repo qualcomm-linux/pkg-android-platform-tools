@@ -57,12 +57,10 @@ CPPFLAGS += \
   -Isystem/core/libcutils/include \
 
 debian/out/system/core/$(NAME).a: $(OBJECTS)
-	mkdir --parents debian/out/system/core
 	ar -rcs $@ $^
 
 $(OBJECTS): %.o: %.cpp
 	$(CXX) -c -o $@ $< $(CXXFLAGS) $(CPPFLAGS)
 
 debian/out/system/core/transport_mdns_unsupported.cpp:
-	mkdir --parents debian/out/system/core
 	echo 'void init_mdns_transport_discovery(void) {}' > $@

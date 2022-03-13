@@ -51,7 +51,6 @@ CPPFLAGS += \
   -Iexternal/boringssl/src/include \
 
 debian/out/external/boringssl/$(NAME).a: $(OBJECTS)
-	mkdir --parents debian/out/external/boringssl
 	ar -rcs $@ $^
 
 $(OBJECTS): %.o: %.cc

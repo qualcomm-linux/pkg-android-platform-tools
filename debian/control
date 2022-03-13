@@ -7,6 +7,7 @@ Build-Depends:
  bash-completion,
  clang [amd64 i386 armel armhf arm64 mipsel mips64el ppc64el s390x powerpc ppc64 sparc64 riscv64],
  debhelper-compat (= 13),
+ dh-exec,
  help2man,
  libicu-dev [amd64 i386 armel armhf arm64],
  liblz4-dev [amd64 i386 armel armhf arm64],
@@ -28,6 +29,51 @@ Vcs-Git: https://salsa.debian.org/android-tools-team/android-platform-tools.git
 Vcs-Browser: https://salsa.debian.org/android-tools-team/android-platform-tools
 Homepage: https://developer.android.com/studio/releases/platform-tools
 
+Package: android-sdk-libsparse-utils
+Architecture: any
+Multi-Arch: foreign
+Section: utils
+Depends: python3, ${shlibs:Depends}, ${misc:Depends}
+Breaks: android-tools-fsutils,
+        append2simg (<< 1:10.0.0+r36-1~),
+        img2simg (<< 1:10.0.0+r36-1~),
+        simg2img (<< 1:10.0.0+r36-1~)
+Replaces: android-tools-fsutils,
+          append2simg (<< 1:10.0.0+r36-1~),
+          img2simg (<< 1:10.0.0+r36-1~),
+          simg2img (<< 1:10.0.0+r36-1~)
+Description: Android sparse image creation tool
+ Command line tools to create sparse images for usage with Android devices.
+ Includes simg2img, img2simg, simg2simg, simg_dump and append2simg tools.
+
+Package: android-libcutils
+Section: libs
+Architecture: any
+Depends: libbsd0,
+         ${shlibs:Depends},
+         ${misc:Depends}
+Description: Android utils library for C
+ This library provides common functionalities for android related tools.
+ .
+ This library is only used by Android SDK currently.
+
+Package: android-libcutils-dev
+Section: libdevel
+Architecture: all
+Depends: ${misc:Depends},
+         android-libcutils (>= ${source:Version}),
+         android-libcutils (<< ${source:Version}.1~),
+         android-platform-system-core-headers (= ${source:Version}),
+         libbsd-dev
+Breaks: android-libcutils (<< 21-4~)
+Replaces: android-libcutils (<< 21-4~)
+Description: Android utils library for C - Development files
+ This library provides common functionalities for android related tools.
+ .
+ This library is only used by Android SDK currently.
+ .
+ This package contains the development files.
+
 Package: adb
 Architecture: amd64 i386 armel armhf arm64
 Multi-Arch: foreign
@@ -43,6 +89,144 @@ Description: Android Debug Bridge
  This package recommends "android-sdk-platform-tools-common" which contains
  the udev rules for Android devices. Without this package, adb and fastboot need
  to be running with root permission.
+
+Package: android-libsparse
+Section: libs
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Library for sparse files
+ This library provides APIs for creating, manipulating and destroying sparse
+ files.
+ .
+ This library is only used by Android SDK currently.
+
+Package: android-libsparse-dev
+Section: libdevel
+Architecture: all
+Depends: android-libsparse (>= ${source:Version}),
+         android-libsparse (<< ${source:Version}.1~),
+         ${misc:Depends}
+Description: Library for sparse files - Development files
+ This library provides APIs for creating, manipulating and destroying sparse
+ files.
+ .
+ This library is only used by Android SDK currently.
+ .
+ This package contains the development files.
+
+Package: android-libutils
+Section: libs
+Architecture: amd64 i386 armel armhf arm64 mips mipsel mips64el
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Android Utility Function Library
+ This library provides miscellaneous utility functions.
+ .
+ This library is only used by Android SDK currently.
+
+Package: android-libutils-dev
+Section: libdevel
+Architecture: all
+Depends: android-libbacktrace-dev (= ${source:Version}),
+         android-libcutils-dev (= ${source:Version}),
+         android-libutils (>= ${source:Version}),
+         android-libutils (<< ${source:Version}.1~),
+         android-platform-system-core-headers (= ${source:Version}),
+         ${misc:Depends}
+Description: Android Utility Function Library - Development files
+ This library provides miscellaneous utility functions.
+ .
+ This library is only used by Android SDK currently.
+ .
+ This package contains the development files.
+
+Package: android-libziparchive
+Section: libs
+Architecture: amd64 i386 armel armhf arm64 mips mipsel mips64el
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Library for ZIP archives
+ This library provides APIs for creating and manipulating ZIP archives.
+ .
+ This library is only used by Android SDK currently.
+
+Package: android-libziparchive-dev
+Section: libdevel
+Architecture: all
+Depends: android-libziparchive (>= ${source:Version}),
+         android-libziparchive (<< ${source:Version}.1~),
+         ${misc:Depends}
+Description: Library for ZIP archives - Development files
+ This library provides APIs for creating and manipulating ZIP archives.
+ .
+ This library is only used by Android SDK currently.
+ .
+ This package contains the development files.
+
+Package: android-platform-system-core-headers
+Section: libdevel
+Architecture: all
+Multi-Arch: foreign
+Depends: ${misc:Depends}
+Breaks: android-system-dev
+Replaces: android-system-dev
+Provides: android-system-dev
+Description: Shared headers in AOSP repository platform/system/core
+ This package contains header files in AOSP repository platform/system/core that
+ do not belong to any specific libraries but used by other programs.
+ .
+ This package currently contains headers in include/private and include/system.
+
+Package: android-libbacktrace
+Section: libs
+Architecture: amd64 i386 armel armhf arm64 mips mipsel mips64el
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Android backtrace library
+ This library is only used by Android SDK currently.
+
+Package: android-libbacktrace-dev
+Section: libdevel
+Architecture: all
+Depends: android-libbacktrace (>= ${source:Version}),
+         android-libbacktrace (<< ${source:Version}.1~),
+         ${misc:Depends}
+Description: Android backtrace library - Development files
+ This library is only used by Android SDK currently.
+ .
+ This package contains the development files.
+
+Package: android-libbase
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends},
+         ${misc:Depends}
+Description: Android base library
+ This library provides APIs for basic tasks like handling files, Unicode
+ strings, logging, memory allocation, integer parsing, etc..
+ .
+ This library is only used by Android SDK currently.
+
+Package: android-libbase-dev
+Section: libdevel
+Architecture: all
+Depends: android-libbase (>= ${source:Version}),
+         android-libbase (<< ${source:Version}.1~),
+         ${misc:Depends}
+Description: Android base library - Development files
+ This library provides APIs for basic tasks like handling files, Unicode
+ strings, logging, memory allocation, integer parsing, etc..
+ .
+ This library is only used by Android SDK currently.
+ .
+ This package contains the development files.
+
+Package: mkbootimg
+Depends: python3, ${misc:Depends}
+Breaks: android-tools-mkbootimg (<< 1:10.0.0+r36-1~)
+Replaces: android-tools-mkbootimg (<< 1:10.0.0+r36-1~)
+Architecture: all
+Section: utils
+Description: Creates Android boot images
+ Creates Android boot images that includes kernel image and ramdisk, in a
+ special format which can be used with fastboot.
 
 Package: fastboot
 Architecture: amd64 i386 armel armhf arm64
