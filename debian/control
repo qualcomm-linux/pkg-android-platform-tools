@@ -68,17 +68,6 @@ Description: ETC1 conversion tool
  for game apps. The standard for the ETC1 texture format is here:
  http://www.khronos.org/registry/gles/extensions/OES/OES_compressed_ETC1_RGB8_texture.txt
 
-Package: dmtracedump
-Architecture: any
-Multi-Arch: foreign
-Depends: graphviz,
-         ${misc:Depends},
-         ${shlibs:Depends},
-Description: Generates graphical call-stack diagrams from Android trace logs
- `dmtracedump` generates the call stack data as a tree diagram, where
- each node represents a method call. It shows call flow (from parent
- node to child nodes) using arrows.
-
 Package: hprof-conv
 Architecture: any
 Multi-Arch: foreign

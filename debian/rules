@@ -47,7 +47,7 @@ s/core/libcrypto_utils.a: debian/system/core/libcrypto_utils.mk e/boringssl/libc
 s/core/libadb.a: debian/system/core/libadb.mk s/core/libcutils.a s/core/libbase.a s/core/libcrypto_utils.a e/boringssl/libcrypto.a
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
-s/core/libbacktrace.a: debian/system/core/libbacktrace.mk s/core/libcutils.a s/core/libbase.a s/core/liblog.a e/libunwind/libunwind.a art/libdexfile_support.a
+s/core/libbacktrace.a: debian/system/core/libbacktrace.mk s/core/libcutils.a s/core/libbase.a s/core/liblog.a e/libunwind/libunwind.a
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
 s/core/libbase.a: debian/system/core/libbase.mk s/core/liblog.a
@@ -104,60 +104,6 @@ development/etc1tool: debian/development/etc1tool.mk debian/manpages/development
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
 COMPONENTS += development/etc1tool
-
-## art
-
-debian/out/art/%.1: art/%
-	help2man -N -n "Dex Tool" --no-discard-stderr --version-string="$(DEB_VERSION)" \
-		-o $@ debian/out/$<
-
-art/dmtracedump: debian/art/dmtracedump.mk
-	dh_auto_build --buildsystem=makefile -- --file=$<
-
-art/libdexfile_support.a: debian/art/libdexfile_support.mk
-	dh_auto_build --buildsystem=makefile -- --file=$<
-
-art/libsigchain.a: debian/art/libsigchain.mk
-	dh_auto_build --buildsystem=makefile -- --file=$<
-
-art/libdexfile_external.a: debian/art/libdexfile_external.mk art/libart.a
-	dh_auto_build --buildsystem=makefile -- --file=$<
-
-art/libart.a: debian/art/libart.mk debian/out/art/asm_defines.h art/libsigchain.a s/core/libbacktrace.a s/core/libziparchive.a art/libnativeloader.a art/libnativebridge.a s/core/libbase.a
-	dh_auto_build --buildsystem=makefile -- --file=$<
-
-art/libnativebridge.a:  debian/art/libnativebridge.mk s/core/liblog.a
-	dh_auto_build --buildsystem=makefile -- --file=$<
-
-art/libnativeloader.a: debian/art/libnativeloader.mk art/libnativebridge.a s/core/libbase.a
-	dh_auto_build --buildsystem=makefile -- --file=$<
-
-# Only for debug purpose to build standalone object
-debian/out/art/asm_defines.h debian/out/art/operator_out.cc: debian/art/libart.mk
-	dh_auto_build --buildsystem=makefile -- --file=$< $@
-debian/out/art/mterp.S: debian/art/libart.mk debian/out/art debian/out/art/asm_defines.h
-	dh_auto_build --buildsystem=makefile -- --file=$< $@
-art/runtime/%.a art/libartbase/%.a art/libdexfile/%.a debian/out/art/%.a: debian/art/libart.mk
-	dh_auto_build --buildsystem=makefile -- --file=$< $@
-
-COMPONENTS += \
-  art/dmtracedump \
-  debian/out/art/dmtracedump.1
-# MIPS is left out because ART only supports MIPSr6 while Debian is by default MIPSr2
-ifneq ($(filter amd64 i386 armel armhf arm64,$(DEB_HOST_ARCH)),)
-  COMPONENTS += \
-    art/libnativebridge.a \
-    art/libnativeloader.a \
-
-endif
-
-# libdexfile depends on libart, and it only builds on limited Arch
-ifneq ($(filter amd64 i386 arm64,$(DEB_HOST_ARCH)),)
-  COMPONENTS += \
-    art/libdexfile_external.a \
-    art/libdexfile_support.a \
-
-endif
 
 ## frameworks/native
 
@@ -221,7 +167,7 @@ override_dh_auto_install:
 	echo ignore upstream build system install procedure
 
 override_dh_auto_configure:
-	rm -rf external/selinux development/[a-s]* development/v* development/testrunner
+	rm -rf external/selinux development/[a-s]* development/v* development/testrunner art
 	dh_auto_configure
 
 override_dh_gencontrol:

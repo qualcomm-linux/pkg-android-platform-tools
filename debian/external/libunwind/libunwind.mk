@@ -1,4 +1,4 @@
-include debian/art/detect-arch.mk
+include debian/external/libunwind/detect-arch.mk
 
 NAME = libunwind
 

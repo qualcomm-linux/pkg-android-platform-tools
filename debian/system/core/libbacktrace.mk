@@ -40,9 +40,9 @@ libunwindstack_SOURCES := \
   Symbols.cpp \
 
 # these might still be needed by libart/dexdump/dexlist
-libunwindstack_dexfile_SOURCES := \
-  DexFile.cpp \
-  DexFiles.cpp \
+#libunwindstack_dexfile_SOURCES := \
+#  DexFile.cpp \
+#  DexFiles.cpp \
 
 ifeq ($(DEB_HOST_ARCH), amd64)
   SOURCES_ASSEMBLY = libunwindstack/AsmGetRegsX86_64.S
@@ -69,7 +69,8 @@ endif
 SOURCES = \
   $(foreach source, $(filter %.cpp, $(libbacktrace_SOURCES)), libbacktrace/$(source)) \
   $(foreach source, $(filter %.cpp, $(libunwindstack_SOURCES)), libunwindstack/$(source)) \
-  $(foreach source, $(filter %.cpp, $(libunwindstack_dexfile_SOURCES)), libunwindstack/$(source)) \
+# Skip to build libart related stuff
+#  $(foreach source, $(filter %.cpp, $(libunwindstack_dexfile_SOURCES)), libunwindstack/$(source)) \
 
 SOURCES := $(foreach source, $(SOURCES), system/core/$(source))
 OBJECTS_CXX = $(SOURCES:.cpp=.o)
@@ -80,7 +81,6 @@ CXXFLAGS += -std=gnu++2a -fno-omit-frame-pointer
 CPPFLAGS += \
   -I/usr/include/android \
   -I/usr/include/android/lzma \
-  -Iart/libdexfile/external/include \
   -Iexternal/libunwind/include \
   -Idebian/include/external/libunwind \
   -Isystem/core/include \
@@ -89,6 +89,7 @@ CPPFLAGS += \
   -Isystem/core/liblog/include \
   -Isystem/core/libprocinfo/include \
   -Isystem/core/libunwindstack/include \
+#  -Iart/libdexfile/external/include \
 
 debian/out/system/core/$(NAME).a: $(OBJECTS_CXX) $(OBJECTS_ASSEMBLY)
 	mkdir --parents debian/out/system/core
