@@ -1,3 +1,34 @@
+android-platform-tools (29.0.6-7) unstable; urgency=medium
+
+  * Team upload.
+  * debian/*.mk and debian/rules:
+    - Remove libart since it is not dependency for adb and fastboot.
+    - Following libraries are no longer static linked:
+      + libbacktrace.so
+      + libbase.so
+      + libcutils.so
+      + libsparse.so
+      + libutils.so
+      + libziparchive.so
+  * debian/control:
+    - Add new packages to replace old ones in
+      android-platform-system-core:
+      + android-libutils
+      + android-libutils-dev
+      + android-libziparchive
+      + android-libziparchive-dev
+      + android-platform-system-core-headers
+      + android-libbacktrace
+      + android-libbacktrace-dev
+      + android-libbase
+      + android-libbase-dev
+      + mkbootimg
+    - Remove package: dmtracedump
+  * debian/tests:
+    - Remove test for dmtracedump
+
+ -- Roger Shimizu <rosh@debian.org>  Sun, 10 Apr 2022 23:18:09 +0900
+
 android-platform-tools (29.0.6-6) unstable; urgency=medium
 
   * Team upload.
