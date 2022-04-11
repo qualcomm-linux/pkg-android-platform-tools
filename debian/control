@@ -63,7 +63,7 @@ Architecture: all
 Depends: ${misc:Depends},
          android-libcutils (>= ${source:Version}),
          android-libcutils (<< ${source:Version}.1~),
-         android-platform-system-core-headers (= ${source:Version}),
+         android-platform-tools-headers (= ${source:Version}),
          libbsd-dev
 Breaks: android-libcutils (<< 21-4~)
 Replaces: android-libcutils (<< 21-4~)
@@ -126,11 +126,11 @@ Description: Android Utility Function Library
 Package: android-libutils-dev
 Section: libdevel
 Architecture: all
-Depends: android-libbacktrace-dev (= ${source:Version}),
+Depends: androidlib-backtrace-dev (= ${source:Version}),
          android-libcutils-dev (= ${source:Version}),
          android-libutils (>= ${source:Version}),
          android-libutils (<< ${source:Version}.1~),
-         android-platform-system-core-headers (= ${source:Version}),
+         android-platform-tools-headers (= ${source:Version}),
          ${misc:Depends}
 Description: Android Utility Function Library - Development files
  This library provides miscellaneous utility functions.
@@ -161,13 +161,17 @@ Description: Library for ZIP archives - Development files
  .
  This package contains the development files.
 
-Package: android-platform-system-core-headers
+Package: android-platform-tools-headers
 Section: libdevel
 Architecture: all
 Multi-Arch: foreign
 Depends: ${misc:Depends}
-Breaks: android-system-dev
-Replaces: android-system-dev
+Breaks:
+ android-platform-system-core-headers,
+ android-system-dev
+Replaces:
+ android-platform-system-core-headers,
+ android-system-dev
 Provides: android-system-dev
 Description: Shared headers in AOSP repository platform/system/core
  This package contains header files in AOSP repository platform/system/core that
@@ -175,19 +179,23 @@ Description: Shared headers in AOSP repository platform/system/core
  .
  This package currently contains headers in include/private and include/system.
 
-Package: android-libbacktrace
+Package: androidlib-backtrace
 Section: libs
 Architecture: amd64 i386 armel armhf arm64 mips mipsel mips64el
 Depends: ${shlibs:Depends}, ${misc:Depends}
+Breaks: android-libbacktrace
+Replaces: android-libbacktrace
 Description: Android backtrace library
  This library is only used by Android SDK currently.
 
-Package: android-libbacktrace-dev
+Package: androidlib-backtrace-dev
 Section: libdevel
 Architecture: all
-Depends: android-libbacktrace (>= ${source:Version}),
-         android-libbacktrace (<< ${source:Version}.1~),
+Depends: androidlib-backtrace (>= ${source:Version}),
+         androidlib-backtrace (<< ${source:Version}.1~),
          ${misc:Depends}
+Breaks: android-libbacktrace-dev
+Replaces: android-libbacktrace-dev
 Description: Android backtrace library - Development files
  This library is only used by Android SDK currently.
  .
