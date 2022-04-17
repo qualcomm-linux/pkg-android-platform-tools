@@ -17,17 +17,17 @@ android-platform-tools (29.0.6-7) unstable; urgency=medium
       + android-libutils-dev
       + android-libziparchive
       + android-libziparchive-dev
-      + android-platform-tools-headers
+      + android-platform-system-core-headers
+      + android-libbacktrace
+      + android-libbacktrace-dev
       + android-libbase
       + android-libbase-dev
-      + androidlib-backtrace
-      + androidlib-backtrace-dev
       + mkbootimg
     - Remove package: dmtracedump
   * debian/tests:
     - Remove test for dmtracedump
 
- -- Roger Shimizu <rosh@debian.org>  Tue, 12 Apr 2022 01:00:52 +0900
+ -- Roger Shimizu <rosh@debian.org>  Sun, 10 Apr 2022 23:18:09 +0900
 
 android-platform-tools (29.0.6-6) unstable; urgency=medium
 
