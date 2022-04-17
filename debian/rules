@@ -187,4 +187,18 @@ override_dh_auto_configure:
 override_dh_gencontrol:
 	dh_gencontrol
 	dh_gencontrol -padb -- -v1:$(DEB_VERSION)
+	dh_gencontrol -pandroid-libbacktrace -- -v1:$(DEB_VERSION)
+	dh_gencontrol -pandroid-libbacktrace-dev -- -v1:$(DEB_VERSION)
+	dh_gencontrol -pandroid-libbase -- -v1:$(DEB_VERSION)
+	dh_gencontrol -pandroid-libbase-dev -- -v1:$(DEB_VERSION)
+	dh_gencontrol -pandroid-libcutils -- -v1:$(DEB_VERSION)
+	dh_gencontrol -pandroid-libcutils-dev -- -v1:$(DEB_VERSION)
+	dh_gencontrol -pandroid-libsparse -- -v1:$(DEB_VERSION)
+	dh_gencontrol -pandroid-libsparse-dev -- -v1:$(DEB_VERSION)
+	dh_gencontrol -pandroid-libutils -- -v1:$(DEB_VERSION)
+	dh_gencontrol -pandroid-libutils-dev -- -v1:$(DEB_VERSION)
+	dh_gencontrol -pandroid-libziparchive -- -v1:$(DEB_VERSION)
+	dh_gencontrol -pandroid-libziparchive-dev -- -v1:$(DEB_VERSION)
+	dh_gencontrol -pandroid-platform-system-core-headers -- -v1:$(DEB_VERSION)
 	dh_gencontrol -pfastboot -- -v1:$(DEB_VERSION)
+	dh_gencontrol -pmkbootimg -- -v1:$(DEB_VERSION)

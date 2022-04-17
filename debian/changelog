@@ -26,8 +26,11 @@ android-platform-tools (29.0.6-7) unstable; urgency=medium
     - Remove package: dmtracedump
   * debian/tests:
     - Remove test for dmtracedump
+  * debian/rules:
+    - Mark the same version for android-lib* packages as adb and
+      fastboot.
 
- -- Roger Shimizu <rosh@debian.org>  Sun, 10 Apr 2022 23:18:09 +0900
+ -- Roger Shimizu <rosh@debian.org>  Mon, 18 Apr 2022 01:04:48 +0900
 
 android-platform-tools (29.0.6-6) unstable; urgency=medium
 
