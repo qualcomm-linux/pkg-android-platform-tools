@@ -1,3 +1,11 @@
+android-platform-tools (29.0.6-8) unstable; urgency=medium
+
+  * Team upload.
+  * debian/system/core/*img*.mk: Fix ftbfs issue on armel.
+  * debian/control: Fix ftbfs issue on mips*el.
+
+ -- Roger Shimizu <rosh@debian.org>  Mon, 18 Apr 2022 22:49:01 +0900
+
 android-platform-tools (29.0.6-7) unstable; urgency=medium
 
   * Team upload.
