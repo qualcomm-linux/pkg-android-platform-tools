@@ -1,3 +1,11 @@
+android-platform-tools (29.0.6-9) unstable; urgency=medium
+
+  * Team upload.
+  * debian/rules:
+    - Update version for android-sdk-libsparse-utils.
+
+ -- Roger Shimizu <rosh@debian.org>  Tue, 19 Apr 2022 02:56:18 +0900
+
 android-platform-tools (29.0.6-8) unstable; urgency=medium
 
   * Team upload.
