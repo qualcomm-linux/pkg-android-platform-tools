@@ -18,7 +18,7 @@ Build-Depends:
  python3 [amd64 i386 arm64],
  zlib1g-dev [amd64 i386 armel armhf arm64],
 Build-Depends-Arch:
- libgtest-dev [amd64 i386 armel armhf arm64],
+ libgtest-dev [amd64 i386 armel armhf arm64 mipsel mips64el],
  liblzma-dev,
  libsafe-iop-dev [amd64 i386 armel armhf arm64 mipsel mips64el],
  libusb-1.0-0-dev [amd64 i386 armel armhf arm64],
@@ -116,7 +116,7 @@ Description: Library for sparse files - Development files
 
 Package: android-libutils
 Section: libs
-Architecture: amd64 i386 armel armhf arm64 mips mipsel mips64el
+Architecture: amd64 i386 armel armhf arm64 mipsel mips64el
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Android Utility Function Library
  This library provides miscellaneous utility functions.
@@ -141,7 +141,7 @@ Description: Android Utility Function Library - Development files
 
 Package: android-libziparchive
 Section: libs
-Architecture: amd64 i386 armel armhf arm64 mips mipsel mips64el
+Architecture: amd64 i386 armel armhf arm64 mipsel mips64el
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Library for ZIP archives
  This library provides APIs for creating and manipulating ZIP archives.
@@ -177,7 +177,7 @@ Description: Shared headers in AOSP repository platform/system/core
 
 Package: android-libbacktrace
 Section: libs
-Architecture: amd64 i386 armel armhf arm64 mips mipsel mips64el
+Architecture: amd64 i386 armel armhf arm64 mipsel mips64el
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Android backtrace library
  This library is only used by Android SDK currently.

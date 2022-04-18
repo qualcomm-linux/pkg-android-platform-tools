@@ -104,11 +104,15 @@ endif
 # Most components only support ARM, x86 and MIPS, but some can be built
 # on all architectures.
 COMPONENTS_ANY_ARCH = \
+  s/core/append2simg \
+  s/core/img2simg \
   s/core/libbase.so \
   s/core/libcutils.so \
   s/core/libsparse.so \
+  s/core/simg2img \
+  s/core/simg2simg \
 
-ifeq ($(filter amd64 i386 armel armhf arm64,$(DEB_HOST_ARCH)),)
+ifeq ($(filter amd64 i386 armel armhf arm64 mipsel mips64el,$(DEB_HOST_ARCH)),)
   COMPONENTS := $(filter $(COMPONENTS_ANY_ARCH), $(COMPONENTS))
 endif
 
