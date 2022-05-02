@@ -1,3 +1,11 @@
+android-platform-tools (29.0.6-10) unstable; urgency=medium
+
+  * Team upload.
+  * Fix multiarch issues
+  * Make liblog and libnativehelper dynamic linked
+
+ -- Roger Shimizu <rosh@debian.org>  Tue, 03 May 2022 01:41:05 +0900
+
 android-platform-tools (29.0.6-9) unstable; urgency=medium
 
   * Team upload.
