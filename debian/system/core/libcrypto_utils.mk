@@ -10,7 +10,6 @@ CPPFLAGS += \
   -Isystem/core/libcrypto_utils/include \
 
 debian/out/system/core/$(NAME).a: $(OBJECTS)
-	mkdir -p debian/out/system/core
 	ar -rcs $@ $^
 
 $(OBJECTS): %.o: %.c

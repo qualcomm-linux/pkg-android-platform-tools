@@ -13,6 +13,8 @@ LDFLAGS += \
   -Ldebian/out/system/core \
   -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
   -lbase \
+  -llog \
+  -lpthread \
   -lsparse \
 
 # -latomic should be the last library specified
@@ -22,7 +24,7 @@ ifneq ($(filter armel mipsel,$(DEB_HOST_ARCH)),)
 endif
 
 debian/out/system/core/$(NAME): $(OBJECTS)
-	$(CXX) -o $@ $^ $(CXXFLAGS) $(LDFLAGS)
+	$(CXX) -o $@ $^ $(LDFLAGS)
 
 $(OBJECTS): %.o: %.cpp
 	$(CXX) -c -o $@ $< $(CXXFLAGS) $(CPPFLAGS)

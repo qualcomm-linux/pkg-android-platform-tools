@@ -1,2 +1,3 @@
 system/core/libsystem/include/system    usr/include/android
 system/core/libcutils/include/private   usr/include/android
+system/core/libunwindstack/include/unwindstack usr/include/android

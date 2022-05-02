@@ -37,7 +37,6 @@ LDFLAGS += \
 STATIC_LIBS = \
   debian/out/system/core/libadb.a \
   debian/out/system/core/libcrypto_utils.a \
-  debian/out/system/core/liblog.a \
   debian/out/external/boringssl/libcrypto.a \
 
 # -latomic should be the last library specified
@@ -47,7 +46,7 @@ ifneq ($(filter armel mipsel,$(DEB_HOST_ARCH)),)
 endif
 
 debian/out/system/core/$(NAME): $(OBJECTS)
-	$(CXX) -o $@ $^ $(CXXFLAGS) $(STATIC_LIBS) $(LDFLAGS)
+	$(CXX) -o $@ $^ $(STATIC_LIBS) $(LDFLAGS)
 
 $(OBJECTS): %.o: %.cpp
 	$(CXX) -c -o $@ $< $(CXXFLAGS) $(CPPFLAGS)

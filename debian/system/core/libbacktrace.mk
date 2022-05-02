@@ -73,7 +73,6 @@ OBJECTS_ASSEMBLY := $(SOURCES_ASSEMBLY:.S=.o)
 CXXFLAGS += -std=gnu++2a -fno-omit-frame-pointer
 CPPFLAGS += \
   -I/usr/include/android \
-  -I/usr/include/android/lzma \
   -Iexternal/libunwind/include \
   -Idebian/include/external/libunwind \
   -Isystem/core/include \
@@ -84,16 +83,21 @@ CPPFLAGS += \
   -Isystem/core/libunwindstack/include \
 
 LDFLAGS += \
+  -L/usr/lib/p7zip \
   -Ldebian/out/system/core \
+  -Wl,-rpath=/usr/lib/p7zip \
   -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
   -Wl,-soname,$(NAME).so.0 \
+  -l:7z.so \
   -lbase \
+  -llog \
   -lpthread \
-  -shared \
+  -shared
 
-build: $(OBJECTS_CXX) $(OBJECTS_ASSEMBLY) debian/out/system/core/liblog.a debian/out/external/libunwind/libunwind.a
+build: $(OBJECTS_CXX) $(OBJECTS_ASSEMBLY) debian/out/external/libunwind/libunwind.a
+	mkdir -p debian/out/system/core
 	$(CXX) $^ -o debian/out/system/core/$(NAME).so.0 $(LDFLAGS)
-	cd debian/out/system/core && ln -sf $(NAME).so.0 $(NAME).so
+	cd debian/out/system/core && ln -s $(NAME).so.0 $(NAME).so
 
 $(OBJECTS_CXX): %.o: %.cpp
 	$(CXX) -c -o $@ $< $(CXXFLAGS) $(CPPFLAGS)

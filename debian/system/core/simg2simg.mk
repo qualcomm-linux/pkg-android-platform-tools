@@ -15,8 +15,9 @@ LDFLAGS += \
   -Ldebian/out/system/core \
   -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
   -lbase \
+  -llog \
+  -lpthread \
   -lsparse \
-  -lz \
 
 # -latomic should be the last library specified
 # https://github.com/android/ndk/issues/589
@@ -28,7 +29,7 @@ endif
 # libsparse/simg2simg.cpp:75:11: error: assigning to 'struct sparse_file **' from incompatible type 'void *'
 #  out_s = calloc(sizeof(struct sparse_file*), files);
 debian/out/system/core/$(NAME): $(OBJECTS)
-	$(CXX) -o $@ $^ $(CXXFLAGS) $(LDFLAGS)
+	$(CXX) -o $@ $^ $(LDFLAGS)
 
 $(OBJECTS): %.o: %.cpp
 	g++ -c -o $@ $< $(CXXFLAGS) $(CPPFLAGS)

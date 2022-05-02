@@ -19,9 +19,18 @@ CPPFLAGS += \
   -Isystem/core/base/include \
   -Isystem/core/liblog/include \
 
-debian/out/libnativehelper/$(NAME).a: $(OBJECTS)
+LDFLAGS += \
+  -Ldebian/out/system/core \
+  -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
+  -Wl,-soname,$(NAME).so.0 \
+  -ldl \
+  -llog \
+  -shared
+
+build: $(OBJECTS)
 	mkdir -p debian/out/libnativehelper
-	ar -rcs $@ $^
+	$(CXX) $^ -o debian/out/libnativehelper/$(NAME).so.0 $(LDFLAGS)
+	cd debian/out/libnativehelper && ln -s $(NAME).so.0 $(NAME).so
 
 $(OBJECTS): %.o: %.cpp
 	$(CXX) -c -o $@ $< $(CXXFLAGS) $(CPPFLAGS)

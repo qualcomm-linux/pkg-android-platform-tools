@@ -16,7 +16,7 @@ SOURCES = $(liblog_sources) $(not_windows_sources)
 SOURCES := $(foreach source, $(SOURCES), system/core/liblog/$(source))
 OBJECTS := $(SOURCES:.cpp=.o)
 
-CXXFLAGS += -std=gnu++2a -fcommon -fvisibility=hidden
+CXXFLAGS += -std=gnu++2a -fcommon
 CPPFLAGS += \
   -DFAKE_LOG_DEVICE=1 \
   -DLIBLOG_LOG_TAG=1006 \
@@ -26,9 +26,17 @@ CPPFLAGS += \
   -Isystem/core/include \
   -Isystem/core/liblog/include \
 
-debian/out/system/core/$(NAME).a: $(OBJECTS)
+LDFLAGS += \
+  -Ldebian/out/system/core \
+  -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
+  -Wl,-soname,$(NAME).so.0 \
+  -lpthread \
+  -shared
+
+build: $(OBJECTS)
 	mkdir -p debian/out/system/core
-	ar -rcs $@ $^
+	$(CXX) $^ -o debian/out/system/core/$(NAME).so.0 $(LDFLAGS)
+	cd debian/out/system/core && ln -s $(NAME).so.0 $(NAME).so
 
 $(OBJECTS): %.o: %.cpp
 	$(CXX) -c -o $@ $< $(CXXFLAGS) $(CPPFLAGS)

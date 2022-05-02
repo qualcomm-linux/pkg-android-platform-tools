@@ -69,7 +69,7 @@ ifneq ($(filter armel mipsel,$(DEB_HOST_ARCH)),)
 endif
 
 debian/out/system/core/$(NAME): $(OBJECTS)
-	$(CXX) -o $@ $^ $(CXXFLAGS) $(STATIC_LIBS) $(LDFLAGS)
+	$(CXX) -o $@ $^ $(STATIC_LIBS) $(LDFLAGS)
 
 $(OBJECTS): %.o: %.cpp
 	$(CXX) -c -o $@ $< $(CXXFLAGS) $(CPPFLAGS)

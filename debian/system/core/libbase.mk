@@ -31,14 +31,15 @@ CPPFLAGS += \
 
 LDFLAGS += \
   -Ldebian/out/system/core \
+  -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
   -Wl,-soname,$(NAME).so.0 \
   -llog \
   -lpthread \
-  -shared \
+  -shared
 
 build: $(OBJECTS)
 	$(CXX) $^ -o debian/out/system/core/$(NAME).so.0 $(LDFLAGS)
-	cd debian/out/system/core && ln -sf $(NAME).so.0 $(NAME).so
+	cd debian/out/system/core && ln -s $(NAME).so.0 $(NAME).so
 
 $(OBJECTS): %.o: %.cpp
 	$(CXX) -c -o $@ $< $(CXXFLAGS) $(CPPFLAGS)
