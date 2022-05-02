@@ -196,6 +196,7 @@ Description: Android backtrace library - Development files
 Package: android-libbase
 Section: libs
 Architecture: any
+Multi-Arch: same
 Depends: ${shlibs:Depends},
          ${misc:Depends}
 Description: Android base library
@@ -219,7 +220,7 @@ Description: Android base library - Development files
  This package contains the development files.
 
 Package: mkbootimg
-Depends: python3, ${misc:Depends}
+Depends: python3:any, ${misc:Depends}
 Breaks: android-tools-mkbootimg (<< 1:10.0.0+r36-1~)
 Replaces: android-tools-mkbootimg (<< 1:10.0.0+r36-1~)
 Architecture: all
