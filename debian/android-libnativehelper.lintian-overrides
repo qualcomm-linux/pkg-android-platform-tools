@@ -7,6 +7,6 @@
 # interface and were never intended to be used by any other project,
 # only with the internal, Android SDK executables.  Therefore, the
 # Android SDK executables use private libraries located in
-# /usr/lib/android
+# /usr/lib/${DEB_HOST_MULTIARCH}/android
 
 custom-library-search-path

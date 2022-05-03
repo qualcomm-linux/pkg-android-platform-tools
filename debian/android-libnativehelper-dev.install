@@ -1,5 +1,3 @@
-#!/usr/bin/dh-exec
-
 libnativehelper/include_jni/*          usr/include/android/nativehelper
 libnativehelper/include/nativehelper   usr/include/android
 libnativehelper/header_only_include/nativehelper usr/include/android
