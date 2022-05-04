@@ -1,3 +1,12 @@
+android-platform-tools (29.0.6-11) unstable; urgency=medium
+
+  * Team upload.
+  * Update d/*.lintian-overrides
+  * debian/control:
+    - Revise B-D and Depends for each package.
+
+ -- Roger Shimizu <rosh@debian.org>  Wed, 04 May 2022 19:33:12 +0900
+
 android-platform-tools (29.0.6-10) unstable; urgency=medium
 
   * Team upload.
