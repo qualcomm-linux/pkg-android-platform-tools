@@ -8,12 +8,12 @@ libbacktrace_SOURCES = \
   BacktraceMap.cpp \
   BacktracePtrace.cpp \
   ThreadEntry.cpp \
-  UnwindMap.cpp \
   UnwindStack.cpp \
   UnwindStackMap.cpp \
 
 libunwindstack_SOURCES := \
   ArmExidx.cpp \
+  DexFiles.cpp \
   DwarfCfa.cpp \
   DwarfEhFrameWithHdr.cpp \
   DwarfMemory.cpp \
