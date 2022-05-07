@@ -21,6 +21,7 @@ LDFLAGS += \
   -Ldebian/out/system/core \
   -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
   -Wl,-soname,$(NAME).so.0 \
+  -lbase \
   -lz \
   -shared
 
