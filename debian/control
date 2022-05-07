@@ -181,6 +181,7 @@ Architecture: all
 Depends: ${misc:Depends},
          android-libziparchive (>= ${binary:Version}),
          android-libziparchive (<< ${binary:Version}.1~),
+         libgtest-dev,
 Description: Library for ZIP archives - Development files
  This library provides APIs for creating and manipulating ZIP archives.
  .
