@@ -1,3 +1,12 @@
+android-platform-tools (29.0.6-13) unstable; urgency=medium
+
+  * Team upload.
+  * debian/control:
+    - Update B-D: libselinux1-dev to all arch, since building
+      libziparchive.mk depends on this package.
+
+ -- Roger Shimizu <rosh@debian.org>  Sun, 08 May 2022 00:41:07 +0900
+
 android-platform-tools (29.0.6-12) unstable; urgency=medium
 
   * Team upload.

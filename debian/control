@@ -9,7 +9,7 @@ Build-Depends:
  debhelper-compat (= 13),
  dh-exec,
  help2man,
- libgtest-dev [amd64 i386 armel armhf arm64 mipsel mips64el],
+ libgtest-dev,
  libpng-dev,
  libselinux1-dev,
  libsquashfuse-dev,
