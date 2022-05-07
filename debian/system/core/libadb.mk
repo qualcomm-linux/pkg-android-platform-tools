@@ -47,7 +47,6 @@ CXXFLAGS += -std=gnu++2a
 CPPFLAGS += \
   -DPLATFORM_TOOLS_VERSION='"$(PLATFORM_TOOLS_VERSION)"' \
   -DADB_HOST=1 -DADB_VERSION='"$(DEB_VERSION)"' \
-  -I/usr/include/android \
   -Iexternal/boringssl/include \
   -Isystem/core/adb \
   -Isystem/core/base/include \

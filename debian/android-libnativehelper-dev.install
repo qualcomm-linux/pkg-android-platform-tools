@@ -2,4 +2,3 @@ libnativehelper/include_jni/*          usr/include/android/nativehelper
 libnativehelper/include/nativehelper   usr/include/android
 libnativehelper/header_only_include/nativehelper usr/include/android
 libnativehelper/platform_include/*     usr/include/android
-libnativehelper/README                 usr/share/doc/android-libnativehelper

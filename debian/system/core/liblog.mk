@@ -21,7 +21,6 @@ CPPFLAGS += \
   -DFAKE_LOG_DEVICE=1 \
   -DLIBLOG_LOG_TAG=1006 \
   -DSNET_EVENT_LOG_TAG=1397638484 \
-  -I/usr/include/android \
   -Isystem/core/base/include \
   -Isystem/core/include \
   -Isystem/core/liblog/include \

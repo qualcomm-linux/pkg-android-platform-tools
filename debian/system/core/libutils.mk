@@ -31,7 +31,6 @@ OBJECTS = $(SOURCES:.cpp=.o)
 CXXFLAGS += -std=gnu++2a
 CPPFLAGS += \
   -DLIBUTILS_NATIVE=1 \
-  -I/usr/include/android \
   -Isystem/core/base/include \
   -Isystem/core/cutils/include \
   -Isystem/core/include \

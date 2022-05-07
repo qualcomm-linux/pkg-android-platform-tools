@@ -40,7 +40,6 @@ OBJECTS_CXX := $(SOURCES_CXX:.cpp=.o)
 
 CXXFLAGS += -std=gnu++2a
 CPPFLAGS += \
-  -I/usr/include/android \
   -Isystem/core/base/include \
   -Isystem/core/libcutils/include \
   -Isystem/core/liblog/include \

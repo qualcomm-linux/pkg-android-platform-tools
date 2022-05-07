@@ -25,7 +25,6 @@ OBJECTS = $(SOURCES:.cpp=.o)
 CXXFLAGS += -std=gnu++2a
 CPPFLAGS += \
   -D_FILE_OFFSET_BITS=64 \
-  -I/usr/include/android \
   -Isystem/core/base/include \
   -Isystem/core/include \
 

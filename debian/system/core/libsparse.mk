@@ -13,7 +13,6 @@ OBJECTS := $(SOURCES:.cpp=.o)
 
 CXXFLAGS += -std=gnu++2a
 CPPFLAGS += \
-  -I/usr/include/android \
   -Isystem/core/base/include \
   -Isystem/core/include \
   -Isystem/core/libsparse/include \

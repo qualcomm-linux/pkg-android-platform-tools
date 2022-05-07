@@ -72,12 +72,10 @@ OBJECTS_ASSEMBLY := $(SOURCES_ASSEMBLY:.S=.o)
 
 CXXFLAGS += -std=gnu++2a -fno-omit-frame-pointer
 CPPFLAGS += \
-  -I/usr/include/android \
   -Iexternal/libunwind/include \
   -Idebian/include/external/libunwind \
   -Isystem/core/include \
   -Isystem/core/base/include \
-  -Isystem/core/demangle/include \
   -Isystem/core/liblog/include \
   -Isystem/core/libprocinfo/include \
   -Isystem/core/libunwindstack/include \

@@ -12,7 +12,6 @@ CXXFLAGS += -std=gnu++17
 CPPFLAGS += \
   -DZLIB_CONST \
   -D_FILE_OFFSET_BITS=64 \
-  -I/usr/include/android \
   -Isystem/core/include \
   -Isystem/core/base/include \
   -Isystem/core/liblog/include \
