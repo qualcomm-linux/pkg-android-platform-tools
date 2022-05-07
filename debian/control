@@ -168,7 +168,7 @@ Description: Android Utility Function Library - Development files
 
 Package: android-libziparchive
 Section: libs
-Architecture: amd64 i386 armel armhf arm64 mipsel mips64el
+Architecture: any
 Multi-Arch: same
 Depends: ${shlibs:Depends}, ${misc:Depends},
          android-libbase (>= ${binary:Version}),

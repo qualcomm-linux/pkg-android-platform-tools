@@ -99,6 +99,7 @@ COMPONENTS_ANY_ARCH = \
   s/core/libcutils.so \
   s/core/liblog.so \
   s/core/libsparse.so \
+  s/core/libziparchive.so \
   s/core/simg2img \
   s/core/simg2simg \
 
