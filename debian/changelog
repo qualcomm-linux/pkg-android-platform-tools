@@ -1,3 +1,14 @@
+android-platform-tools (29.0.6-12) unstable; urgency=medium
+
+  * Team upload.
+  * debian/control:
+    - Add libgtest-dev to Depends of android-libziparchive-dev.
+    - Fix multiarch issues.
+  * Add DexFiles.cpp to libbacktrace.mk
+  * Make libziparchive.so build on all arch
+
+ -- Roger Shimizu <rosh@debian.org>  Sat, 07 May 2022 23:25:20 +0900
+
 android-platform-tools (29.0.6-11) unstable; urgency=medium
 
   * Team upload.
