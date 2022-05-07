@@ -141,6 +141,7 @@ Description: Library for sparse files - Development files
 Package: android-libutils
 Section: libs
 Architecture: amd64 i386 armel armhf arm64 mipsel mips64el
+Multi-Arch: same
 Depends: ${shlibs:Depends}, ${misc:Depends},
          android-libbacktrace (>= ${binary:Version}),
          android-libcutils (>= ${binary:Version}),
@@ -168,6 +169,7 @@ Description: Android Utility Function Library - Development files
 Package: android-libziparchive
 Section: libs
 Architecture: amd64 i386 armel armhf arm64 mipsel mips64el
+Multi-Arch: same
 Depends: ${shlibs:Depends}, ${misc:Depends},
          android-libbase (>= ${binary:Version}),
 Description: Library for ZIP archives
@@ -192,7 +194,6 @@ Description: Library for ZIP archives - Development files
 Package: android-platform-system-core-headers
 Section: libdevel
 Architecture: all
-Multi-Arch: foreign
 Depends: ${misc:Depends}
 Description: Shared headers in AOSP repository platform/system/core
  This package contains header files in AOSP repository platform/system/core that
@@ -203,6 +204,7 @@ Description: Shared headers in AOSP repository platform/system/core
 Package: android-libbacktrace
 Section: libs
 Architecture: amd64 i386 armel armhf arm64 mipsel mips64el
+Multi-Arch: same
 Depends: ${shlibs:Depends}, ${misc:Depends},
          android-libbase (>= ${binary:Version}),
          p7zip-full,
@@ -298,6 +300,7 @@ Description: Android fastboot tool
 
 Package: etc1tool
 Architecture: amd64 i386 armel armhf arm64 mipsel mips64el
+Multi-Arch: foreign
 Depends: ${misc:Depends}, ${shlibs:Depends},
 Description: ETC1 conversion tool
  etc1tool is a command line utility that lets you encode PNG images to
