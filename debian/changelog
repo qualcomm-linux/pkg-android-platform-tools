@@ -1,3 +1,13 @@
+android-platform-tools (29.0.6-14) unstable; urgency=medium
+
+  * Team upload.
+  * Fix gcc build for libsparse.mk
+  * Add debian/watch
+  * debian/*.mk:
+    - Link atomic library only necessary for armel and mipsel.
+
+ -- Roger Shimizu <rosh@debian.org>  Sun, 08 May 2022 23:40:34 +0900
+
 android-platform-tools (29.0.6-13) unstable; urgency=medium
 
   * Team upload.
