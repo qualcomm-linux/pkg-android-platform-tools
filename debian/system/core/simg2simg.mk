@@ -19,12 +19,6 @@ LDFLAGS += \
   -lpthread \
   -lsparse \
 
-# -latomic should be the last library specified
-# https://github.com/android/ndk/issues/589
-ifneq ($(filter armel mipsel,$(DEB_HOST_ARCH)),)
-  LDFLAGS += -latomic
-endif
-
 # force GCC, clang fails on:
 # libsparse/simg2simg.cpp:75:11: error: assigning to 'struct sparse_file **' from incompatible type 'void *'
 #  out_s = calloc(sizeof(struct sparse_file*), files);

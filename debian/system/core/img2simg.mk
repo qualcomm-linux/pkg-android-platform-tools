@@ -17,12 +17,6 @@ LDFLAGS += \
   -lpthread \
   -lsparse \
 
-# -latomic should be the last library specified
-# https://github.com/android/ndk/issues/589
-ifneq ($(filter armel mipsel,$(DEB_HOST_ARCH)),)
-  LDFLAGS += -latomic
-endif
-
 debian/out/system/core/$(NAME): $(OBJECTS)
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
