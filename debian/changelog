@@ -1,3 +1,15 @@
+android-platform-tools (29.0.6-15) unstable; urgency=medium
+
+  * Team upload.
+  * Make use of android-libboringssl-dev package
+  * Build etc1tool on any architecture
+  * debian/rules:
+    - Port some tests from autopkgtest to run on dh_auto_test.
+  * d/*.mk:
+    - Update symblic linking command to easier rebuild locally.
+
+ -- Roger Shimizu <rosh@debian.org>  Thu, 26 May 2022 01:44:34 +0900
+
 android-platform-tools (29.0.6-14) unstable; urgency=medium
 
   * Team upload.
