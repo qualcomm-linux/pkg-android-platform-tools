@@ -29,4 +29,3 @@ Depends: fastboot
 ## development
 
 Test-Command: etc1tool development/tools/templates/ic_launcher_ldpi.png --encode && etc1tool development/tools/templates/ic_launcher_ldpi.pkm --decode
-Architecture: amd64 i386 armel armhf arm64 mipsel mips64el

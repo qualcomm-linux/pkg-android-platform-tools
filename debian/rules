@@ -122,9 +122,7 @@ COMPONENTS += development/etc1tool
 f/native/libETC1.a: debian/frameworks/native/libETC1.mk
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
-ifneq ($(filter amd64 i386 armel armhf arm64 mipsel mips64el,$(DEB_HOST_ARCH)),)
-  COMPONENTS += f/native/libETC1.a
-endif
+COMPONENTS += f/native/libETC1.a
 
 ## external/libunwind
 

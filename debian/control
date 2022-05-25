@@ -300,7 +300,7 @@ Description: Android fastboot tool
  fastboot mode, etc..
 
 Package: etc1tool
-Architecture: amd64 i386 armel armhf arm64 mipsel mips64el
+Architecture: any
 Multi-Arch: foreign
 Depends: ${misc:Depends}, ${shlibs:Depends},
 Description: ETC1 conversion tool
