@@ -4,7 +4,7 @@ SOURCES = system/core/libcrypto_utils/android_pubkey.c
 OBJECTS = $(SOURCES:.c=.o)
 
 CPPFLAGS += \
-  -Iexternal/boringssl/include \
+  -I/usr/include/android \
   -Isystem/core/include \
   -Isystem/core/libcrypto_utils/include \
 

@@ -20,16 +20,17 @@ CPPFLAGS += \
   -DADB_HOST=1 \
   -DADB_VERSION='"$(DEB_VERSION)"' \
   -I/usr/include/android \
-  -Iexternal/boringssl/include \
   -Isystem/core/adb \
   -Isystem/core/base/include \
   -Isystem/core/include \
 
 LDFLAGS += \
+  -L/usr/lib/$(DEB_HOST_MULTIARCH)/android \
   -Ldebian/out/system/core \
   -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
   -fuse-ld=gold \
   -lbase \
+  -lcrypto \
   -lcutils \
   -lpthread \
   -lusb-1.0 \
@@ -37,7 +38,6 @@ LDFLAGS += \
 STATIC_LIBS = \
   debian/out/system/core/libadb.a \
   debian/out/system/core/libcrypto_utils.a \
-  debian/out/external/boringssl/libcrypto.a \
 
 # -latomic should be the last library specified
 # https://github.com/android/ndk/issues/589

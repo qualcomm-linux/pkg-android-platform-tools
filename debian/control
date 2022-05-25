@@ -4,6 +4,7 @@ Priority: optional
 Maintainer: Android Tools Maintainers <android-tools-devel@lists.alioth.debian.org>
 Uploaders: Chirayu Desai <chirayudesai1@gmail.com>
 Build-Depends:
+ android-libboringssl-dev [amd64 i386 armel armhf arm64],
  bash-completion,
  clang [amd64 i386 armel armhf arm64 mipsel mips64el ppc64el s390x powerpc ppc64 sparc64 riscv64],
  debhelper-compat (= 13),

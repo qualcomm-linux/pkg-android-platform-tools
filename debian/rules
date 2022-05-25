@@ -53,7 +53,7 @@ s/core/libbase.so: debian/system/core/libbase.mk s/core/liblog.so
 s/core/libcutils.so: debian/system/core/libcutils.mk s/core/libbase.so
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
-s/core/adb: debian/system/core/adb.mk s/core/libadb.a s/core/libcrypto_utils.a e/boringssl/libcrypto.a s/core/libcutils.so debian/manpages/system/core/adb.1
+s/core/adb: debian/system/core/adb.mk s/core/libadb.a s/core/libcrypto_utils.a s/core/libcutils.so debian/manpages/system/core/adb.1
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
 s/core/fastboot: debian/system/core/fastboot.mk s/core/adb s/extras/libext4_utils.a s/core/libziparchive.so s/core/libsparse.so debian/manpages/system/core/fastboot.1
@@ -126,11 +126,6 @@ ifneq ($(filter amd64 i386 armel armhf arm64 mipsel mips64el,$(DEB_HOST_ARCH)),)
   COMPONENTS += f/native/libETC1.a
 endif
 
-## external/boringssl
-
-e/boringssl/lib%.a: debian/external/boringssl/lib%.mk
-	dh_auto_build --buildsystem=makefile -- --file=$<
-
 ## external/libunwind
 
 e/libunwind/libunwind.a: debian/external/libunwind/libunwind.mk
@@ -138,7 +133,6 @@ e/libunwind/libunwind.a: debian/external/libunwind/libunwind.mk
 
 ifneq ($(filter amd64 i386 armel armhf arm64,$(DEB_HOST_ARCH)),)
 COMPONENTS += \
-  e/boringssl/libcrypto.a \
   e/libunwind/libunwind.a \
 
 endif
@@ -168,12 +162,12 @@ override_dh_auto_build-arch: $(COMPONENTS)
 
 override_dh_auto_test:
 	echo ignore tests using upstream build system
-
+ 
 override_dh_auto_install:
 	echo ignore upstream build system install procedure
 
 override_dh_auto_configure:
-	rm -rf external/selinux development/[a-s]* development/v* development/testrunner art
+	rm -rf external/boringssl external/selinux development/[a-s]* development/v* development/testrunner art
 	dh_auto_configure
 
 override_dh_gencontrol:

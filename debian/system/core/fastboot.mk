@@ -31,7 +31,6 @@ CPPFLAGS += \
    -D_FILE_OFFSET_BITS=64 \
    -DPLATFORM_TOOLS_VERSION='"$(PLATFORM_TOOLS_VERSION)"' \
    -I/usr/include/android \
-   -Iexternal/boringssl/include \
    -Iexternal/avb \
    -Isystem/core/adb \
    -Isystem/core/base/include \
@@ -48,10 +47,12 @@ CPPFLAGS += \
    -Isystem/tools/mkbootimg/include/bootimg \
 
 LDFLAGS += \
+  -L/usr/lib/$(DEB_HOST_MULTIARCH)/android \
   -Ldebian/out/system/core \
   -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
   -fuse-ld=gold \
   -lbase \
+  -lcrypto \
   -lcutils \
   -lpthread \
   -lsparse \
@@ -60,7 +61,6 @@ LDFLAGS += \
 STATIC_LIBS = \
   debian/out/system/core/libadb.a \
   debian/out/system/extras/libext4_utils.a \
-  debian/out/external/boringssl/libcrypto.a \
 
 # -latomic should be the last library specified
 # https://github.com/android/ndk/issues/589
