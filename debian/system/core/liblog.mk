@@ -35,7 +35,7 @@ LDFLAGS += \
 build: $(OBJECTS)
 	mkdir -p debian/out/system/core
 	$(CXX) $^ -o debian/out/system/core/$(NAME).so.0 $(LDFLAGS)
-	cd debian/out/system/core && ln -s $(NAME).so.0 $(NAME).so
+	ln -sf $(NAME).so.0 debian/out/system/core/$(NAME).so
 
 $(OBJECTS): %.o: %.cpp
 	$(CXX) -c -o $@ $< $(CXXFLAGS) $(CPPFLAGS)
