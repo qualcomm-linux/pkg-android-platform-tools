@@ -159,7 +159,7 @@ COMPONENTS += dalvik/hprof-conv
 override_dh_auto_build-arch: $(COMPONENTS)
 
 ifeq (,$(findstring nocheck, $(DEB_BUILD_OPTIONS)))
-override_dh_auto_test:
+override_dh_auto_test-arch:
 	debian/out/development/etc1tool development/tools/templates/ic_launcher_ldpi.png --encode && debian/out/development/etc1tool development/tools/templates/ic_launcher_ldpi.pkm --decode
 ifneq ($(filter amd64 i386 armel armhf arm64,$(DEB_HOST_ARCH)),)
 	LD_LIBRARY_PATH=debian/out/system/core debian/out/system/core/adb version

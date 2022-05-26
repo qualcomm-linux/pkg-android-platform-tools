@@ -1,3 +1,11 @@
+android-platform-tools (29.0.6-16) unstable; urgency=medium
+
+  * Team upload.
+  * debian/rules:
+    - Skip dh_auto_test for buildd: all
+
+ -- Roger Shimizu <rosh@debian.org>  Thu, 26 May 2022 18:10:50 +0900
+
 android-platform-tools (29.0.6-15) unstable; urgency=medium
 
   * Team upload.
