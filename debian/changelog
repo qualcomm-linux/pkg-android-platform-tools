@@ -1,3 +1,13 @@
+android-platform-tools (29.0.6-17) unstable; urgency=medium
+
+  * Team upload.
+  * debian/tests/control: Add Depends for etc1tool test.
+  * debian/control: Update B-D list to install packages only necessary.
+  * debian/rules: Build libext4_utils.mk only for fastboot needed
+    architectures.
+
+ -- Roger Shimizu <rosh@debian.org>  Sat, 28 May 2022 02:12:26 +0900
+
 android-platform-tools (29.0.6-16) unstable; urgency=medium
 
   * Team upload.
