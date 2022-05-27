@@ -85,7 +85,7 @@ COMPONENTS = \
   s/core/simg2simg \
 
 # Whatever depends on BoringSSL must be disabled on MIPS
-NON_MIPS_COMPONENTS = s/core/adb s/core/fastboot
+NON_MIPS_COMPONENTS = s/core/adb s/core/fastboot s/extras/libext4_utils.a
 ifneq ($(filter amd64 i386 armel armhf arm64,$(DEB_HOST_ARCH)),)
   COMPONENTS += $(NON_MIPS_COMPONENTS)
 endif
@@ -139,8 +139,6 @@ endif
 
 s/extras/libext4_utils.a: debian/system/extras/libext4_utils.mk
 	dh_auto_build --buildsystem=makefile -- --file=$<
-
-COMPONENTS += s/extras/libext4_utils.a
 
 ## libnativehelper
 
