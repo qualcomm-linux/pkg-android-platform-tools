@@ -1,3 +1,11 @@
+android-platform-tools (29.0.6-18) unstable; urgency=medium
+
+  * Team upload.
+  * debian/control: Update Depends version.
+  * debian/control: Add Section to each binary package.
+
+ -- Roger Shimizu <rosh@debian.org>  Sat, 28 May 2022 20:13:51 +0900
+
 android-platform-tools (29.0.6-17) unstable; urgency=medium
 
   * Team upload.
