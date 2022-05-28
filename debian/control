@@ -96,6 +96,7 @@ Description: Android utils library for C - Development files
  This package contains the development files.
 
 Package: adb
+Section: utils
 Architecture: amd64 i386 armel armhf arm64
 Multi-Arch: foreign
 Depends: ${misc:Depends}, ${shlibs:Depends},
@@ -250,6 +251,7 @@ Description: Android base library - Development files
  This package contains the development files.
 
 Package: android-libnativehelper
+Section: libs
 Architecture: any
 Multi-Arch: same
 Depends: ${shlibs:Depends}, ${misc:Depends},
@@ -258,6 +260,7 @@ Description: Support functions for Android's class libraries
  This library is only used by Android SDK currently.
 
 Package: android-libnativehelper-dev
+Section: libdevel
 Architecture: all
 Depends: ${misc:Depends},
          android-libnativehelper (>= ${source:Upstream-Version}),
@@ -282,6 +285,7 @@ Description: Creates Android boot images
  special format which can be used with fastboot.
 
 Package: fastboot
+Section: utils
 Architecture: amd64 i386 armel armhf arm64
 Multi-Arch: foreign
 Depends: ${misc:Depends}, ${shlibs:Depends},
