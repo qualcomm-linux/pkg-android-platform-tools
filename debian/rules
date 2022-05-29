@@ -19,8 +19,8 @@ export DEB_HOST_MULTIARCH
 ## system/core
 export DEB_HOST_MULTIARCH
 export DEB_VERSION
-# https://android.googlesource.com/platform/development/+/refs/tags/platform-tools-31.0.3/sdk/plat_tools_source.prop_template
-export PLATFORM_TOOLS_VERSION = 31.0.3
+# https://android.googlesource.com/platform/development/+/refs/tags/platform-tools-33.0.1/sdk/plat_tools_source.prop_template
+export PLATFORM_TOOLS_VERSION = 33.0.1
 
 ifneq (, $(shell which clang))
   export CC=clang
@@ -163,7 +163,7 @@ override_dh_auto_install:
 	echo ignore upstream build system install procedure
 
 override_dh_auto_configure:
-	rm -rf external/boringssl development/[a-s]* development/v* development/testrunner art
+	rm -rf development/[a-s]* development/v* development/testrunner
 	for proto in packages/modules/adb/fastdeploy/proto packages/modules/adb/proto; do \
 		(cd $$proto && \
 			find . -name '*.proto' -printf 'Regenerate %p\n' \
