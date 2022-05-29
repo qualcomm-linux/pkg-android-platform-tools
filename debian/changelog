@@ -1,3 +1,10 @@
+android-platform-tools (31.0.3-1~exp3) experimental; urgency=medium
+
+  * Team upload.
+  * Merge packaging changes from 29.0.6-6 to 29.0.6-18
+
+ -- Roger Shimizu <rosh@debian.org>  Sun, 29 May 2022 22:13:08 +0900
+
 android-platform-tools (31.0.3-1~exp2) experimental; urgency=medium
 
   * Team upload.
