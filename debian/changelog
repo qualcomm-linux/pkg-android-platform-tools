@@ -1,3 +1,13 @@
+android-platform-tools (33.0.1-1~exp1) UNRELEASED; urgency=medium
+
+  * Team upload.
+  * New upstream release 33.0.1
+  * debian/patches:
+    - Remove unnecessary patches.
+    - Refresh patches.
+
+ -- Roger Shimizu <rosh@debian.org>  Wed, 01 Jun 2022 21:50:46 +0900
+
 android-platform-tools (31.0.3-1~exp3) experimental; urgency=medium
 
   * Team upload.
