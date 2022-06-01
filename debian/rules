@@ -168,11 +168,13 @@ override_dh_auto_install:
 
 override_dh_auto_configure:
 	rm -rf development/[a-s]* development/v* development/testrunner
+ifneq ($(filter amd64 i386 armel armhf arm64,$(DEB_HOST_ARCH)),)
 	for proto in packages/modules/adb/fastdeploy/proto packages/modules/adb/proto; do \
 		(cd $$proto && \
 			find . -name '*.proto' -printf 'Regenerate %p\n' \
 			-exec protoc --cpp_out=. {} \;) \
 	done
+endif
 	dh_auto_configure
 
 override_dh_gencontrol:
