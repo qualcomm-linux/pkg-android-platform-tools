@@ -43,7 +43,7 @@ s/core/lib%.so: debian/system/core/lib%.mk
 debian/manpages/system/core/%.1: debian/manpages/system/core/%.1.md
 	pandoc --standalone --from=markdown-smart --to=man --output=$@ $<
 
-s/core/libbacktrace.so: debian/system/core/libbacktrace.mk s/core/libcutils.so s/core/liblzma.so s/core/libcpu_features.so
+s/core/libbacktrace.so: debian/system/core/libbacktrace.mk s/core/libcutils.so e/liblzma.so s/core/libcpu_features.so
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
 s/core/libbase.so: debian/system/core/libbase.mk s/core/liblog.so
@@ -71,12 +71,12 @@ s/core/append2simg: debian/system/core/append2simg.mk s/core/simg2img
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
 COMPONENTS = \
+  e/liblzma.so \
   s/core/libbacktrace.so \
   s/core/libbase.so \
   s/core/libcpu_features.so \
   s/core/libcutils.so \
   s/core/liblog.so \
-  s/core/liblzma.so \
   s/core/libsparse.so \
   s/core/libutils.so \
   s/core/libziparchive.so \
@@ -143,6 +143,11 @@ dalvik/hprof-conv: debian/dalvik/hprof-conv.mk
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
 COMPONENTS += dalvik/hprof-conv
+
+## external
+
+e/lib%.so: debian/external/lib%.mk
+	dh_auto_build --buildsystem=makefile -- --file=$<
 
 override_dh_auto_build-arch: $(COMPONENTS)
 

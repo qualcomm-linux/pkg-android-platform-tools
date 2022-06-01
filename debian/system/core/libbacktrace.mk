@@ -59,7 +59,7 @@ OBJECTS_ASSEMBLY := $(SOURCES_ASSEMBLY:.S=.o)
 
 CXXFLAGS += -std=gnu++2a -fno-omit-frame-pointer
 CPPFLAGS += \
-  -Idebian/include/external/lzma \
+  -Iexternal/lzma/C \
   -Isystem/libbase/include \
   -Isystem/libprocinfo/include \
   -Isystem/logging/liblog/include \
