@@ -12,7 +12,6 @@ export DEB_LDFLAGS_MAINT_APPEND = -fPIC -pie
 
 ## For get-orig-source
 export DEB_SOURCE
-export DEB_VERSION_UPSTREAM
 
 export DEB_HOST_MULTIARCH
 
