@@ -10,4 +10,6 @@ system/add-missing-headers.patch
 system/hard-code-build-number.patch
 system/stub-out-fastdeploy.patch
 system/fix-standard-namespace-errors.patch
+system/workaround__builtin_available.patch
 development/typos.patch
+libnativehelper/Nullable.patch
