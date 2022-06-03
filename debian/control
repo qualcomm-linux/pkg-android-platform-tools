@@ -300,6 +300,10 @@ Provides: android-tools-fastboot
 Description: Android fastboot tool
  A command line tool for flashing an Android device, boot an Android device to
  fastboot mode, etc..
+ .
+ This package recommends "android-sdk-platform-tools-common" which contains
+ the udev rules for Android devices. Without this package, adb and fastboot need
+ to be running with root permission.
 
 Package: etc1tool
 Architecture: any
