@@ -27,6 +27,7 @@ SOURCES = \
 #  Errors.cpp \
 
 SOURCES := $(foreach source, $(SOURCES), system/core/libutils/$(source))
+SOURCES += debian/extra/incremental_delivery/incfs/util/map_ptr.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 
 CXXFLAGS += -std=gnu++2a
@@ -38,6 +39,8 @@ CPPFLAGS += \
   -Isystem/libbase/include \
   -Isystem/logging/liblog/include \
   -Isystem/unwinding/libbacktrace/include \
+  \
+  -Idebian/extra/incremental_delivery/incfs/util/include \
 
 LDFLAGS += \
   -Ldebian/out/system \
