@@ -65,7 +65,7 @@ OBJECTS_CXX = $(SOURCES:.cpp=.o)
 SOURCES_ASSEMBLY := $(foreach source, $(SOURCES_ASSEMBLY), system/unwinding/$(source))
 OBJECTS_ASSEMBLY := $(SOURCES_ASSEMBLY:.S=.o)
 
-CXXFLAGS += -std=gnu++2a -fno-omit-frame-pointer
+CXXFLAGS += -std=gnu++17 -fno-omit-frame-pointer
 CPPFLAGS += \
   -Iexternal/lzma/C \
   -Isystem/libbase/include \

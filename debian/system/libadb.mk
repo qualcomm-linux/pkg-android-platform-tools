@@ -93,7 +93,6 @@ CXXFLAGS += -std=gnu++2a \
   -Wno-unused-parameter \
   -Wno-missing-field-initializers \
   -Wvla \
-  -fno-exceptions \
 
 CPPFLAGS += \
   -DPLATFORM_TOOLS_VERSION='"$(PLATFORM_TOOLS_VERSION)"' \
