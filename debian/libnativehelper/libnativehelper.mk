@@ -26,6 +26,7 @@ LDFLAGS += \
   -Wl,-soname,$(NAME).so.0 \
   -ldl \
   -llog \
+  -lpthread \
   -shared
 
 build: $(OBJECTS)

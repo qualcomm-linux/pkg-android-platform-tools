@@ -75,11 +75,13 @@ CPPFLAGS += \
   -Isystem/unwinding/libunwindstack/include \
 
 LDFLAGS += \
+  -Ldebian/out/external \
   -Ldebian/out/system \
   -Wl,-rpath=/usr/lib/$(DEB_HOST_MULTIARCH)/android \
   -Wl,-soname,$(NAME).so.0 \
   -lbase \
   -llog \
+  -llzma \
   -lpthread \
   -shared
 
