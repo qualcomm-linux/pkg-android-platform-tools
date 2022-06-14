@@ -36,7 +36,6 @@ CPPFLAGS += \
   -Isystem/libbase/include \
 
 debian/out/system/extras/libext4_utils.a: $(OBJECTS_C) $(OBJECTS_CXX)
-	mkdir -p debian/out/system/extras
 	ar -rcs $@ $^
 
 $(OBJECTS_C): %.o: %.c

@@ -30,7 +30,6 @@ LDFLAGS += \
   -shared
 
 build: $(OBJECTS)
-	mkdir -p debian/out/libnativehelper
 	$(CXX) $^ -o debian/out/libnativehelper/$(NAME).so.0 $(LDFLAGS)
 	ln -sf $(NAME).so.0 debian/out/libnativehelper/$(NAME).so
 
