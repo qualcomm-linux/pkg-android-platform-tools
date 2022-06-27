@@ -4,18 +4,17 @@ Priority: optional
 Maintainer: Android Tools Maintainers <android-tools-devel@lists.alioth.debian.org>
 Uploaders: Chirayu Desai <chirayudesai1@gmail.com>
 Build-Depends:
- android-libboringssl-dev [amd64 i386 armel armhf arm64],
+ android-libboringssl-dev [amd64 i386 armel armhf arm64 mipsel mips64el],
  bash-completion,
  clang [amd64 i386 armel armhf arm64 mipsel mips64el ppc64el s390x powerpc ppc64 sparc64 riscv64],
  debhelper-compat (= 13),
  dh-exec,
  libgtest-dev,
  libpng-dev,
- libsquashfuse-dev [amd64 i386 armel armhf arm64],
- libusb-1.0-0-dev [amd64 i386 armel armhf arm64],
+ libsquashfuse-dev [amd64 i386 armel armhf arm64 mipsel mips64el],
+ libusb-1.0-0-dev [amd64 i386 armel armhf arm64 mipsel mips64el],
  p7zip-full [amd64 i386 armel armhf arm64 mipsel mips64el],
  pandoc,
- zlib1g-dev [amd64 i386 armel armhf arm64],
 Standards-Version: 4.5.0
 Rules-Requires-Root: no
 Vcs-Git: https://salsa.debian.org/android-tools-team/android-platform-tools.git
@@ -97,7 +96,7 @@ Description: Android utils library for C - Development files
 
 Package: adb
 Section: utils
-Architecture: amd64 i386 armel armhf arm64
+Architecture: amd64 i386 armel armhf arm64 mipsel mips64el
 Multi-Arch: foreign
 Depends: ${misc:Depends}, ${shlibs:Depends},
          android-libcutils (= ${binary:Version}),
@@ -286,7 +285,7 @@ Description: Creates Android boot images
 
 Package: fastboot
 Section: utils
-Architecture: amd64 i386 armel armhf arm64
+Architecture: amd64 i386 armel armhf arm64 mipsel mips64el
 Multi-Arch: foreign
 Depends: ${misc:Depends}, ${shlibs:Depends},
          android-libcutils (= ${binary:Version}),

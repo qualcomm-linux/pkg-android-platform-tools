@@ -16,6 +16,7 @@ LDFLAGS += \
   -llog \
   -lpthread \
   -lsparse \
+  -pie \
 
 debian/out/system/core/$(NAME): $(OBJECTS)
 	$(CXX) -o $@ $^ $(LDFLAGS)

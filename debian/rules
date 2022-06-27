@@ -5,10 +5,15 @@ include /usr/share/dpkg/pkg-info.mk
 
 ## Security Hardening
 export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+# https://android.googlesource.com/platform/build/soong/+/refs/tags/platform-tools-29.0.6/cc/config/global.go#121
 export DEB_CFLAGS_MAINT_APPEND = -fPIC
-export DEB_CPPFLAGS_MAINT_APPEND = -DNDEBUG -UDEBUG
 export DEB_CXXFLAGS_MAINT_APPEND = -fPIC
-export DEB_LDFLAGS_MAINT_APPEND = -fPIC -pie
+export DEB_LDFLAGS_MAINT_APPEND = -fPIC
+export DEB_CPPFLAGS_MAINT_APPEND = -DNDEBUG -UDEBUG \
+  -fmessage-length=0 \
+  -fno-exceptions \
+  -fno-strict-aliasing \
+  -no-canonical-prefixes \
 
 ## For get-orig-source
 export DEB_SOURCE
@@ -25,6 +30,11 @@ export PLATFORM_TOOLS_VERSION = 29.0.6
 ifneq (, $(shell which clang))
   export CC=clang
   export CXX=clang++
+  export DEB_CPPFLAGS_MAINT_APPEND += \
+    -Wno-c99-designator \
+    -Wno-gnu-designator \
+    -Wno-gnu-folding-constant \
+
 endif
 
 %:
@@ -85,8 +95,8 @@ COMPONENTS = \
   s/core/simg2simg \
 
 # Whatever depends on BoringSSL must be disabled on MIPS
-NON_MIPS_COMPONENTS = s/core/adb s/core/fastboot s/extras/libext4_utils.a
-ifneq ($(filter amd64 i386 armel armhf arm64,$(DEB_HOST_ARCH)),)
+NON_MIPS_COMPONENTS = s/core/adb s/core/fastboot
+ifneq ($(filter amd64 i386 armel armhf arm64 mipsel mips64el,$(DEB_HOST_ARCH)),)
   COMPONENTS += $(NON_MIPS_COMPONENTS)
 endif
 
@@ -129,7 +139,7 @@ COMPONENTS += f/native/libETC1.a
 e/libunwind/libunwind.a: debian/external/libunwind/libunwind.mk
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
-ifneq ($(filter amd64 i386 armel armhf arm64,$(DEB_HOST_ARCH)),)
+ifneq ($(filter amd64 i386 armel armhf arm64 mipsel mips64el,$(DEB_HOST_ARCH)),)
 COMPONENTS += \
   e/libunwind/libunwind.a \
 
@@ -159,7 +169,7 @@ override_dh_auto_build-arch: $(COMPONENTS)
 ifeq (,$(findstring nocheck, $(DEB_BUILD_OPTIONS)))
 override_dh_auto_test-arch:
 	debian/out/development/etc1tool development/tools/templates/ic_launcher_ldpi.png --encode && debian/out/development/etc1tool development/tools/templates/ic_launcher_ldpi.pkm --decode
-ifneq ($(filter amd64 i386 armel armhf arm64,$(DEB_HOST_ARCH)),)
+ifneq ($(filter amd64 i386 armel armhf arm64 mipsel mips64el,$(DEB_HOST_ARCH)),)
 	LD_LIBRARY_PATH=debian/out/system/core debian/out/system/core/adb version
 	LD_LIBRARY_PATH=debian/out/system/core debian/out/system/core/adb help
 	LD_LIBRARY_PATH=debian/out/system/core debian/out/system/core/adb keygen key.txt && ls -l key.txt* && rm key.txt*
@@ -167,13 +177,12 @@ ifneq ($(filter amd64 i386 armel armhf arm64,$(DEB_HOST_ARCH)),)
 	LD_LIBRARY_PATH=debian/out/system/core debian/out/system/core/fastboot devices
 endif
 endif
- 
+
 override_dh_auto_install:
 	echo ignore upstream build system install procedure
 
-override_dh_auto_configure:
+override_dh_auto_configure-arch:
 	rm -rf external/boringssl external/selinux development/[a-s]* development/v* development/testrunner art
-	dh_auto_configure
 
 override_dh_gencontrol:
 	dh_gencontrol

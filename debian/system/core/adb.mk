@@ -34,6 +34,7 @@ LDFLAGS += \
   -lcutils \
   -lpthread \
   -lusb-1.0 \
+  -pie \
 
 STATIC_LIBS = \
   debian/out/system/core/libadb.a \

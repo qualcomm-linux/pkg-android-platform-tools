@@ -1,3 +1,10 @@
+android-platform-tools (29.0.6-19) unstable; urgency=medium
+
+  * Team upload.
+  * Cherry-pick from debian/exp to restore supporting for mips*el.
+
+ -- Roger Shimizu <rosh@debian.org>  Tue, 28 Jun 2022 02:30:12 +0900
+
 android-platform-tools (29.0.6-18) unstable; urgency=medium
 
   * Team upload.

@@ -57,6 +57,7 @@ LDFLAGS += \
   -lpthread \
   -lsparse \
   -lziparchive \
+  -pie \
 
 STATIC_LIBS = \
   debian/out/system/core/libadb.a \
