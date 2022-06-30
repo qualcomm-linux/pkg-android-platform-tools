@@ -191,6 +191,15 @@ Description: Library for ZIP archives - Development files
  .
  This package contains the development files.
 
+Package: android-platform-frameworks-native-headers
+Section: libdevel
+Architecture: all
+Multi-Arch: foreign
+Depends: ${misc:Depends}
+Description: Headers of android-platform-frameworks-native
+ This package contains headers in include/android in platform/frameworks/native
+ Consists of all the header files ranging from asset_manager.h to window.h.
+
 Package: android-platform-system-core-headers
 Section: libdevel
 Architecture: all
