@@ -201,6 +201,7 @@ override_dh_gencontrol:
 	dh_gencontrol -pandroid-libutils-dev -- -v1:$(DEB_VERSION)
 	dh_gencontrol -pandroid-libziparchive -- -v1:$(DEB_VERSION)
 	dh_gencontrol -pandroid-libziparchive-dev -- -v1:$(DEB_VERSION)
+	dh_gencontrol -pandroid-platform-frameworks-native-headers -- -v1:$(DEB_VERSION)
 	dh_gencontrol -pandroid-platform-system-core-headers -- -v1:$(DEB_VERSION)
 	dh_gencontrol -pandroid-sdk-libsparse-utils -- -v1:$(DEB_VERSION)
 	dh_gencontrol -pfastboot -- -v1:$(DEB_VERSION)
