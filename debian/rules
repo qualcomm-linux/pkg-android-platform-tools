@@ -4,10 +4,10 @@ include /usr/share/dpkg/architecture.mk
 include /usr/share/dpkg/pkg-info.mk
 
 ## Security Hardening
-export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all optimize=-lto
 # https://android.googlesource.com/platform/build/soong/+/refs/tags/platform-tools-33.0.3/cc/config/global.go#299
-export DEB_CFLAGS_MAINT_APPEND = -fPIC
-export DEB_CXXFLAGS_MAINT_APPEND = -fPIC
+export DEB_CFLAGS_MAINT_APPEND = -fPIC -gdwarf-4
+export DEB_CXXFLAGS_MAINT_APPEND = -fPIC -gdwarf-4
 export DEB_LDFLAGS_MAINT_APPEND = -fPIC
 export DEB_CPPFLAGS_MAINT_APPEND = -DNDEBUG -UDEBUG \
   -fmessage-length=0 \
