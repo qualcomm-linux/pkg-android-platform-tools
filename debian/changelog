@@ -1,8 +1,11 @@
-android-platform-tools (29.0.6-21) UNRELEASED; urgency=medium
+android-platform-tools (29.0.6-21) unstable; urgency=medium
 
   * Team upload.
+  * debian/{control,rules}: Sync with debian/exp branch.
+  * debian/rules: Export gdwarf-4 instead of ignoring dwz
+    (Closes: #1016468, #1015355).
 
- -- Roger Shimizu <rosh@debian.org>  Mon, 01 Aug 2022 23:41:41 +0900
+ -- Roger Shimizu <rosh@debian.org>  Wed, 03 Aug 2022 00:23:27 +0900
 
 android-platform-tools (29.0.6-20) unstable; urgency=medium
 
