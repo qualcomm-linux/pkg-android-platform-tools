@@ -1,3 +1,10 @@
+android-platform-tools (33.0.3-1~exp1) UNRELEASED; urgency=medium
+
+  * New upstream release 33.0.3
+  * debian/patches: Amend patch to add more includes to header files.
+
+ -- Roger Shimizu <rosh@debian.org>  Sat, 29 Oct 2022 17:13:36 -0700
+
 android-platform-tools (33.0.1-1~exp9) experimental; urgency=medium
 
   * Team upload.
