@@ -56,6 +56,7 @@ Description: Android NDK logger interfaces
 Package: android-liblog-dev
 Section: libdevel
 Architecture: any
+Multi-Arch: same
 Depends: ${misc:Depends},
          android-liblog (= ${binary:Version}),
 Description: Android NDK logger interfaces - Development files
@@ -81,6 +82,7 @@ Description: Android utils library for C
 Package: android-libcutils-dev
 Section: libdevel
 Architecture: any
+Multi-Arch: same
 Depends: ${misc:Depends},
          android-libcutils (= ${binary:Version}),
          android-libbase-dev (= ${binary:Version}),
@@ -124,6 +126,7 @@ Description: Library for sparse files
 Package: android-libsparse-dev
 Section: libdevel
 Architecture: any
+Multi-Arch: same
 Depends: ${misc:Depends},
          android-libsparse (= ${binary:Version}),
 Description: Library for sparse files - Development files
@@ -149,6 +152,7 @@ Description: Android Utility Function Library
 Package: android-libutils-dev
 Section: libdevel
 Architecture: amd64 i386 armel armhf arm64 mipsel mips64el
+Multi-Arch: same
 Depends: ${misc:Depends},
          android-libbacktrace-dev (= ${binary:Version}),
          android-libcutils-dev (= ${binary:Version}),
@@ -175,6 +179,7 @@ Description: Library for ZIP archives
 Package: android-libziparchive-dev
 Section: libdevel
 Architecture: any
+Multi-Arch: same
 Depends: ${misc:Depends},
          android-libziparchive (= ${binary:Version}),
          libgtest-dev,
@@ -219,6 +224,7 @@ Description: Android backtrace library
 Package: android-libbacktrace-dev
 Section: libdevel
 Architecture: amd64 i386 armel armhf arm64 mipsel mips64el
+Multi-Arch: same
 Depends: ${misc:Depends},
          android-libbacktrace (= ${binary:Version}),
 Description: Android backtrace library - Development files
@@ -242,6 +248,7 @@ Description: Android base library
 Package: android-libbase-dev
 Section: libdevel
 Architecture: any
+Multi-Arch: same
 Depends: ${misc:Depends},
          android-libbase (= ${binary:Version}),
          android-liblog-dev (= ${binary:Version}),
@@ -273,6 +280,7 @@ Description: Support functions for Android's class libraries
 Package: android-libnativehelper-dev
 Section: libdevel
 Architecture: any
+Multi-Arch: same
 Depends: ${misc:Depends},
          android-libnativehelper (= ${binary:Version}),
 Breaks: android-libnativehelper (<< 10.0.0+r36-3)
