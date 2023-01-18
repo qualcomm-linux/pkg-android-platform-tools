@@ -35,3 +35,5 @@ art/workaround-cacheflush-on-arm.patch
 art/arm-asm-instruction.patch
 art/fix-standard-namespace-errors.patch
 art/add-assembler-macro.patch
+cve/CVE-2022-20128.patch
+cve/CVE-2022-3168.patch
