@@ -1,3 +1,12 @@
+android-platform-tools (29.0.6-23) unstable; urgency=medium
+
+  * Fix CVE-2022-20128 and CVE-2022-3168
+  * debian/source/lintian-overrides: Fix lintian.
+  * Apply multi-arch hints
+  * Sync with experimental to support adb and fastboot on ppc64el.
+
+ -- Roger Shimizu <rosh@debian.org>  Fri, 20 Jan 2023 00:36:41 -0800
+
 android-platform-tools (29.0.6-22) unstable; urgency=medium
 
   * Team upload.
