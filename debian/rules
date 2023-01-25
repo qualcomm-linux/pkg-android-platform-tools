@@ -54,7 +54,7 @@ s/core/lib%.so: debian/system/core/lib%.mk
 debian/manpages/system/core/%.1: debian/manpages/system/core/%.1.md
 	pandoc --standalone --from=markdown-smart --to=man --output=$@ $<
 
-s/core/libbacktrace.so: debian/system/core/libbacktrace.mk s/core/libbase.so e/libunwind/libunwind.a
+s/core/libbacktrace.so: debian/system/core/libbacktrace.mk s/core/libbase.so
 	dh_auto_build --buildsystem=makefile -- --file=$<
 
 s/core/libbase.so: debian/system/core/libbase.mk s/core/liblog.so
@@ -134,17 +134,6 @@ f/native/libETC1.a: debian/frameworks/native/libETC1.mk
 
 COMPONENTS += f/native/libETC1.a
 
-## external/libunwind
-
-e/libunwind/libunwind.a: debian/external/libunwind/libunwind.mk
-	dh_auto_build --buildsystem=makefile -- --file=$<
-
-ifneq ($(filter amd64 i386 armel armhf arm64 mipsel mips64el,$(DEB_HOST_ARCH)),)
-COMPONENTS += \
-  e/libunwind/libunwind.a \
-
-endif
-
 ## system/extras
 
 s/extras/libext4_utils.a: debian/system/extras/libext4_utils.mk
@@ -182,7 +171,7 @@ override_dh_auto_install:
 	echo ignore upstream build system install procedure
 
 override_dh_auto_configure-arch:
-	rm -rf external/boringssl external/selinux development/[a-s]* development/v* development/testrunner art
+	rm -rf external/boringssl external/libunwind external/selinux development/[a-s]* development/v* development/testrunner art
 
 override_dh_gencontrol:
 	dh_gencontrol
