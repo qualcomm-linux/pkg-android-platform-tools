@@ -14,7 +14,7 @@ Build-Depends-Arch:
  libpng-dev,
  libsquashfuse-dev [amd64 i386 armel armhf arm64 mipsel mips64el ppc64el riscv64],
  libusb-1.0-0-dev [amd64 i386 armel armhf arm64 mipsel mips64el ppc64el riscv64],
- lld [amd64 i386 armel armhf arm64 mipsel mips64el ppc64el s390x ppc64 sparc64],
+ lld [amd64 i386 armel armhf arm64 mipsel mips64el ppc64el],
  p7zip-full [amd64 i386 armel armhf arm64 mipsel mips64el ppc64el riscv64],
  pandoc | ronn,
 Standards-Version: 4.5.0
