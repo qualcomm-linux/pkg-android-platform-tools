@@ -15,11 +15,13 @@ export DEB_CPPFLAGS_MAINT_APPEND = -DNDEBUG -UDEBUG \
   -fno-strict-aliasing \
   -no-canonical-prefixes \
 
+ifneq (, $(shell which lld))
+  export DEB_LDFLAGS_MAINT_APPEND += -fuse-ld=lld -Wl,--build-id=sha1
+endif
+
 ## For get-orig-source
 export DEB_SOURCE
 export DEB_VERSION_UPSTREAM
-
-export DEB_HOST_MULTIARCH
 
 ## system/core
 export DEB_HOST_MULTIARCH
