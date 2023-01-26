@@ -8,13 +8,13 @@ Build-Depends:
  debhelper-compat (= 13),
  dh-exec,
 Build-Depends-Arch:
- android-libboringssl-dev (>= 12) [amd64 i386 armel armhf arm64 mipsel mips64el ppc64el],
+ android-libboringssl-dev (>= 12) [amd64 i386 armel armhf arm64 mipsel mips64el ppc64el riscv64],
  clang [amd64 i386 armel armhf arm64 mipsel mips64el ppc64el s390x powerpc ppc64 sparc64 riscv64],
  libgtest-dev,
  libpng-dev,
- libsquashfuse-dev [amd64 i386 armel armhf arm64 mipsel mips64el ppc64el],
- libusb-1.0-0-dev [amd64 i386 armel armhf arm64 mipsel mips64el ppc64el],
- p7zip-full [amd64 i386 armel armhf arm64 mipsel mips64el ppc64el],
+ libsquashfuse-dev [amd64 i386 armel armhf arm64 mipsel mips64el ppc64el riscv64],
+ libusb-1.0-0-dev [amd64 i386 armel armhf arm64 mipsel mips64el ppc64el riscv64],
+ p7zip-full [amd64 i386 armel armhf arm64 mipsel mips64el ppc64el riscv64],
  pandoc,
 Standards-Version: 4.5.0
 Rules-Requires-Root: no
@@ -97,7 +97,7 @@ Description: Android utils library for C - Development files
 
 Package: adb
 Section: utils
-Architecture: amd64 i386 armel armhf arm64 mipsel mips64el ppc64el
+Architecture: amd64 i386 armel armhf arm64 mipsel mips64el ppc64el riscv64
 Multi-Arch: foreign
 Depends: ${misc:Depends}, ${shlibs:Depends},
          android-libcutils (= ${binary:Version}),
@@ -139,7 +139,7 @@ Description: Library for sparse files - Development files
 
 Package: android-libutils
 Section: libs
-Architecture: amd64 i386 armel armhf arm64 mipsel mips64el ppc64el
+Architecture: amd64 i386 armel armhf arm64 mipsel mips64el ppc64el riscv64
 Multi-Arch: same
 Depends: ${shlibs:Depends}, ${misc:Depends},
          android-libbacktrace (= ${binary:Version}),
@@ -151,7 +151,7 @@ Description: Android Utility Function Library
 
 Package: android-libutils-dev
 Section: libdevel
-Architecture: amd64 i386 armel armhf arm64 mipsel mips64el ppc64el
+Architecture: amd64 i386 armel armhf arm64 mipsel mips64el ppc64el riscv64
 Multi-Arch: same
 Depends: ${misc:Depends},
          android-libbacktrace-dev (= ${binary:Version}),
@@ -212,7 +212,7 @@ Description: Shared headers in AOSP repository platform/system/core
 
 Package: android-libbacktrace
 Section: libs
-Architecture: amd64 i386 armel armhf arm64 mipsel mips64el ppc64el
+Architecture: amd64 i386 armel armhf arm64 mipsel mips64el ppc64el riscv64
 Multi-Arch: same
 Depends: ${shlibs:Depends}, ${misc:Depends},
          android-libbase (= ${binary:Version}),
@@ -223,7 +223,7 @@ Description: Android backtrace library
 
 Package: android-libbacktrace-dev
 Section: libdevel
-Architecture: amd64 i386 armel armhf arm64 mipsel mips64el ppc64el
+Architecture: amd64 i386 armel armhf arm64 mipsel mips64el ppc64el riscv64
 Multi-Arch: same
 Depends: ${misc:Depends},
          android-libbacktrace (= ${binary:Version}),
@@ -312,7 +312,7 @@ Description: Creates Android boot images
 
 Package: fastboot
 Section: utils
-Architecture: amd64 i386 armel armhf arm64 mipsel mips64el ppc64el
+Architecture: amd64 i386 armel armhf arm64 mipsel mips64el ppc64el riscv64
 Multi-Arch: foreign
 Depends: ${misc:Depends}, ${shlibs:Depends},
          android-libcutils (= ${binary:Version}),
