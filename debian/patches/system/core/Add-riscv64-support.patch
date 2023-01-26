@@ -27,16 +27,16 @@ Change-Id: Ib21ddf23cc83f332af202df7bffcaceec16063e0
  system/core/libunwindstack/Android.bp              |   1 +
  system/core/libunwindstack/Elf.cpp                 |   2 +
  system/core/libunwindstack/Regs.cpp                |  10 ++
- system/core/libunwindstack/RegsRiscv64.cpp         | 148 +++++++++++++++++++++
+ system/core/libunwindstack/RegsRiscv64.cpp         | 156 +++++++++++++++++++++
  .../core/libunwindstack/include/unwindstack/Elf.h  |   5 +
  .../include/unwindstack/MachineRiscv64.h           |  59 ++++++++
  .../include/unwindstack/RegsGetLocal.h             |  43 ++++++
- .../include/unwindstack/RegsRiscv64.h              |  57 ++++++++
+ .../include/unwindstack/RegsRiscv64.h              |  59 ++++++++
  .../include/unwindstack/UcontextRiscv64.h          |  80 +++++++++++
- .../include/unwindstack/UserRiscv64.h              |  37 ++++++
+ .../include/unwindstack/UserRiscv64.h              |  37 +++++
  system/core/libunwindstack/tools/unwind.cpp        |   3 +
  .../core/libunwindstack/tools/unwind_symbols.cpp   |   3 +
- 12 files changed, 448 insertions(+)
+ 12 files changed, 458 insertions(+)
  create mode 100644 system/core/libunwindstack/RegsRiscv64.cpp
  create mode 100644 system/core/libunwindstack/include/unwindstack/MachineRiscv64.h
  create mode 100644 system/core/libunwindstack/include/unwindstack/RegsRiscv64.h
@@ -125,10 +125,10 @@ index c7dec52..447a554 100644
  #endif
 diff --git a/system/core/libunwindstack/RegsRiscv64.cpp b/system/core/libunwindstack/RegsRiscv64.cpp
 new file mode 100644
-index 0000000..d7cd7dd
+index 0000000..887762a
 --- /dev/null
 +++ b/system/core/libunwindstack/RegsRiscv64.cpp
-@@ -0,0 +1,148 @@
+@@ -0,0 +1,156 @@
 +/*
 + * Copyright (C) 2022 The Android Open Source Project
 + *
@@ -181,6 +181,14 @@ index 0000000..d7cd7dd
 +
 +void RegsRiscv64::set_sp(uint64_t sp) {
 +  regs_[RISCV64_REG_SP] = sp;
++}
++
++uint64_t RegsRiscv64::GetPcAdjustment(uint64_t rel_pc, Elf*) {
++  if (rel_pc < 8) {
++    return 0;
++  }
++  // For now, just assume no compact branches
++  return 8;
 +}
 +
 +bool RegsRiscv64::SetPcFromReturnAddress(Memory*) {
@@ -421,10 +429,10 @@ index f0b5e3a..698eba2 100644
  extern "C" void AsmGetRegs(void* regs);
 diff --git a/system/core/libunwindstack/include/unwindstack/RegsRiscv64.h b/system/core/libunwindstack/include/unwindstack/RegsRiscv64.h
 new file mode 100644
-index 0000000..2876ca4
+index 0000000..eb09397
 --- /dev/null
 +++ b/system/core/libunwindstack/include/unwindstack/RegsRiscv64.h
-@@ -0,0 +1,57 @@
+@@ -0,0 +1,59 @@
 +/*
 + * Copyright (C) 2022 The Android Open Source Project
 + *
@@ -461,6 +469,8 @@ index 0000000..2876ca4
 +  virtual ~RegsRiscv64() = default;
 +
 +  ArchEnum Arch() override final;
++
++  uint64_t GetPcAdjustment(uint64_t rel_pc, Elf* elf) override;
 +
 +  bool SetPcFromReturnAddress(Memory* process_memory) override;
 +
