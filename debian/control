@@ -19,6 +19,7 @@ Build-Depends-Arch:
  libsquashfuse-dev [amd64 i386 armel armhf arm64 mipsel mips64el ppc64el riscv64],
  libusb-1.0-0-dev [amd64 i386 armel armhf arm64 mipsel mips64el ppc64el riscv64],
  libzstd-dev [amd64 i386 armel armhf arm64 mipsel mips64el ppc64el riscv64],
+ lld [amd64 i386 armel armhf arm64 mipsel mips64el ppc64el],
  pandoc,
  protobuf-compiler (>= 3.12) [amd64 i386 armel armhf arm64 mipsel mips64el ppc64el riscv64],
  python3 [amd64 i386 arm64],
