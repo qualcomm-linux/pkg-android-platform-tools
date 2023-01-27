@@ -1,3 +1,15 @@
+android-platform-tools (29.0.6-25) unstable; urgency=medium
+
+  * Team upload.
+  * debian/control: Fix lld on B-D.
+  * debian/control: Separate pandoc and ronn on B-D.
+  * debian/control: Fix ftbfs on powerpc due to clang.
+  * debian/libbacktrace.mk: Add RegsRiscv64.cpp into build.
+  * debian/lintian-overrides: Add
+    package-has-unnecessary-activation-of-ldconfig-trigger.
+
+ -- Roger Shimizu <rosh@debian.org>  Thu, 26 Jan 2023 21:43:52 -0800
+
 android-platform-tools (29.0.6-24) unstable; urgency=medium
 
   * Team upload.
