@@ -36,6 +36,7 @@ libunwindstack_SOURCES := \
   RegsX86_64.cpp \
   RegsMips.cpp \
   RegsMips64.cpp \
+  RegsRiscv64.cpp \
   Unwinder.cpp \
   Symbols.cpp \
 
