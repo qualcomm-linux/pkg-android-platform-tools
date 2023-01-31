@@ -1,3 +1,10 @@
+android-platform-tools (29.0.6-26) unstable; urgency=medium
+
+  * Team upload.
+  * debian/control: Another try to fix pandoc/ronn.
+
+ -- Roger Shimizu <rosh@debian.org>  Mon, 30 Jan 2023 23:58:29 -0800
+
 android-platform-tools (29.0.6-25) unstable; urgency=medium
 
   * Team upload.
