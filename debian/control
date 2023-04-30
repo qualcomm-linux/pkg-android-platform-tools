@@ -2,6 +2,8 @@ Source: android-platform-tools
 Section: devel
 Priority: optional
 Maintainer: Android Tools Maintainers <android-tools-devel@lists.alioth.debian.org>
+Uploaders:
+ Roger Shimizu <rosh@debian.org>,
 Build-Depends:
  bash-completion,
  debhelper-compat (= 13),
