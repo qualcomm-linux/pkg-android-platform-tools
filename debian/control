@@ -267,6 +267,7 @@ Architecture: any
 Multi-Arch: same
 Depends: ${shlibs:Depends}, ${misc:Depends},
          android-liblog (= 1:${binary:Version}),
+Breaks: android-libnativehelper-dev (<< 29)
 Description: Support functions for Android's class libraries
  libnativehelper is a collection of JNI related utilities used in
  Android.
@@ -284,8 +285,8 @@ Architecture: any
 Multi-Arch: same
 Depends: ${misc:Depends},
          android-libnativehelper (= ${binary:Version}),
-Breaks: android-libnativehelper (<< 10.0.0+r36-3)
-Replaces: android-libnativehelper (<< 10.0.0+r36-3)
+Breaks: android-libnativehelper (<< 29)
+Replaces: android-libnativehelper (<< 29)
 Description: Support functions for Android's class libraries - Development files
  libnativehelper is a collection of JNI related utilities used in
  Android.
