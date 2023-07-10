@@ -1,10 +1,10 @@
-android-platform-tools (33.0.3-1~exp9) UNRELEASED; urgency=medium
+android-platform-tools (33.0.3-1~exp9) experimental; urgency=medium
 
   * Merge changes till debian/29.0.6-28
   * debian/control:
     - Remove D-B libpcre3-dev, which is not used (Closes: #1000022).
 
- -- Roger Shimizu <rosh@debian.org>  Sun, 09 Jul 2023 14:43:44 -0700
+ -- Roger Shimizu <rosh@debian.org>  Sun, 09 Jul 2023 19:32:47 -0700
 
 android-platform-tools (33.0.3-1~exp8) experimental; urgency=medium
 
