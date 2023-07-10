@@ -2,6 +2,8 @@ Source: android-platform-tools
 Section: devel
 Priority: optional
 Maintainer: Android Tools Maintainers <android-tools-devel@lists.alioth.debian.org>
+Uploaders:
+ Roger Shimizu <rosh@debian.org>,
 Build-Depends:
  bash-completion,
  debhelper-compat (= 13),
@@ -295,6 +297,7 @@ Multi-Arch: same
 Depends: ${shlibs:Depends}, ${misc:Depends},
          android-liblog (= 1:${binary:Version}),
 Breaks: android-libnativehelper-dev (<< 33)
+Replaces: android-libnativehelper-dev (<< 33)
 Description: Support functions for Android's class libraries
  libnativehelper is a collection of JNI related utilities used in
  Android.
