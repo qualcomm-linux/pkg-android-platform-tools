@@ -59,6 +59,9 @@ endif
 
 ## system
 
+e/lib%.so: debian/external/lib%.mk
+	dh_auto_build --buildsystem=makefile -- --file=$<
+
 s/lib%.a: debian/system/lib%.mk
 	dh_auto_build --buildsystem=makefile -- --file=$<
 

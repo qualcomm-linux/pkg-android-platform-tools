@@ -8,26 +8,26 @@ sources = \
   hwcaps.c \
 
 ifeq ($(DEB_HOST_ARCH), amd64)
-  sources += cpuinfo_x86.c
+  sources += impl_x86_linux_or_android.c
 endif
 ifeq ($(DEB_HOST_ARCH), i386)
-  sources += cpuinfo_x86.c
+  sources += impl_x86_linux_or_android.c
 endif
 ifeq ($(DEB_HOST_ARCH), armhf)
-  sources += cpuinfo_arm.c
+  sources += impl_arm_linux_or_android.c
 endif
 ifeq ($(DEB_HOST_ARCH), arm64)
-  sources += cpuinfo_aarch64.c
+  sources += impl_aarch64_linux_or_android.c
 endif
 
-SOURCES := $(foreach source, $(sources), external/cpu_features/src/$(source))
+SOURCES := $(foreach source, $(sources), debian/external/cpu_features/src/$(source))
 OBJECTS := $(SOURCES:.c=.o)
 
 CPPFLAGS += \
   -DHAVE_DLFCN_H \
   -DHAVE_STRONG_GETAUXVAL \
   -DSTACK_LINE_READER_BUFFER_SIZE=1024 \
-  -Iexternal/cpu_features/include \
+  -Idebian/external/cpu_features/include \
 
 LDFLAGS += \
   -Wl,-soname,$(NAME).so.0 \
