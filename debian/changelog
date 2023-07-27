@@ -1,3 +1,10 @@
+android-platform-tools (33.0.4-1~exp1) UNRELEASED; urgency=medium
+
+  * New upstream release 33.0.4
+  * debian/patches: Refresh patches.
+
+ -- Roger Shimizu <rosh@debian.org>  Wed, 26 Jul 2023 19:53:23 -0700
+
 android-platform-tools (33.0.3-2) unstable; urgency=medium
 
   * Upload to unstable.
