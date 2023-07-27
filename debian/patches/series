@@ -1,5 +1,6 @@
 system/Revert-Remove-mips-build.patch
 system/Revert-Remove-mips-support-fr.patch
+system/Revert-Remove-a-file-we-haven-t-built-since-2013.patch
 system/support-mips.patch
 system/move-log-file-to-proper-dir.patch
 system/Added-missing-headers.patch
