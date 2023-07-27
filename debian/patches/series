@@ -11,4 +11,5 @@ system/stub-out-fastdeploy.patch
 system/workaround__builtin_available.patch
 system/Fix-include-path.patch
 system/Implement-const_iterator-operator.patch
+system/Update_casting_type.patch
 development/typos.patch
