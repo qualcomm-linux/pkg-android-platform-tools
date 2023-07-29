@@ -43,7 +43,6 @@ Files-Excluded:
  system/extras/simpleperf
  system/libziparchive/cli-tests
  system/libziparchive/testdata
- system/unwinding/libbacktrace/testdata
  system/unwinding/libunwindstack/benchmarks/files
  system/unwinding/libunwindstack/offline_files
  system/unwinding/libunwindstack/tests
