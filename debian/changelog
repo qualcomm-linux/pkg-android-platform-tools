@@ -1,3 +1,9 @@
+android-platform-tools (34.0.4-1~exp1) UNRELEASED; urgency=medium
+
+  * New upstream release 34.0.4
+
+ -- Roger Shimizu <rosh@debian.org>  Fri, 28 Jul 2023 19:57:53 -0700
+
 android-platform-tools (33.0.4-1~exp4) experimental; urgency=medium
 
   * debian/libbacktrace.mk: Add RegsRiscv64.cpp.
