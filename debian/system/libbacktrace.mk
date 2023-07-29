@@ -37,6 +37,7 @@ libunwindstack_SOURCES := \
   RegsArm64.cpp \
   RegsX86.cpp \
   RegsX86_64.cpp \
+  RegsRiscv64.cpp \
   RegsMips.cpp \
   RegsMips64.cpp \
   Symbols.cpp \
