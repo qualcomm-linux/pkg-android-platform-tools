@@ -3,6 +3,7 @@ revert/Revert-Remove-mips-support-fr.patch
 revert/Revert-Remove-a-file-we-haven-t-built-since-2013.patch
 revert/support-mips.patch
 revert/Revert-Order-events-returned-by-fdevent_epoll.patch
+revert/Revert-3-Add-rust-demangling.patch
 gcc-only/stdatomic.patch
 gcc-only/workaround__builtin_available.patch
 gcc-only/Nullable.patch
