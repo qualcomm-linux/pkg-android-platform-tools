@@ -16,4 +16,5 @@ system/hard-code-build-number.patch
 system/stub-out-fastdeploy.patch
 system/Implement-const_iterator-operator.patch
 system/Update_casting_type.patch
+system/Drop-gki-dependency-from-mkbootimg.patch
 development/typos.patch
