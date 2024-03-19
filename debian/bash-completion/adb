@@ -136,6 +136,10 @@ function _adb() {
 		esac
 		return 0
 		;;
+	mdns)
+		COMPREPLY=($(compgen -W "check services" -- ${cur}))
+		return 0
+		;;
 	disconnect)
 		# Use 'adb devices' to list serial numbers.
 		COMPREPLY=($(compgen -W "$(adb devices |
