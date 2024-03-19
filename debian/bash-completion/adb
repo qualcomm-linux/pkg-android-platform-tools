@@ -116,6 +116,26 @@ function _adb() {
 		esac
 		return 0
 		;;
+	reverse)
+		case "${cur}" in
+		-*)
+			COMPREPLY=($(compgen -W "--list --no-rebind --remove --remove-all" -- ${cur}))
+			;;
+
+		*)
+			if [[ $prev == "--list" || $prev == "--remove" || $prev == "--remove-all" ]]; then
+				COMPREPLY=()
+				return 0
+
+			else
+				COMPREPLY=($(compgen -W "tcp: localabstract: localreserved: localfilesystem:" -- ${cur}))
+				return 0
+			fi
+			;;
+
+		esac
+		return 0
+		;;
 	disconnect)
 		# Use 'adb devices' to list serial numbers.
 		COMPREPLY=($(compgen -W "$(adb devices |
