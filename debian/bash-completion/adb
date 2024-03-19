@@ -181,14 +181,6 @@ function _adb() {
 			;;
 		esac
 		;;
-	backup)
-		case "${cur}" in
-		-*)
-			COMPREPLY=($(compgen -W "-f -apk -noapk -obb -noobb -shared -noshared -all -system -nosystem" -- ${cur}))
-			return 0
-			;;
-		esac
-		;;
 	pull)
 		if [ ${prev} == "pull" ]; then
 			local IFS=$'\n'
