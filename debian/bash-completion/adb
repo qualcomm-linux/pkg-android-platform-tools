@@ -182,18 +182,30 @@ function _adb() {
 		esac
 		;;
 	pull)
-		if [ ${prev} == "pull" ]; then
-			local IFS=$'\n'
-			if [ -z ${cur} ]; then
-				local files=$(adb shell "ls -a -d /*" 2>/dev/null | tr -d '\r')
-				COMPREPLY=($(compgen -W "$files" -o filenames -- ${cur}))
+		case "${cur}" in
+		-*)
+			COMPREPLY=($(compgen -W "-a -z -Z" -- ${cur}))
+			;;
+
+		*)
+			if [ ${prev} == "-z" ]; then
+				COMPREPLY=($(compgen -W "any none brotli lz4 zstd" -- ${cur}))
+
 			else
-				local stripped_cur=$(echo ${cur} | sed 's,^",,')
-				local files=$(adb shell "ls -a -d '${stripped_cur}'*" 2>/dev/null | tr -d '\r')
-				COMPREPLY=($(compgen -W "$files" -o filenames -- ${cur}))
+
+				local IFS=$'\n'
+				if [ -z ${cur} ]; then
+					local files=$(adb shell "ls -a" 2>/dev/null | tr -d '\r')
+					COMPREPLY=($(compgen -W "$files" -o filenames -- ${cur}))
+				else
+					local stripped_cur=$(echo ${cur} | sed 's,^",,')
+					local files=$(adb shell "ls -a -d '${stripped_cur}'*" 2>/dev/null | tr -d '\r')
+					COMPREPLY=($(compgen -W "$files" -o filenames -- ${cur}))
+				fi
+				return 0
 			fi
-			return 0
-		fi
+			;;
+		esac
 		;;
 	push)
 		if [ "${COMP_WORDS[COMP_CWORD - 2]}" == "push" ]; then
