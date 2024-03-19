@@ -27,16 +27,16 @@ function _adb() {
 	prev="${COMP_WORDS[COMP_CWORD - 1]}"
 	opts="-a -d -e -s -t -H -P -L --one-device --exit-on-write-error"
 	cmds="devices help version \
-	      connect disconnect pair forward reverse mdns \
-          push pull sync \
-          shell emu \
-          install install-multiple install-multi-package uninstall \
-          bugreport jdwp logcat \
-          disable-verity enable-verity keygen \
-          wait-for-device wait-for-recovery wait-for-rescue wait-for-sideload wait-for-bootloader wait-for-disconnect get-state get-serialno get-devpath remount reboot sideload root unroot usb tcpip \
-          start-server kill-server reconnect \
-          attach detach \
-          host-features features"
+			connect disconnect pair forward reverse mdns \
+			push pull sync \
+			shell emu \
+			install install-multiple install-multi-package uninstall \
+			bugreport jdwp logcat \
+			disable-verity enable-verity keygen \
+			wait-for-device wait-for-recovery wait-for-rescue wait-for-sideload wait-for-bootloader wait-for-disconnect get-state get-serialno get-devpath remount reboot sideload root unroot usb tcpip \
+			start-server kill-server reconnect \
+			attach detach \
+			host-features features"
 	cmds_not_need_device="connect devices disconnect help keygen kill-server start-server version"
 	subcommand=""
 	device_selected=""
@@ -87,6 +87,35 @@ function _adb() {
 		COMPREPLY=($(compgen -W "${cmds}" -- ${cur}))
 		return 0
 		;;
+	devices)
+		case "${cur}" in
+		-*)
+			COMPREPLY=($(compgen -W "-l" -- ${cur}))
+			return 0
+			;;
+		esac
+		return 0
+		;;
+	forward)
+		case "${cur}" in
+		-*)
+			COMPREPLY=($(compgen -W "--list --no-rebind --remove --remove-all" -- ${cur}))
+			;;
+
+		*)
+			if [[ $prev == "--list" || $prev == "--remove" || $prev == "--remove-all" ]]; then
+				COMPREPLY=()
+				return 0
+
+			else
+				COMPREPLY=($(compgen -W "tcp: localreserved: localfilesystem: jdwp: vsock: acceptfd:" -- ${cur}))
+				return 0
+			fi
+			;;
+
+		esac
+		return 0
+		;;
 	disconnect)
 		# Use 'adb devices' to list serial numbers.
 		COMPREPLY=($(compgen -W "$(adb devices |
@@ -100,11 +129,6 @@ function _adb() {
 			return 0
 			;;
 		esac
-		;;
-	forward)
-		# Filename or installation option.
-		COMPREPLY=($(compgen -W "tcp: localabstract: localreserved: localfilesystem: dev: jdwp:" -- ${cur}))
-		return 0
 		;;
 	uninstall)
 		local apks=$(adb shell pm list packages 2>/dev/null | cut -b9-999 | tr '\n\r' ' ')
