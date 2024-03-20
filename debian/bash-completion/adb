@@ -96,6 +96,12 @@ function _adb() {
 		esac
 		return 0
 		;;
+	disconnect)
+		# Use 'adb devices' to list serial numbers.
+		COMPREPLY=($(compgen -W "$(adb devices |
+			awk '/(device|recovery|sideload|offline|unauthorized)$/{print $1}')" -- ${cur}))
+		return 0
+		;;
 	forward)
 		case "${cur}" in
 		-*)
@@ -140,12 +146,65 @@ function _adb() {
 		COMPREPLY=($(compgen -W "check services" -- ${cur}))
 		return 0
 		;;
-	disconnect)
-		# Use 'adb devices' to list serial numbers.
-		COMPREPLY=($(compgen -W "$(adb devices |
-			awk '/(device|recovery|sideload|offline|unauthorized)$/{print $1}')" -- ${cur}))
-		return 0
+
+	push)
+		case "${cur}" in
+		-*)
+			COMPREPLY=($(compgen -W "--sync -n -z -Z" -- ${cur}))
+			;;
+
+		*)
+			if [ ${prev} == "-z" ]; then
+				COMPREPLY=($(compgen -W "any none brotli lz4 zstd" -- ${cur}))
+
+			else
+				if [ "${prev}" == "push" ] || [ "${prev}" == "any" ] || [ "${prev}" == "none" ] || [ "${prev}" == "brotli" ] || [ "${prev}" == "lz4" ] || [ "${prev}" == "zstd" ] || [ "${prev}" == "--sync" ] || [ "${prev}" == "-n" ] || [ "${prev}" == "-Z" ]; then
+					COMPREPLY=($(compgen -f -- ${cur}))
+				else
+					local IFS=$'\n'
+					if [ -z "${cur}" ]; then
+						local files=$(adb shell "ls -a -d /*" 2>/dev/null | tr -d '\r')
+						COMPREPLY=($(compgen -W "$files" -o filenames -- ${cur}))
+					else
+						local stripped_cur=$(echo ${cur} | sed 's,^",,')
+						local files=$(adb shell "ls -a -d '${stripped_cur}'*" 2>/dev/null | tr -d '\r')
+						COMPREPLY=($(compgen -W "$files" -o filenames -- ${cur}))
+					fi
+					return 0
+				fi
+
+			fi
+			;;
+		esac
 		;;
+
+	pull)
+		case "${cur}" in
+		-*)
+			COMPREPLY=($(compgen -W "-a -z -Z" -- ${cur}))
+			;;
+
+		*)
+			if [ ${prev} == "-z" ]; then
+				COMPREPLY=($(compgen -W "any none brotli lz4 zstd" -- ${cur}))
+
+			else
+
+				local IFS=$'\n'
+				if [ -z ${cur} ]; then
+					local files=$(adb shell "ls -a" 2>/dev/null | tr -d '\r')
+					COMPREPLY=($(compgen -W "$files" -o filenames -- ${cur}))
+				else
+					local stripped_cur=$(echo ${cur} | sed 's,^",,')
+					local files=$(adb shell "ls -a -d '${stripped_cur}'*" 2>/dev/null | tr -d '\r')
+					COMPREPLY=($(compgen -W "$files" -o filenames -- ${cur}))
+				fi
+				return 0
+			fi
+			;;
+		esac
+		;;
+
 	install)
 		case "${cur}" in
 		-*)
@@ -181,46 +240,7 @@ function _adb() {
 			;;
 		esac
 		;;
-	pull)
-		case "${cur}" in
-		-*)
-			COMPREPLY=($(compgen -W "-a -z -Z" -- ${cur}))
-			;;
 
-		*)
-			if [ ${prev} == "-z" ]; then
-				COMPREPLY=($(compgen -W "any none brotli lz4 zstd" -- ${cur}))
-
-			else
-
-				local IFS=$'\n'
-				if [ -z ${cur} ]; then
-					local files=$(adb shell "ls -a" 2>/dev/null | tr -d '\r')
-					COMPREPLY=($(compgen -W "$files" -o filenames -- ${cur}))
-				else
-					local stripped_cur=$(echo ${cur} | sed 's,^",,')
-					local files=$(adb shell "ls -a -d '${stripped_cur}'*" 2>/dev/null | tr -d '\r')
-					COMPREPLY=($(compgen -W "$files" -o filenames -- ${cur}))
-				fi
-				return 0
-			fi
-			;;
-		esac
-		;;
-	push)
-		if [ "${COMP_WORDS[COMP_CWORD - 2]}" == "push" ]; then
-			local IFS=$'\n'
-			if [ -z "${cur}" ]; then
-				local files=$(adb shell "ls -a -d /*" 2>/dev/null | tr -d '\r')
-				COMPREPLY=($(compgen -W "$files" -o filenames -- ${cur}))
-			else
-				local stripped_cur=$(echo ${cur} | sed 's,^",,')
-				local files=$(adb shell "ls -a -d '${stripped_cur}'*" 2>/dev/null | tr -d '\r')
-				COMPREPLY=($(compgen -W "$files" -o filenames -- ${cur}))
-			fi
-			return 0
-		fi
-		;;
 	esac
 }
 complete -o default -F _adb adb
