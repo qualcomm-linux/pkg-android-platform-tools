@@ -281,6 +281,11 @@ function _adb() {
 		fi
 		return 0
 		;;
+	bugreport)
+
+		COMPREPLY=($(compgen -d -- ${cur}))
+
+		;;
 	logcat)
 		case "${cur}" in
 		-*)
@@ -298,6 +303,46 @@ function _adb() {
 			return 0
 			;;
 		esac
+		;;
+	keygen)
+		COMPREPLY=($(compgen -d -- ${cur}))
+		;;
+	remount)
+		case "${cur}" in
+		-*)
+			COMPREPLY=($(compgen -W "-R" -- ${cur}))
+			return 0
+			;;
+		esac
+
+		;;
+	reboot)
+		if [ $prev == "reboot" ]; then
+			COMPREPLY=($(compgen -W "bootloader recovery sideload sideload-auto-reboot" -- ${cur}))
+		fi
+		;;
+	sideload)
+
+		COMPREPLY=($(compgen -f -- ${cur}))
+
+		;;
+	reconnect)
+
+		if [ $prev == "reconnect" ]; then
+			COMPREPLY=($(compgen -W "device offline" -- ${cur}))
+		fi
+
+		;;
+	attach)
+		COMPREPLY=($(compgen -W "$(adb devices |
+			awk '/(device|recovery|sideload)$/{print $1}')" -- ${cur}))
+		return 0
+		;;
+	detach)
+
+		COMPREPLY=($(compgen -W "$(adb devices |
+			awk '/(device|recovery|sideload)$/{print $1}')" -- ${cur}))
+		return 0
 		;;
 
 	esac
