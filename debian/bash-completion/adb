@@ -239,7 +239,35 @@ function _adb() {
 	install)
 		case "${cur}" in
 		-*)
-			COMPREPLY=($(compgen -W "-l -r -s" -- ${cur}))
+			COMPREPLY=($(compgen -W "-l -r -t -s -d -g --abi --instant --no-streaming --streaming --fastdeploy --no-fastdeploy --force-agent --date-check-agent --version-check-agent --local-agent" -- ${cur}))
+			return 0
+			;;
+		*)
+			COMPREPLY=($(compgen -f -- ${cur}))
+			return 0
+			;;
+		esac
+		;;
+	install-multiple)
+		case "${cur}" in
+		-*)
+			COMPREPLY=($(compgen -W "-l -r -t -s -d -p -g --abi --instant --no-streaming --streaming --fastdeploy --no-fastdeploy --force-agent --date-check-agent --version-check-agent --local-agent" -- ${cur}))
+			return 0
+			;;
+		*)
+			COMPREPLY=($(compgen -f -- ${cur}))
+			return 0
+			;;
+		esac
+		;;
+	install-multi-package)
+		case "${cur}" in
+		-*)
+			COMPREPLY=($(compgen -W "-l -r -t -s -d -p -g --abi --instant --no-streaming --streaming --fastdeploy --no-fastdeploy --force-agent --date-check-agent --version-check-agent --local-agent" -- ${cur}))
+			return 0
+			;;
+		*)
+			COMPREPLY=($(compgen -f -- ${cur}))
 			return 0
 			;;
 		esac
