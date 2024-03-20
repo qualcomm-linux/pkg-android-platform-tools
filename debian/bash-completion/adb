@@ -224,6 +224,17 @@ function _adb() {
 			;;
 		esac
 		;;
+	shell)
+		case "${cur}" in
+		-*)
+			COMPREPLY=($(compgen -W "-e -n -T -t -x" -- ${cur}))
+			;;
+		*)
+			COMPREPLY=($(compgen -W "emu" -- ${cur}))
+
+			;;
+		esac
+		;;
 
 	install)
 		case "${cur}" in
