@@ -204,6 +204,26 @@ function _adb() {
 			;;
 		esac
 		;;
+	sync)
+		case "${cur}" in
+		-*)
+			COMPREPLY=($(compgen -W "-l -z -Z -n" -- ${cur}))
+			;;
+
+		*)
+			if [ ${prev} == "-z" ]; then
+				COMPREPLY=($(compgen -W "any none brotli lz4 zstd" -- ${cur}))
+
+			else
+				if [ "${prev}" == "any" ] || [ "${prev}" == "data" ] || [ "${prev}" == "odm" ] || [ "${prev}" == "oem" ] || [ "${prev}" == "product" ] || [ "${prev}" == "system" ] || [ "${prev}" == "system_ext" ] || [ "${prev}" == "vendor" ]; then
+					return 0
+				else
+					COMPREPLY=($(compgen -W "any data odm oem product system system_ext vendor" -- ${cur}))
+				fi
+			fi
+			;;
+		esac
+		;;
 
 	install)
 		case "${cur}" in
