@@ -27,7 +27,7 @@ function _adb() {
 	prev="${COMP_WORDS[COMP_CWORD - 1]}"
 	opts="-a -d -e -s -t -H -P -L --one-device --exit-on-write-error"
 	cmds="devices help version \
-			connect disconnect pair forward reverse mdns \
+			connect disconnect pair forward reverse \
 			push pull sync \
 			shell emu \
 			install install-multiple install-multi-package uninstall \
@@ -142,10 +142,10 @@ function _adb() {
 		esac
 		return 0
 		;;
-	mdns)
-		COMPREPLY=($(compgen -W "check services" -- ${cur}))
-		return 0
-		;;
+#	mdns)
+#		COMPREPLY=($(compgen -W "check services" -- ${cur}))
+#		return 0
+#		;;
 
 	push)
 		case "${cur}" in
