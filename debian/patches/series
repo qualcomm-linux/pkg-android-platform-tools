@@ -18,3 +18,4 @@ system/Implement-const_iterator-operator.patch
 system/Update_casting_type.patch
 system/Drop-gki-dependency-from-mkbootimg.patch
 development/typos.patch
+20-gcc-14.patch
