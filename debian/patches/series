@@ -1,3 +1,4 @@
+revert/Revert-Remove-mips-support.patch
 revert/Revert-Remove-mips-build.patch
 revert/Revert-Remove-mips-support-fr.patch
 revert/Revert-Remove-a-file-we-haven-t-built-since-2013.patch
