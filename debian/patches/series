@@ -4,6 +4,8 @@ revert/Revert-Remove-mips-support-fr.patch
 revert/Revert-Remove-a-file-we-haven-t-built-since-2013.patch
 revert/support-mips.patch
 revert/Revert-3-Add-rust-demangling.patch
+revert/Revert-Replacing-hardcoded-types-with-decltype-for-e.patch
+revert/Revert-Enforcing-static-invariants-to-prevent-failur.patch
 gcc-only/stdatomic.patch
 gcc-only/workaround__builtin_available.patch
 gcc-only/Nullable.patch
@@ -16,5 +18,6 @@ system/hard-code-build-number.patch
 system/stub-out-fastdeploy.patch
 system/Implement-const_iterator-operator.patch
 system/Drop-gki-dependency-from-mkbootimg.patch
+system/gcc-14.patch
+system/add-missing-headers.patch
 development/typos.patch
-20-gcc-14.patch

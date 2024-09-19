@@ -4,6 +4,7 @@ android-platform-tools (34.0.5-1) UNRELEASED; urgency=medium
   * debian/patches:
     - Refresh patches.
     - Add 2 revert patches to support mips.
+    - Add 2 revert patches to make build for ADB.
   * debian/system/*.mk: Update.
 
  -- Roger Shimizu <rosh@debian.org>  Thu, 19 Sep 2024 02:26:52 -0700
