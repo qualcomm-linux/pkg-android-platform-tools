@@ -14,8 +14,6 @@ export DEB_CPPFLAGS_MAINT_APPEND = -DNDEBUG -UDEBUG \
   -fno-exceptions \
   -fno-strict-aliasing \
   -no-canonical-prefixes \
-  \
-  -Idebian/include # Workaround for #1037576 \
 
 ## For get-orig-source
 export DEB_SOURCE
