@@ -1,4 +1,4 @@
-android-platform-tools (34.0.5-4~exp1) UNRELEASED; urgency=medium
+android-platform-tools (34.0.5-4~exp1) experimental; urgency=medium
 
   [ Julien Massot ]
   * debian: build adbd package.
@@ -12,7 +12,10 @@ android-platform-tools (34.0.5-4~exp1) UNRELEASED; urgency=medium
     amd64 computers (using network transport) and arm64 devices (PinePhone
     Pro, using USB transport).
 
- -- Arnaud Ferraris <aferraris@debian.org>  Wed, 28 Sep 2022 13:44:31 +0200
+  [ Roger Shimizu ]
+  * debian/tests/control & debian/rules: Add tests for adbd.
+
+ -- Roger Shimizu <rosh@debian.org>  Fri, 04 Oct 2024 01:42:45 -0700
 
 android-platform-tools (34.0.5-3) unstable; urgency=medium
 
