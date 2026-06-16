@@ -20,8 +20,8 @@ on:
 jobs:
   debusine:
     name: Debusine
-    if: startsWith(github.ref_name, 'qcom/debian/')
-    uses: qualcomm-linux/debusine-action/.github/workflows/debusine.yml@main
+    # if: startsWith(github.ref_name, 'qcom/debian/')
+    uses: qualcomm-linux/debusine-action/.github/workflows/debusine.yml@enable-axiom
     with:
       target_branch: ${{ github.ref_name }}
       source_ref: refs/heads/${{ github.ref_name }}
