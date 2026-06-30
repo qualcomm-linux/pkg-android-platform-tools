@@ -34,14 +34,8 @@ setup()
     echo 0x0100 > idProduct
     echo 0x18D1 > idVendor
 
-    model="ADB device"
-    #Update SoC serial number (if available) as USB product string
-    if [ -e /sys/devices/soc0/serial_number ]; then
-    model="`hostname`_SN:$(printf '%x' "$(tr -d ' \n' < /sys/devices/soc0/serial_number)")"
-    fi
-
     echo "Debian" > strings/0x409/manufacturer
-    echo $model > strings/0x409/product
+    echo "ADB device" > strings/0x409/product
     # Derive the serial number from the machine-id so it's unique
     echo "$(sha256sum < /etc/machine-id | cut -d' ' -f1)" > strings/0x409/serialnumber
 
