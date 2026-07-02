@@ -1,8 +1,9 @@
-android-platform-tools (34.0.5-12qli+staging1~bpo1) UNRELEASED; urgency=medium
+android-platform-tools (34.0.5-12qli+staging1~bpo1) trixie; urgency=medium
 
+  [ Phanendra Yarra ]
   * adbd-usb-gadget: add SoC serial to USB product string
 
- -- Phanendra Yarra <pyarra@qti.qualcomm.com>  Tue, 30 Jun 2026 16:24:11 +0530
+ -- root <root@21293c317469>  Thu, 02 Jul 2026 05:46:28 +0000
 
 android-platform-tools (34.0.5-12) unstable; urgency=medium
 
