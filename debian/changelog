@@ -1,9 +1,10 @@
-android-platform-tools (34.0.5-12qli1~bpo13+1) UNRELEASED; urgency=medium
+android-platform-tools (34.0.5-12qli1~bpo13+1) trixie; urgency=medium
 
+  [ Loïc Minier ]
   * Rebuild for trixie QLI.
     - d/gbp.conf: use trixie branch.
 
- -- Loïc Minier <loic.minier@oss.qualcomm.com>  Tue, 07 Jul 2026 19:00:10 +0000
+ -- root <root@dbd422bf0784>  Tue, 07 Jul 2026 19:28:59 +0000
 
 android-platform-tools (34.0.5-12qli1) forky; urgency=medium
 
