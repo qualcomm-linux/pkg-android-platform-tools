@@ -25,7 +25,7 @@ jobs:
         name: Set matrix
         run: |
           # Define candidate branches (duplicated from workflow_dispatch options in debusine.yml)
-          candidates='["test/vrokad"]'
+          candidates='["qli/debian/trixie"]'
 
           # Filter to branches that exist
           existing=()
