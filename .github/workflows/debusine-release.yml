@@ -26,7 +26,7 @@ jobs:
       target_branch: ${{ github.ref_name }}
       source_ref: refs/heads/${{ github.ref_name }}
       release: ${{ inputs.release }}
-      debusine-action-ref: main
+      debusine-action-ref: enable-axiom
       debusine-parent-workspace: ${{ vars.DEBUSINE_PARENT_WORKSPACE || 'qli-ci' }}
     permissions:
       contents: write
