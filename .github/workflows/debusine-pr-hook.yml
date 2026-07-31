@@ -14,6 +14,7 @@ on:
       - 'qli/debian/**'
       - 'qli-staging/debian/**'
       - 'qcom/debian/**'
+      - 'qli/test/**'
 
 permissions:
   contents: read
