@@ -1,0 +1,42 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# TEMPORARY test-only workflow. Do NOT copy into packaging branches.
+#
+# Exercises the PR path against debusine-action@enable-axiom without touching
+# the default branch. debusine-pr-check.yml is workflow_run-triggered, so it
+# only ever runs from the default branch (qli-ci) where debusine.yml is pinned
+# to @main. A pull_request-triggered workflow instead runs from the PR's *base*
+# branch, so this file takes effect for PRs targeting qli/test/**.
+#
+# debusine-pr-hook.yml is deliberately left unmodified: its branch filter does
+# not list qli/test/**, so it never fires here, and therefore the @main
+# debusine-pr-check.yml it would have chained into never runs either.
+
+name: Debusine PR Test
+
+on:
+  pull_request:
+    branches:
+      - 'qli/test/**'
+
+permissions:
+  contents: write
+  deployments: write
+  statuses: write
+  packages: read
+
+jobs:
+  debusine:
+    name: Debusine
+    uses: qualcomm-linux/debusine-action/.github/workflows/debusine.yml@enable-axiom
+    with:
+      source_ref: refs/pull/${{ github.event.pull_request.number }}/merge
+      target_branch: ${{ github.event.pull_request.base.ref }}
+      release: false
+      debusine-action-ref: enable-axiom
+      debusine-parent-workspace: ${{ vars.DEBUSINE_PARENT_WORKSPACE || 'qli-ci' }}
+    secrets:
+      DEBUSINE_USER: ${{ secrets.DEBUSINE_USER }}
+      DEBUSINE_TOKEN: ${{ secrets.DEBUSINE_TOKEN }}
+      DEBUSINE_RELEASE_TOKEN: ${{ secrets.DEBUSINE_RELEASE_TOKEN }}
