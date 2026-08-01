@@ -1,6 +1,7 @@
 android-platform-tools (34.0.5-12qli1~bpo13+2~) UNRELEASED; urgency=medium
 
   * Unreleased changes
+  * Test PR build against debusine-action@enable-axiom.
 
  -- root <root@e45932097d56>  Wed, 08 Jul 2026 12:40:12 +0000
 
