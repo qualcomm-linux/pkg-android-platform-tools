@@ -34,6 +34,7 @@ jobs:
       source_ref: refs/pull/${{ github.event.pull_request.number }}/merge
       target_branch: ${{ github.event.pull_request.base.ref }}
       release: false
+      workflow_kind: PR
       debusine-action-ref: enable-axiom
       debusine-parent-workspace: ${{ vars.DEBUSINE_PARENT_WORKSPACE || 'qli-ci' }}
     secrets:
