@@ -51,6 +51,7 @@ jobs:
     uses: qualcomm-linux/debusine-action/.github/workflows/debusine.yml@enable-axiom
     with:
       target_branch: ${{ matrix.target_branch }}
+      workflow_kind: DAILY
       source_ref: refs/heads/${{ matrix.target_branch }}
       release: false
       debusine-action-ref: enable-axiom
